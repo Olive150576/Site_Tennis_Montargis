@@ -1,0 +1,38 @@
+# === FIREBASE ===
+.firebase/
+.firebaserc.local
+
+# === NODE / FUNCTIONS ===
+functions/node_modules/
+functions/.env
+functions/.env.*
+node_modules/
+
+# === SECRETS & CREDENTIALS ===
+*.key
+*.pem
+service-account*.json
+*-credentials.json
+.env
+.env.*
+
+# === LOGS ===
+*.log
+npm-debug.log*
+firebase-debug.log*
+firestore-debug.log*
+ui-debug.log*
+
+# === OS ===
+.DS_Store
+Thumbs.db
+desktop.ini
+nul
+
+# === CLAUDE CODE ===
+.claude/
+
+# === EDITEURS ===
+.vscode/settings.json
+*.swp
+*.swo

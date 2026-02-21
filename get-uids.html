@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Récupération UIDs - USM Tennis</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #020617;
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background: #020617;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px 10px 0;
+        }
+        button:hover {
+            background: #1e293b;
+        }
+        .info {
+            background: #e0f2fe;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+            border-left: 4px solid #0284c7;
+        }
+        .uid-display {
+            background: #f8fafc;
+            padding: 20px;
+            border-radius: 4px;
+            margin: 20px 0;
+            display: none;
+        }
+        .uid-item {
+            background: white;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 4px;
+            border-left: 4px solid #16a34a;
+        }
+        .uid-item strong {
+            color: #020617;
+            display: block;
+            margin-bottom: 8px;
+        }
+        .uid-item code {
+            background: #f1f5f9;
+            padding: 8px;
+            border-radius: 3px;
+            font-size: 13px;
+            color: #475569;
+            display: block;
+            word-break: break-all;
+            user-select: all;
+        }
+        .copy-btn {
+            background: #0284c7;
+            padding: 6px 12px;
+            font-size: 12px;
+            margin-top: 8px;
+        }
+        .error {
+            background: #fee2e2;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+            border-left: 4px solid #dc2626;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Récupération des UIDs</h1>
+
+        <div class="info">
+            <strong>Instructions :</strong><br>
+            Connectez-vous avec chacun de vos 3 comptes admin pour récupérer leurs UIDs complets.
+        </div>
+
+        <div class="form-group">
+            <label>Email :</label>
+            <input type="email" id="email" placeholder="exemple@gmail.com">
+        </div>
+
+        <div class="form-group">
+            <label>Mot de passe :</label>
+            <input type="password" id="password" placeholder="••••••••">
+        </div>
+
+        <button onclick="login()">Se connecter et récupérer l'UID</button>
+        <button onclick="logout()" style="background: #dc2626;">Se déconnecter</button>
+
+        <div id="uidDisplay" class="uid-display"></div>
+        <div class="error" id="errorMsg"></div>
+
+        <div style="margin-top: 30px; padding: 20px; background: #fef3c7; border-radius: 4px; border-left: 4px solid #f59e0b;">
+            <strong>📝 Note :</strong> Une fois tous les UIDs récupérés, copiez-les et donnez-les moi pour que je puisse mettre à jour le script d'ajout des admins.
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
+
+    <script>
+        // Configuration Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyA4GdfEh3M6mEszwRFif049qsmoLq4tn7c",
+            authDomain: "usm-tennis.firebaseapp.com",
+            databaseURL: "https://usm-tennis-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "usm-tennis",
+            storageBucket: "usm-tennis.firebasestorage.app",
+            messagingSenderId: "631286589550",
+            appId: "1:631286589550:web:7e68afcddfbb8e16d79e7f",
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+
+        let collectedUIDs = JSON.parse(localStorage.getItem('collectedUIDs') || '[]');
+
+        function showError(msg) {
+            document.getElementById('errorMsg').textContent = msg;
+            document.getElementById('errorMsg').style.display = 'block';
+        }
+
+        function hideError() {
+            document.getElementById('errorMsg').style.display = 'none';
+        }
+
+        function updateDisplay() {
+            const display = document.getElementById('uidDisplay');
+
+            if (collectedUIDs.length === 0) {
+                display.style.display = 'none';
+                return;
+            }
+
+            display.style.display = 'block';
+            display.innerHTML = '<h3>✅ UIDs Collectés (' + collectedUIDs.length + '/3) :</h3>';
+
+            collectedUIDs.forEach((item, index) => {
+                const div = document.createElement('div');
+                div.className = 'uid-item';
+                div.innerHTML = `
+                    <strong>${index + 1}. ${item.email}</strong>
+                    <code id="uid-${index}">${item.uid}</code>
+                    <button class="copy-btn" onclick="copyUID('${item.uid}', ${index})">📋 Copier l'UID</button>
+                `;
+                display.appendChild(div);
+            });
+
+            // Bouton pour copier tout
+            if (collectedUIDs.length === 3) {
+                const copyAllBtn = document.createElement('button');
+                copyAllBtn.textContent = '📋 Copier tous les UIDs (format JSON)';
+                copyAllBtn.style.width = '100%';
+                copyAllBtn.style.background = '#16a34a';
+                copyAllBtn.onclick = copyAllUIDs;
+                display.appendChild(copyAllBtn);
+            }
+        }
+
+        function copyUID(uid, index) {
+            navigator.clipboard.writeText(uid).then(() => {
+                alert('✅ UID copié dans le presse-papier !');
+            });
+        }
+
+        function copyAllUIDs() {
+            const json = JSON.stringify(collectedUIDs, null, 2);
+            navigator.clipboard.writeText(json).then(() => {
+                alert('✅ Tous les UIDs copiés au format JSON !');
+            });
+        }
+
+        async function login() {
+            hideError();
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+
+            if (!email || !password) {
+                showError('Veuillez remplir tous les champs');
+                return;
+            }
+
+            try {
+                const userCredential = await auth.signInWithEmailAndPassword(email, password);
+                const user = userCredential.user;
+
+                // Vérifier si déjà collecté
+                if (!collectedUIDs.find(u => u.uid === user.uid)) {
+                    collectedUIDs.push({
+                        email: user.email,
+                        uid: user.uid
+                    });
+                    localStorage.setItem('collectedUIDs', JSON.stringify(collectedUIDs));
+                }
+
+                updateDisplay();
+
+                // Vider les champs
+                document.getElementById('email').value = '';
+                document.getElementById('password').value = '';
+
+                if (collectedUIDs.length < 3) {
+                    alert(`✅ UID récupéré ! (${collectedUIDs.length}/3)\n\nDéconnectez-vous et connectez-vous avec le prochain compte.`);
+                } else {
+                    alert('🎉 Tous les UIDs sont récupérés !\n\nCopiez-les et donnez-les moi.');
+                }
+
+            } catch (error) {
+                showError('Erreur de connexion : ' + error.message);
+                console.error(error);
+            }
+        }
+
+        async function logout() {
+            await auth.signOut();
+            alert('Déconnecté ! Connectez-vous avec un autre compte.');
+        }
+
+        // Charger les UIDs sauvegardés au démarrage
+        updateDisplay();
+    </script>
+</body>
+</html>

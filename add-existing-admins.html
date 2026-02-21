@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Ajout des Admins Existants - USM Tennis</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #020617;
+            margin-bottom: 20px;
+        }
+        .admin-list {
+            background: #f8fafc;
+            padding: 20px;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+        .admin-item {
+            background: white;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 4px;
+            border-left: 4px solid #0284c7;
+        }
+        .admin-item strong {
+            color: #020617;
+        }
+        .admin-item code {
+            background: #f1f5f9;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 12px;
+            color: #475569;
+        }
+        button {
+            background: #020617;
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+            width: 100%;
+        }
+        button:hover {
+            background: #1e293b;
+        }
+        button:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+        }
+        .info {
+            background: #e0f2fe;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+            border-left: 4px solid #0284c7;
+        }
+        .success {
+            background: #dcfce7;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+            border-left: 4px solid #16a34a;
+            display: none;
+        }
+        .error {
+            background: #fee2e2;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+            border-left: 4px solid #dc2626;
+            display: none;
+        }
+        .progress {
+            margin: 20px 0;
+            display: none;
+        }
+        .progress-item {
+            padding: 10px;
+            margin: 5px 0;
+            background: #f8fafc;
+            border-radius: 4px;
+        }
+        .progress-item.success {
+            background: #dcfce7;
+            display: block;
+        }
+        .progress-item.error {
+            background: #fee2e2;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Ajout des Administrateurs Existants</h1>
+
+        <div class="info">
+            <strong>⚠️ Important :</strong> Ce script va ajouter les 3 comptes administrateurs existants dans la base de données Firebase avec les permissions appropriées.
+        </div>
+
+        <div class="admin-list">
+            <h3>👥 Comptes à ajouter comme administrateurs :</h3>
+
+            <div class="admin-item">
+                <strong>1. akaswitch@gmail.com</strong><br>
+                <code>UID: FXBidbRW2NVLjbdOmx8z3jR...</code>
+            </div>
+
+            <div class="admin-item">
+                <strong>2. usmmtennis@gmail.com</strong><br>
+                <code>UID: HXIig9xDRtYXgxFH6xF5uCg1...</code>
+            </div>
+
+            <div class="admin-item">
+                <strong>3. olivier150576@gmail.c</strong><br>
+                <code>UID: Lv6nIzblB2XJKZKPGJGzsANjJ...</code>
+            </div>
+        </div>
+
+        <button onclick="addAllAdmins()" id="addBtn">🚀 Ajouter ces 3 comptes comme Admins</button>
+
+        <div class="progress" id="progress"></div>
+        <div class="success" id="successMsg"></div>
+        <div class="error" id="errorMsg"></div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-database-compat.js"></script>
+
+    <script>
+        // Configuration Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyA4GdfEh3M6mEszwRFif049qsmoLq4tn7c",
+            authDomain: "usm-tennis.firebaseapp.com",
+            databaseURL: "https://usm-tennis-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "usm-tennis",
+            storageBucket: "usm-tennis.firebasestorage.app",
+            messagingSenderId: "631286589550",
+            appId: "1:631286589550:web:7e68afcddfbb8e16d79e7f",
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        // Liste des administrateurs à ajouter (UIDs complets fournis)
+        const admins = [
+            {
+                uid: "FXBidbRW2NVLjbdOmx8z3jRuSOP2",
+                email: "akaswitch@gmail.com"
+            },
+            {
+                uid: "HXiig9xDRtYXgxFH6xF5uCg1wcu1",
+                email: "usmmtennis@gmail.com"
+            },
+            {
+                uid: "Lv6nlzblB2XJKZKPGJGzsANjJ1j1",
+                email: "olivier150576@gmail.c"
+            }
+        ];
+
+        function showError(msg) {
+            document.getElementById('errorMsg').textContent = msg;
+            document.getElementById('errorMsg').style.display = 'block';
+            document.getElementById('successMsg').style.display = 'none';
+        }
+
+        function showSuccess(msg) {
+            document.getElementById('successMsg').textContent = msg;
+            document.getElementById('successMsg').style.display = 'block';
+            document.getElementById('errorMsg').style.display = 'none';
+        }
+
+        function addProgress(msg, isSuccess = true) {
+            const progressDiv = document.getElementById('progress');
+            progressDiv.style.display = 'block';
+            const item = document.createElement('div');
+            item.className = 'progress-item ' + (isSuccess ? 'success' : 'error');
+            item.textContent = (isSuccess ? '✅ ' : '❌ ') + msg;
+            progressDiv.appendChild(item);
+        }
+
+        async function addAllAdmins() {
+            const btn = document.getElementById('addBtn');
+            btn.disabled = true;
+            btn.textContent = '⏳ Ajout en cours...';
+
+            document.getElementById('progress').innerHTML = '';
+            document.getElementById('errorMsg').style.display = 'none';
+            document.getElementById('successMsg').style.display = 'none';
+
+            let successCount = 0;
+            let errorCount = 0;
+
+            try {
+                // Créer un objet avec tous les admins
+                const adminsData = {};
+
+                for (const admin of admins) {
+                    adminsData[admin.uid] = {
+                        email: admin.email,
+                        addedAt: firebase.database.ServerValue.TIMESTAMP,
+                        addedBy: "setup-script"
+                    };
+                }
+
+                // Ajouter tous les admins en une seule opération
+                await db.ref('admins').set(adminsData);
+
+                for (const admin of admins) {
+                    addProgress(`Admin ajouté : ${admin.email}`, true);
+                    successCount++;
+                }
+
+                showSuccess(
+                    `🎉 Succès ! ${successCount} administrateur(s) ajouté(s).\n\n` +
+                    'Les comptes peuvent maintenant se connecter au site avec leurs droits admin.\n\n' +
+                    'Vous pouvez fermer cette page et retourner sur index.html.'
+                );
+
+                btn.textContent = '✅ Terminé !';
+
+            } catch (error) {
+                showError(
+                    '❌ Erreur lors de l\'ajout des administrateurs.\n\n' +
+                    'Détails : ' + error.message + '\n\n' +
+                    'Vérifiez que :\n' +
+                    '1. Les règles Firebase sont bien déployées\n' +
+                    '2. Votre connexion Internet fonctionne\n' +
+                    '3. Le projet Firebase est correctement configuré'
+                );
+
+                addProgress('Échec : ' + error.message, false);
+                errorCount++;
+
+                btn.disabled = false;
+                btn.textContent = '🔄 Réessayer';
+
+                console.error('Erreur détaillée :', error);
+            }
+        }
+
+        // Afficher un message au chargement
+        window.addEventListener('load', () => {
+            console.log('Script prêt. Cliquez sur le bouton pour ajouter les admins.');
+        });
+    </script>
+</body>
+</html>

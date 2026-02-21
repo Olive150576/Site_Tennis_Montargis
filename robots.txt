@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /setup-admin.html
+Disallow: /get-uids.html
+Disallow: /add-existing-admins.html
+
+Sitemap: https://tennismontargis.fr/sitemap.xml

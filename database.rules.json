@@ -1,0 +1,60 @@
+{
+  "rules": {
+    "news": {
+      ".read": true,
+      ".write": "auth != null && root.child('admins').child(auth.uid).exists()",
+      ".indexOn": ["createdAt", "date"]
+    },
+    "event": {
+      ".read": true,
+      ".write": "auth != null && root.child('admins').child(auth.uid).exists()"
+    },
+    "inst": {
+      ".read": true,
+      ".write": "auth != null && root.child('admins').child(auth.uid).exists()"
+    },
+    "coach": {
+      ".read": true,
+      ".write": "auth != null && root.child('admins').child(auth.uid).exists()"
+    },
+    "rates": {
+      ".read": true,
+      ".write": "auth != null && root.child('admins').child(auth.uid).exists()"
+    },
+    "sponsors": {
+      ".read": true,
+      ".write": "auth != null && root.child('admins').child(auth.uid).exists()"
+    },
+    "info": {
+      ".read": true,
+      ".write": "auth != null && root.child('admins').child(auth.uid).exists()"
+    },
+    "documents": {
+      ".read": true,
+      ".write": "auth != null && root.child('admins').child(auth.uid).exists()"
+    },
+    "contacts": {
+      ".read": "auth != null && root.child('admins').child(auth.uid).exists()",
+      ".write": true,
+      "$contactId": {
+        ".validate": "newData.hasChildren(['name', 'email', 'message', 'date', 'timestamp']) && newData.child('name').isString() && newData.child('name').val().length > 0 && newData.child('name').val().length < 200 && newData.child('email').isString() && newData.child('email').val().length > 5 && newData.child('email').val().length < 200 && newData.child('message').isString() && newData.child('message').val().length > 0 && newData.child('message').val().length < 5000 && newData.child('timestamp').isNumber() && newData.child('timestamp').val() >= (now - 300000) && newData.child('timestamp').val() <= (now + 10000)"
+      }
+    },
+    "admins": {
+      ".read": "auth != null",
+      ".write": "auth != null && root.child('admins').child(auth.uid).exists()"
+    },
+    "push_subscriptions": {
+      ".read": "auth != null && root.child('admins').child(auth.uid).exists()",
+      ".write": false,
+      "$tokenId": {
+        ".write": "!data.exists() || data.child('token').val() === newData.child('token').val()",
+        ".validate": "newData.hasChildren(['token', 'subscribedAt']) && newData.child('token').isString() && newData.child('token').val().length > 50 && newData.child('token').val().length < 500 && newData.child('subscribedAt').isString() && newData.child('subscribedAt').val().length < 30 && !newData.hasChild('script') && !newData.hasChild('html')"
+      }
+    },
+    "$other": {
+      ".read": false,
+      ".write": false
+    }
+  }
+}

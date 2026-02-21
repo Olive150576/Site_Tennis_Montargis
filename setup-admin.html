@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Configuration Admin - USM Tennis</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #020617;
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background: #020617;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+        button:hover {
+            background: #1e293b;
+        }
+        .info {
+            background: #e0f2fe;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+            border-left: 4px solid #0284c7;
+        }
+        .success {
+            background: #dcfce7;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+            border-left: 4px solid #16a34a;
+            display: none;
+        }
+        .error {
+            background: #fee2e2;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+            border-left: 4px solid #dc2626;
+            display: none;
+        }
+        pre {
+            background: #f8fafc;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Configuration Administrateur</h1>
+
+        <div class="info">
+            <strong>Instructions :</strong>
+            <ol>
+                <li>Connectez-vous avec votre email et mot de passe</li>
+                <li>Cliquez sur "Ajouter comme Admin"</li>
+                <li>Votre compte sera ajouté à la liste des administrateurs</li>
+                <li>Retournez sur le site principal pour accéder au mode admin</li>
+            </ol>
+        </div>
+
+        <div class="form-group">
+            <label>Email :</label>
+            <input type="email" id="email" placeholder="votre@email.com">
+        </div>
+
+        <div class="form-group">
+            <label>Mot de passe :</label>
+            <input type="password" id="password" placeholder="••••••••">
+        </div>
+
+        <button onclick="loginAndSetAdmin()">1️⃣ Se Connecter</button>
+        <button onclick="addAsAdmin()" id="addAdminBtn" style="display:none;">2️⃣ Ajouter comme Admin</button>
+
+        <div id="userInfo" style="display:none; margin-top: 20px;">
+            <pre id="userDetails"></pre>
+        </div>
+
+        <div class="success" id="successMsg"></div>
+        <div class="error" id="errorMsg"></div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-database-compat.js"></script>
+
+    <script>
+        // Configuration Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyA4GdfEh3M6mEszwRFif049qsmoLq4tn7c",
+            authDomain: "usm-tennis.firebaseapp.com",
+            databaseURL: "https://usm-tennis-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "usm-tennis",
+            storageBucket: "usm-tennis.firebasestorage.app",
+            messagingSenderId: "631286589550",
+            appId: "1:631286589550:web:7e68afcddfbb8e16d79e7f",
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.database();
+
+        let currentUser = null;
+
+        function showError(msg) {
+            document.getElementById('errorMsg').textContent = msg;
+            document.getElementById('errorMsg').style.display = 'block';
+            document.getElementById('successMsg').style.display = 'none';
+        }
+
+        function showSuccess(msg) {
+            document.getElementById('successMsg').textContent = msg;
+            document.getElementById('successMsg').style.display = 'block';
+            document.getElementById('errorMsg').style.display = 'none';
+        }
+
+        async function loginAndSetAdmin() {
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+
+            if (!email || !password) {
+                showError('Veuillez remplir tous les champs');
+                return;
+            }
+
+            try {
+                const userCredential = await auth.signInWithEmailAndPassword(email, password);
+                currentUser = userCredential.user;
+
+                document.getElementById('userDetails').textContent =
+                    `✅ Connecté !\n\n` +
+                    `Email: ${currentUser.email}\n` +
+                    `UID: ${currentUser.uid}\n\n` +
+                    `Cliquez sur "Ajouter comme Admin" pour finaliser.`;
+
+                document.getElementById('userInfo').style.display = 'block';
+                document.getElementById('addAdminBtn').style.display = 'inline-block';
+                showSuccess('Connexion réussie ! Maintenant cliquez sur "Ajouter comme Admin"');
+
+            } catch (error) {
+                showError('Erreur de connexion : ' + error.message);
+                console.error(error);
+            }
+        }
+
+        async function addAsAdmin() {
+            if (!currentUser) {
+                showError('Veuillez d\'abord vous connecter');
+                return;
+            }
+
+            try {
+                // Ajouter l'utilisateur à la liste des admins
+                await db.ref('admins/' + currentUser.uid).set({
+                    email: currentUser.email,
+                    addedAt: firebase.database.ServerValue.TIMESTAMP
+                });
+
+                showSuccess(
+                    '🎉 Succès ! Vous êtes maintenant administrateur.\n\n' +
+                    'Vous pouvez retourner sur le site principal (index.html) et vous connecter avec ces identifiants.'
+                );
+
+                // Cache les boutons
+                document.getElementById('addAdminBtn').style.display = 'none';
+
+            } catch (error) {
+                showError('Erreur lors de l\'ajout : ' + error.message + '\n\nVérifiez que les règles Firebase sont bien configurées.');
+                console.error(error);
+            }
+        }
+    </script>
+</body>
+</html>
