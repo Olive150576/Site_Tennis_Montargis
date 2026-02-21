@@ -1,0 +1,18 @@
+{
+  "name": "site-tennis-montargis",
+  "version": "1.0.0",
+  "description": "Site web USM Tennis Montargis",
+  "scripts": {
+    "git:start": "echo === RAPPEL : Avez-vous fait 'git pull' ? === && git fetch origin && git status",
+    "git:end": "echo === RAPPEL : N'oubliez pas de commit et push ! === && git status",
+    "git:sync": "git add . && git status",
+    "deploy:major": "echo === DEPLOIEMENT MAJEUR : Git + Firebase === && git add . && git status && echo N'oubliez pas : 1. git commit -m 'message' && 2. git push && 3. firebase deploy",
+    "firebase:login": "firebase login",
+    "firebase:init": "firebase init",
+    "firebase:deploy": "firebase deploy",
+    "firebase:serve": "firebase serve"
+  },
+  "keywords": ["tennis", "montargis", "usm"],
+  "author": "",
+  "license": "ISC"
+}
