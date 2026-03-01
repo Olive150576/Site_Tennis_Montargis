@@ -1111,6 +1111,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- MOBILE BOTTOM NAV : ACTIVE STATE ---
     const bnavMap = {
         'bnav-news':    'news-section',
+        'bnav-inst':    'inst-section',
         'bnav-rates':   'rates-section',
         'bnav-contact': 'contact-section',
     };
