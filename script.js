@@ -656,9 +656,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>` : ''}
                 </div>`;
             };
-            const originals = items.map((item, i) => makeCard(item, i, false)).join('');
-            const clones = items.map((item, i) => makeCard(item, i, true)).join('');
-            grid.innerHTML = `<div class="sponsors-track">${originals}${clones}</div>`;
+            // Répéter assez de fois pour remplir le carousel en continu
+            // (minimum 10 items par moitié pour éviter les espaces vides)
+            const repeats = Math.max(1, Math.ceil(10 / items.length));
+            let trackHTML = '';
+            for (let k = 0; k < repeats * 2; k++) {
+                trackHTML += items.map((item, i) => makeCard(item, i, k > 0)).join('');
+            }
+            grid.innerHTML = `<div class="sponsors-track">${trackHTML}</div>`;
 
             // Alimenter aussi le bandeau en haut de page
             const bannerTrack = document.getElementById('sponsors-banner-track');
@@ -666,11 +671,14 @@ document.addEventListener('DOMContentLoaded', () => {
             if (bannerTrack && banner) {
                 const published = items.filter(item => !item.draft);
                 if (published.length > 0) {
-                    const bannerLogos = published.map(item => `
+                    const bannerRepeats = Math.max(1, Math.ceil(10 / published.length));
+                    const singleLogo = published.map(item => `
                         <a href="${escapeHtml(item.url || '#')}" target="_blank" rel="noopener noreferrer" class="sponsors-banner-logo">
                             <img src="${escapeHtml(item.images?.[0] || '')}" alt="${escapeHtml(item.title || '')}" loading="lazy">
                         </a>`).join('');
-                    bannerTrack.innerHTML = bannerLogos + bannerLogos;
+                    let bannerHTML = '';
+                    for (let k = 0; k < bannerRepeats * 2; k++) bannerHTML += singleLogo;
+                    bannerTrack.innerHTML = bannerHTML;
                     banner.style.display = 'flex';
                 }
             }
