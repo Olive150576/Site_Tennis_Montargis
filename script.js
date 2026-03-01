@@ -6,8 +6,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- DÉTECTION SECTION ACTIVE (nav links) ---
     const navLinks = document.querySelectorAll('.nav-link');
-    const sectionIds = ['news-section', 'event-section', 'inst-section', 'contact-section'];
-    const sectionObserver = new IntersectionObserver((entries) => {
+    const navSectionIds = ['news-section', 'event-section', 'inst-section', 'contact-section'];
+    const navObserver = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
                 navLinks.forEach(link => {
@@ -16,9 +16,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }, { threshold: 0.25, rootMargin: '-80px 0px -50% 0px' });
-    sectionIds.forEach(id => {
+    navSectionIds.forEach(id => {
         const el = document.getElementById(id);
-        if (el) sectionObserver.observe(el);
+        if (el) navObserver.observe(el);
     });
 
     // --- CLARITY TRACKING HELPER ---
