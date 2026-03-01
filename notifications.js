@@ -515,15 +515,23 @@ document.addEventListener('DOMContentLoaded', () => {
         navigator.serviceWorker.ready.then(async () => {
             updateNotificationButton();
 
-            // Auto-prompt après 4 secondes si jamais demandé
+            // Auto-prompt au premier geste utilisateur (Chrome exige une interaction)
             const alreadyAsked = localStorage.getItem('notif_asked');
             if (!alreadyAsked) {
                 const status = await checkSubscriptionStatus();
                 if (status === 'unsubscribed') {
-                    setTimeout(() => {
-                        localStorage.setItem('notif_asked', '1');
-                        subscribeToNotifications();
-                    }, 4000);
+                    const triggerOnGesture = () => {
+                        ['click', 'scroll', 'touchstart', 'keydown'].forEach(e =>
+                            document.removeEventListener(e, triggerOnGesture)
+                        );
+                        setTimeout(() => {
+                            localStorage.setItem('notif_asked', '1');
+                            subscribeToNotifications();
+                        }, 1000);
+                    };
+                    ['click', 'scroll', 'touchstart', 'keydown'].forEach(e =>
+                        document.addEventListener(e, triggerOnGesture, { once: true, passive: true })
+                    );
                 }
             }
         });
