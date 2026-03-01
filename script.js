@@ -4,6 +4,23 @@ document.addEventListener('DOMContentLoaded', () => {
     window.isCurrentUserAdmin = false; // Variable globale pour stocker l'état admin
     window.firebaseListeners = []; // Stocker les listeners pour cleanup
 
+    // --- DÉTECTION SECTION ACTIVE (nav links) ---
+    const navLinks = document.querySelectorAll('.nav-link');
+    const sectionIds = ['news-section', 'event-section', 'inst-section', 'contact-section'];
+    const sectionObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                navLinks.forEach(link => {
+                    link.classList.toggle('active', link.getAttribute('href') === `#${entry.target.id}`);
+                });
+            }
+        });
+    }, { threshold: 0.25, rootMargin: '-80px 0px -50% 0px' });
+    sectionIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) sectionObserver.observe(el);
+    });
+
     // --- CLARITY TRACKING HELPER ---
     function clarityEvent(name, data) {
         if (typeof window.clarity === 'function') {

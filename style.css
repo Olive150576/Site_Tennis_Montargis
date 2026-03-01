@@ -182,22 +182,46 @@ header {
 
 .main-nav ul li {
     white-space: nowrap;
+    position: relative;
+}
+
+/* Séparateurs verticaux entre les liens */
+.main-nav ul li + li::before {
+    content: '';
+    position: absolute;
+    left: -8px;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 14px;
+    width: 1px;
+    background: rgba(255, 255, 255, 0.2);
 }
 
 .nav-link {
-    color: white !important;
+    color: rgba(255, 255, 255, 0.75) !important;
     text-decoration: none;
     text-transform: uppercase;
     font-size: 0.85rem;
-    /* Réduit de 0.95rem à 0.85rem */
-    font-weight: 700;
-    transition: 0.3s;
+    font-weight: 600;
+    transition: all 0.25s ease;
     font-family: 'Orbitron', sans-serif;
     letter-spacing: 0.5px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    position: relative;
 }
 
 .nav-link:hover {
+    color: white !important;
+    background: rgba(0, 210, 255, 0.1);
+    box-shadow: inset 0 0 0 1px rgba(0, 210, 255, 0.3);
+}
+
+.nav-link.active {
     color: var(--electric-cyan) !important;
+    background: rgba(0, 210, 255, 0.12);
+    box-shadow: inset 0 0 0 1px rgba(0, 210, 255, 0.45),
+                0 0 12px rgba(0, 210, 255, 0.15);
 }
 
 .header-actions {
@@ -259,21 +283,6 @@ header {
     display: none;
 }
 
-.main-nav ul li a::after {
-    content: '';
-    position: absolute;
-    width: 0;
-    height: 2px;
-    bottom: 0;
-    left: 0;
-    background: var(--electric-cyan);
-    box-shadow: 0 0 8px var(--electric-cyan);
-    transition: width 0.3s ease;
-}
-
-.main-nav ul li a:hover::after {
-    width: 100%;
-}
 
 /* --- TITRES --- */
 .section-title {
