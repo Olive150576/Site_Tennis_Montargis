@@ -512,8 +512,20 @@ async function removeSubscriptionFromDatabase(subscription) {
 // Initialisation au chargement
 document.addEventListener('DOMContentLoaded', () => {
     if (isPushSupported()) {
-        navigator.serviceWorker.ready.then(() => {
+        navigator.serviceWorker.ready.then(async () => {
             updateNotificationButton();
+
+            // Auto-prompt après 4 secondes si jamais demandé
+            const alreadyAsked = localStorage.getItem('notif_asked');
+            if (!alreadyAsked) {
+                const status = await checkSubscriptionStatus();
+                if (status === 'unsubscribed') {
+                    setTimeout(() => {
+                        localStorage.setItem('notif_asked', '1');
+                        subscribeToNotifications();
+                    }, 4000);
+                }
+            }
         });
     }
 });
