@@ -1122,22 +1122,21 @@ document.addEventListener('DOMContentLoaded', () => {
         target?.classList.add('active');
     }
 
-    // Détection par scroll : quelle section occupe le milieu de l'écran ?
+    // Détection par scroll : dernière section dont le haut a passé 40% de l'écran
     function updateBottomNavActive() {
-        if (window.scrollY < 300) {
+        if (window.scrollY < 200) {
             setActiveBottomNav('bnav-home');
             return;
         }
-        const mid = window.innerHeight / 2;
+        const trigger = window.scrollY + window.innerHeight * 0.4;
+        let activeNav = null;
         for (const [navId, sectionId] of Object.entries(bnavMap)) {
             const el = document.getElementById(sectionId);
             if (!el) continue;
-            const rect = el.getBoundingClientRect();
-            if (rect.top <= mid && rect.bottom >= mid) {
-                setActiveBottomNav(navId);
-                return;
-            }
+            const elTop = el.getBoundingClientRect().top + window.scrollY;
+            if (elTop <= trigger) activeNav = navId;
         }
+        if (activeNav) setActiveBottomNav(activeNav);
     }
 
     window.addEventListener('scroll', updateBottomNavActive, { passive: true });
