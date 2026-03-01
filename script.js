@@ -908,6 +908,21 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 300);
     };
 
+    // Devenir Partenaire - scroll + pré-remplissage contact
+    window.contactForPartnership = () => {
+        const contactSection = document.getElementById('contact-section');
+        if (contactSection) {
+            contactSection.scrollIntoView({ behavior: 'smooth' });
+        }
+        setTimeout(() => {
+            const messageField = document.getElementById('contact-message');
+            if (messageField && !messageField.value) {
+                messageField.value = `Bonjour,\n\nJe souhaite devenir partenaire du club USM Tennis Montargis et aimerais être contacté(e) pour discuter des modalités de partenariat.\n\nCordialement,`;
+                messageField.focus();
+            }
+        }, 600);
+    };
+
     // Fermer la galerie
     window.closeGallery = () => {
         if (window.currentOpenModal === 'gallery-modal') {
