@@ -640,23 +640,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (section === 'news' || section === 'event') items.reverse();
 
-        // Rendu spécifique pour les SPONSORS
+        // Rendu spécifique pour les SPONSORS (carousel défilant)
         if (section === 'sponsors') {
-            grid.innerHTML = items.map((item, i) => {
+            const makeCard = (item, i, isClone) => {
                 const isDraft = !!item.draft;
                 return `
-                <div class="sponsor-card" style="position:relative; transition: transform 0.3s;${isDraft ? 'opacity:0.7; border:2px dashed #fb923c; border-radius:12px;' : ''}">
-                    ${isDraft && window.isCurrentUserAdmin ? `<div style="position:absolute; top:5px; left:5px; background:#fb923c; color:white; padding:2px 8px; border-radius:8px; font-size:0.65rem; z-index:5; font-weight:bold;"><i class="fas fa-eye-slash"></i> BROUILLON</div>` : ''}
-                    <a href="${escapeHtml(item.url || '#')}" target="_blank" rel="noopener noreferrer" style="display:block;">
-                        <img src="${escapeHtml(item.images?.[0] || '')}" alt="${escapeHtml(item.title || '')}" style="width:100%; height:auto; border-radius:10px;">
+                <div class="sponsor-card${isDraft ? ' sponsor-draft' : ''}">
+                    ${isDraft && window.isCurrentUserAdmin && !isClone ? `<div style="position:absolute; top:-8px; left:8px; background:#fb923c; color:white; padding:2px 8px; border-radius:8px; font-size:0.65rem; z-index:5; font-weight:bold;"><i class="fas fa-eye-slash"></i> BROUILLON</div>` : ''}
+                    <a href="${escapeHtml(item.url || '#')}" target="_blank" rel="noopener noreferrer" style="display:flex; align-items:center; justify-content:center; width:100%; height:100%;">
+                        <img src="${escapeHtml(item.images?.[0] || '')}" alt="${escapeHtml(item.title || '')}" loading="lazy">
                     </a>
-                    <!-- Admin Buttons Sponsors -->
-                    <div class="admin-only hidden" style="position:absolute; top:5px; right:5px; display:flex; gap:5px;">
-                        <button onclick="event.stopPropagation(); editItem('${section}', ${i})" style="background:rgba(0,210,255,0.9); border:none; color:white; width:30px; height:30px; border-radius:50%; cursor:pointer;"><i class="fas fa-edit"></i></button>
-                        <button onclick="event.stopPropagation(); deleteItem('${section}', ${i})" style="background:rgba(239,68,68,0.9); border:none; color:white; width:30px; height:30px; border-radius:50%; cursor:pointer;"><i class="fas fa-trash"></i></button>
-                    </div>
+                    ${!isClone ? `<div class="admin-only hidden" style="position:absolute; top:5px; right:5px; display:flex; gap:5px; z-index:10;">
+                        <button onclick="event.stopPropagation(); editItem('${section}', ${i})" style="background:rgba(0,210,255,0.9); border:none; color:white; width:28px; height:28px; border-radius:50%; cursor:pointer;"><i class="fas fa-edit"></i></button>
+                        <button onclick="event.stopPropagation(); deleteItem('${section}', ${i})" style="background:rgba(239,68,68,0.9); border:none; color:white; width:28px; height:28px; border-radius:50%; cursor:pointer;"><i class="fas fa-trash"></i></button>
+                    </div>` : ''}
                 </div>`;
-            }).join('');
+            };
+            const originals = items.map((item, i) => makeCard(item, i, false)).join('');
+            const clones = items.map((item, i) => makeCard(item, i, true)).join('');
+            grid.innerHTML = `<div class="sponsors-track">${originals}${clones}</div>`;
         }
         // Rendu STANDARD (News, Events, Coach, Rates...)
         else {

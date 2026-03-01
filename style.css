@@ -1006,12 +1006,7 @@ body.clubhouse-mode .theme-toggle i.fa-sun {
 
 /* --- SPONSORS SECTION (BANDEAU) --- */
 .sponsors-grid {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    align-items: center;
-    gap: 50px;
-    padding: 50px;
+    overflow: hidden;
     background: linear-gradient(145deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%);
     border-radius: 20px;
     border: 1px solid rgba(255, 255, 255, 0.05);
@@ -1019,40 +1014,97 @@ body.clubhouse-mode .theme-toggle i.fa-sun {
     -webkit-backdrop-filter: blur(10px);
     margin: 20px 0 80px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    padding: 30px 0;
+    position: relative;
+}
+
+/* Dégradé sur les bords pour un effet de fondu */
+.sponsors-grid::before,
+.sponsors-grid::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 80px;
+    z-index: 2;
+    pointer-events: none;
+}
+
+.sponsors-grid::before {
+    left: 0;
+    background: linear-gradient(to right, var(--bg-dark, #020617), transparent);
+}
+
+.sponsors-grid::after {
+    right: 0;
+    background: linear-gradient(to left, var(--bg-dark, #020617), transparent);
+}
+
+.sponsors-track {
+    display: flex;
+    align-items: center;
+    gap: 30px;
+    width: max-content;
+    animation: sponsors-scroll 25s linear infinite;
+    padding: 10px 20px;
+}
+
+.sponsors-grid:hover .sponsors-track {
+    animation-play-state: paused;
+}
+
+@keyframes sponsors-scroll {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
 }
 
 .sponsor-card {
-    transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
-    filter: grayscale(1) opacity(0.6);
-    max-width: 180px;
+    flex-shrink: 0;
+    background: white;
+    border-radius: 12px;
+    padding: 12px 20px;
+    width: 150px;
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
     cursor: pointer;
     position: relative;
-    padding: 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .sponsor-card:hover {
-    filter: grayscale(0) opacity(1);
-    transform: scale(1.08) translateY(-5px);
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 12px;
+    transform: scale(1.08) translateY(-4px);
+    box-shadow: 0 8px 25px rgba(0, 210, 255, 0.4);
 }
 
 .sponsor-card img {
     width: 100%;
-    height: auto;
-    max-height: 80px;
+    height: 100%;
     object-fit: contain;
     display: block;
 }
 
+.sponsor-draft {
+    opacity: 0.7;
+    border: 2px dashed #fb923c;
+}
+
 @media (max-width: 600px) {
-    .sponsors-grid {
-        gap: 20px;
-        padding: 20px;
+    .sponsors-grid::before,
+    .sponsors-grid::after {
+        width: 40px;
     }
 
     .sponsor-card {
-        max-width: 100px;
+        width: 110px;
+        height: 60px;
+        padding: 8px 12px;
+    }
+
+    .sponsors-track {
+        gap: 20px;
     }
 }
 
