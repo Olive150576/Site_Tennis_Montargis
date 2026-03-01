@@ -1118,28 +1118,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function setActiveBottomNav(id) {
         document.querySelectorAll('.bnav-item').forEach(el => el.classList.remove('active'));
-        const target = id ? document.getElementById(id) : document.getElementById('bnav-home');
+        const target = document.getElementById(id);
         target?.classList.add('active');
     }
 
-    // IntersectionObserver pour détecter la section visible
-    const bnavObserver = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (!entry.isIntersecting) return;
-            const match = Object.entries(bnavMap).find(([, sec]) => sec === entry.target.id);
-            if (match) setActiveBottomNav(match[0]);
-        });
-    }, { threshold: 0.35 });
+    // Détection par scroll : quelle section occupe le milieu de l'écran ?
+    function updateBottomNavActive() {
+        if (window.scrollY < 300) {
+            setActiveBottomNav('bnav-home');
+            return;
+        }
+        const mid = window.innerHeight / 2;
+        for (const [navId, sectionId] of Object.entries(bnavMap)) {
+            const el = document.getElementById(sectionId);
+            if (!el) continue;
+            const rect = el.getBoundingClientRect();
+            if (rect.top <= mid && rect.bottom >= mid) {
+                setActiveBottomNav(navId);
+                return;
+            }
+        }
+    }
 
-    Object.values(bnavMap).forEach(sectionId => {
-        const el = document.getElementById(sectionId);
-        if (el) bnavObserver.observe(el);
-    });
-
-    // Revenir à "Accueil" quand on est tout en haut
-    window.addEventListener('scroll', () => {
-        if (window.scrollY < 300) setActiveBottomNav('bnav-home');
-    }, { passive: true });
+    window.addEventListener('scroll', updateBottomNavActive, { passive: true });
+    updateBottomNavActive(); // état initial
 
     // --- LEGAL MODAL ---
     window.openLegalModal = (type) => {
