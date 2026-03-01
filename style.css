@@ -1108,6 +1108,91 @@ body.clubhouse-mode .theme-toggle i.fa-sun {
     }
 }
 
+/* --- BANDEAU PARTENAIRES (haut de page) --- */
+.sponsors-banner {
+    display: flex;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.5);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    overflow: hidden;
+    position: relative;
+    width: 100%;
+}
+
+.sponsors-banner-label {
+    flex-shrink: 0;
+    padding: 0 18px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--electric-cyan);
+    white-space: nowrap;
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+    height: 58px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(0, 0, 0, 0.3);
+    font-family: 'Orbitron', sans-serif;
+    letter-spacing: 0.05em;
+}
+
+.sponsors-banner-track {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 8px 20px;
+    animation: sponsors-scroll 20s linear infinite;
+    width: max-content;
+}
+
+.sponsors-banner:hover .sponsors-banner-track {
+    animation-play-state: paused;
+}
+
+.sponsors-banner-logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: white;
+    border-radius: 8px;
+    padding: 5px 12px;
+    width: 90px;
+    height: 40px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    flex-shrink: 0;
+}
+
+.sponsors-banner-logo:hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 15px rgba(0, 210, 255, 0.4);
+}
+
+.sponsors-banner-logo img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+@media (max-width: 600px) {
+    .sponsors-banner-label {
+        padding: 0 12px;
+        font-size: 0.6rem;
+        height: 48px;
+    }
+
+    .sponsors-banner-logo {
+        width: 70px;
+        height: 32px;
+        padding: 4px 8px;
+    }
+
+    .sponsors-banner-track {
+        gap: 12px;
+    }
+}
+
 /* --- FOOTER --- */
 footer {
     background: rgba(2, 6, 23, 0.95);

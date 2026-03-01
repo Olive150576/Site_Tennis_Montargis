@@ -659,6 +659,21 @@ document.addEventListener('DOMContentLoaded', () => {
             const originals = items.map((item, i) => makeCard(item, i, false)).join('');
             const clones = items.map((item, i) => makeCard(item, i, true)).join('');
             grid.innerHTML = `<div class="sponsors-track">${originals}${clones}</div>`;
+
+            // Alimenter aussi le bandeau en haut de page
+            const bannerTrack = document.getElementById('sponsors-banner-track');
+            const banner = document.getElementById('sponsors-banner');
+            if (bannerTrack && banner) {
+                const published = items.filter(item => !item.draft);
+                if (published.length > 0) {
+                    const bannerLogos = published.map(item => `
+                        <a href="${escapeHtml(item.url || '#')}" target="_blank" rel="noopener noreferrer" class="sponsors-banner-logo">
+                            <img src="${escapeHtml(item.images?.[0] || '')}" alt="${escapeHtml(item.title || '')}" loading="lazy">
+                        </a>`).join('');
+                    bannerTrack.innerHTML = bannerLogos + bannerLogos;
+                    banner.style.display = 'flex';
+                }
+            }
         }
         // Rendu STANDARD (News, Events, Coach, Rates...)
         else {
