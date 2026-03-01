@@ -1223,6 +1223,11 @@ body.clubhouse-mode .theme-toggle i.fa-sun {
         padding: 0 10px;
         font-size: 0.6rem;
         height: 56px;
+        white-space: normal;
+        text-align: center;
+        line-height: 1.3;
+        flex-direction: column;
+        gap: 2px;
     }
 
     .sponsors-banner-logo {
