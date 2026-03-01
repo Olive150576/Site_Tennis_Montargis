@@ -1122,21 +1122,26 @@ document.addEventListener('DOMContentLoaded', () => {
         target?.classList.add('active');
     }
 
-    // Détection par scroll : dernière section dont le haut a passé 40% de l'écran
+    // Détection : section dont le haut est le plus proche du seuil (50% écran) sans le dépasser
     function updateBottomNavActive() {
         if (window.scrollY < 200) {
             setActiveBottomNav('bnav-home');
             return;
         }
-        const trigger = window.scrollY + window.innerHeight * 0.4;
-        let activeNav = null;
+        const threshold = window.innerHeight * 0.5;
+        let bestNav = null;
+        let bestTop = -Infinity;
         for (const [navId, sectionId] of Object.entries(bnavMap)) {
             const el = document.getElementById(sectionId);
             if (!el) continue;
-            const elTop = el.getBoundingClientRect().top + window.scrollY;
-            if (elTop <= trigger) activeNav = navId;
+            const top = el.getBoundingClientRect().top;
+            // Garder la section dont le haut est le plus haut à l'écran (valeur la plus grande ≤ seuil)
+            if (top <= threshold && top > bestTop) {
+                bestTop = top;
+                bestNav = navId;
+            }
         }
-        if (activeNav) setActiveBottomNav(activeNav);
+        if (bestNav) setActiveBottomNav(bestNav);
     }
 
     window.addEventListener('scroll', updateBottomNavActive, { passive: true });
