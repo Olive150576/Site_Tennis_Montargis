@@ -1119,9 +1119,6 @@ body.clubhouse-mode .theme-toggle i.fa-sun {
     border-radius: 0;
     margin-top: -30px;
     margin-bottom: 30px;
-    margin-left: -20px;
-    margin-right: -20px;
-    width: calc(100% + 40px);
 }
 
 .sponsors-banner-label {
@@ -1187,13 +1184,6 @@ body.clubhouse-mode .theme-toggle i.fa-sun {
     object-fit: contain;
 }
 
-@media (max-width: 768px) {
-    .sponsors-banner {
-        margin-left: -10px;
-        margin-right: -10px;
-        width: calc(100% + 20px);
-    }
-}
 
 @media (max-width: 600px) {
     .sponsors-banner-label {
