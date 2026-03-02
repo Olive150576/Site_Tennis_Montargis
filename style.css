@@ -877,19 +877,32 @@ body.clubhouse-mode .theme-toggle i.fa-sun {
     }
 
     /* Footer */
-    .footer-content {
-        grid-template-columns: 1fr !important;
-        gap: 30px;
+    .footer-main {
+        flex-direction: column;
+        align-items: center;
         text-align: center;
+        gap: 10px;
     }
 
-    .footer-col ul {
-        text-align: center;
-    }
-
-    .social-links {
+    .footer-nav {
         justify-content: center;
-        display: flex;
+        gap: 12px;
+    }
+
+    .footer-bottom {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: 8px;
+    }
+
+    .footer-affiliations {
+        justify-content: center;
+    }
+
+    .footer-legal {
+        justify-content: center;
+        flex-wrap: wrap;
     }
 
     /* Admin zone */
@@ -1253,65 +1266,122 @@ body.clubhouse-mode .theme-toggle i.fa-sun {
 footer {
     background: rgba(2, 6, 23, 0.95);
     border-top: 1px solid rgba(255, 255, 255, 0.05);
-    padding: 40px 20px 20px;
+    padding: 18px 20px 14px;
     margin-top: 60px;
     font-size: 0.9rem;
     color: #94a3b8;
 }
 
-.footer-content {
-    max-width: 800px;
-    margin: 0 auto;
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 40px;
-    margin-bottom: 30px;
+.footer-main {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    max-width: 1200px;
+    margin: 0 auto 12px;
 }
 
-.footer-col h4 {
-    color: white;
+.footer-brand {
     font-family: 'Orbitron', sans-serif;
-    margin-bottom: 20px;
-    font-size: 1.1rem;
+    color: #00d2ff;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
 }
 
-.footer-col ul {
-    list-style: none;
-    padding: 0;
+.footer-nav {
+    display: flex;
+    gap: 18px;
+    flex-wrap: wrap;
+    align-items: center;
 }
 
-.footer-col ul li {
-    margin-bottom: 10px;
-}
-
-.footer-col ul li a {
+.footer-nav a {
     color: #94a3b8;
     text-decoration: none;
-    transition: 0.3s;
+    font-size: 0.82rem;
+    transition: color 0.2s;
 }
 
-.footer-col ul li a:hover {
+.footer-nav a:hover {
     color: var(--electric-cyan);
-    padding-left: 5px;
+}
+
+.footer-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.footer-icon {
+    color: #94a3b8;
+    background: none;
+    border: none;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: color 0.2s;
+    padding: 0;
+    text-decoration: none;
+}
+
+.footer-icon:hover {
+    color: var(--electric-cyan);
+}
+
+.footer-espace-club {
+    background: rgba(0, 210, 255, 0.1);
+    border: 1px solid #00d2ff;
+    color: #00d2ff;
+    padding: 5px 14px;
+    border-radius: 50px;
+    cursor: pointer;
+    font-size: 0.78rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: background 0.2s, color 0.2s, box-shadow 0.2s;
 }
 
 .footer-bottom {
-    text-align: center;
-    padding-top: 20px;
-    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    padding-top: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    max-width: 1200px;
+    margin: 0 auto;
 }
 
-.social-links a {
-    color: white;
-    font-size: 1.5rem;
-    margin-right: 15px;
-    transition: 0.3s;
+.footer-affiliations {
+    display: flex;
+    align-items: center;
+    gap: 12px;
 }
 
-.social-links a:hover {
-    color: var(--tennis-yellow);
-    transform: translateY(-3px);
-    display: inline-block;
+.footer-affiliations span {
+    color: #64748b;
+    font-size: 0.75rem;
+}
+
+.footer-legal {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    font-size: 0.78rem;
+}
+
+.footer-legal span,
+.footer-legal a {
+    color: #64748b;
+    text-decoration: none;
+}
+
+.footer-legal a:hover {
+    color: var(--electric-cyan);
 }
 
 /* --- BRANDING SECTION --- */
