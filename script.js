@@ -37,11 +37,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 toggleAdminUI(window.isCurrentUserAdmin);
 
                 if (window.isCurrentUserAdmin) {
-                    // Chargement dynamique du script admin si admin
-                    const adminScript = document.getElementById('admin-script-placeholder');
-                    if (adminScript && !adminScript.src) {
-                        adminScript.src = 'admin.js';
-                    }
                     // Définir le custom claim admin (pour les règles Storage)
                     firebase.functions().httpsCallable('grantAdminClaim')()
                         .then(() => user.getIdToken(true))
@@ -785,11 +780,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     .then(html => {
                         placeholder.outerHTML = html;
                         renderAll();
-                        // Charger admin.js dynamiquement (une seule fois) après injection du panel
-                        if (!document.querySelector('script[src="admin.js"]')) {
-                            const adminScript = document.createElement('script');
+                        // Charger admin.js après injection du panel (le form doit exister)
+                        const adminScript = document.getElementById('admin-script-placeholder');
+                        if (adminScript && !adminScript.src) {
                             adminScript.src = 'admin.js';
-                            document.body.appendChild(adminScript);
                         }
                     })
                     .catch(e => console.error('Erreur chargement panneau admin:', e));
