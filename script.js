@@ -785,6 +785,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     .then(html => {
                         placeholder.outerHTML = html;
                         renderAll();
+                        // Charger admin.js dynamiquement (une seule fois) après injection du panel
+                        if (!document.querySelector('script[src="admin.js"]')) {
+                            const adminScript = document.createElement('script');
+                            adminScript.src = 'admin.js';
+                            document.body.appendChild(adminScript);
+                        }
                     })
                     .catch(e => console.error('Erreur chargement panneau admin:', e));
             } else {
