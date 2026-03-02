@@ -1108,45 +1108,6 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('scroll', () => btt?.classList.toggle('show', window.scrollY > 500));
     btt?.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
 
-    // --- MOBILE BOTTOM NAV : ACTIVE STATE ---
-    const bnavMap = {
-        'bnav-news':    'news-section',
-        'bnav-inst':    'inst-section',
-        'bnav-rates':   'rates-section',
-        'bnav-contact': 'contact-section',
-    };
-
-    function setActiveBottomNav(id) {
-        document.querySelectorAll('.bnav-item').forEach(el => el.classList.remove('active'));
-        const target = document.getElementById(id);
-        target?.classList.add('active');
-    }
-
-    // Détection : section dont le haut est le plus proche du seuil (50% écran) sans le dépasser
-    function updateBottomNavActive() {
-        if (window.scrollY < 200) {
-            setActiveBottomNav('bnav-home');
-            return;
-        }
-        const threshold = window.innerHeight * 0.5;
-        let bestNav = null;
-        let bestTop = -Infinity;
-        for (const [navId, sectionId] of Object.entries(bnavMap)) {
-            const el = document.getElementById(sectionId);
-            if (!el) continue;
-            const top = el.getBoundingClientRect().top;
-            // Garder la section dont le haut est le plus haut à l'écran (valeur la plus grande ≤ seuil)
-            if (top <= threshold && top > bestTop) {
-                bestTop = top;
-                bestNav = navId;
-            }
-        }
-        if (bestNav) setActiveBottomNav(bestNav);
-    }
-
-    window.addEventListener('scroll', updateBottomNavActive, { passive: true });
-    updateBottomNavActive(); // état initial
-
     // --- LEGAL MODAL ---
     window.openLegalModal = (type) => {
         const info = db.info || { address: "43 Avenue Louis Maurice Chautemps, 45200 Montargis", phone: "02 38 85 44 30", email: "usmmtennis@orange.fr" };
