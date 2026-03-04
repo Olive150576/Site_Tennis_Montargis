@@ -792,7 +792,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const placeholder = document.getElementById('admin-zone-placeholder');
             if (placeholder) {
                 // Premier chargement : injecter le panel admin depuis son fichier dédié
-                fetch('admin-panel.html')
+                fetch('admin-panel.html?v=32', { cache: 'no-store' })
                     .then(r => r.text())
                     .then(html => {
                         placeholder.outerHTML = html;

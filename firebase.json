@@ -35,6 +35,15 @@
     ],
     "headers": [
       {
+        "source": "admin-panel.html",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-store"
+          }
+        ]
+      },
+      {
         "source": "manifest.json",
         "headers": [
           {
