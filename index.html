@@ -243,6 +243,9 @@
                 <a href="https://tenup.fft.fr" target="_blank" rel="noopener noreferrer" class="btn-tenup desktop-only" id="btn-reserver-header">
                     <i class="fas fa-calendar-check"></i> Réserver
                 </a>
+                <button id="member-btn-header" class="btn-membre desktop-only" onclick="document.getElementById('member-login-modal').classList.remove('hidden')">
+                    <i class="fas fa-id-card"></i> Espace Membre
+                </button>
             </div>
         </header>
 
@@ -304,6 +307,10 @@
                 <li style="margin:20px 0;"><a href="https://tenup.fft.fr" target="_blank" rel="noopener noreferrer" class="btn-tenup"
                         id="btn-reserver-mobile" style="display:inline-block;">
                         <i class="fas fa-calendar-check"></i> Réserver un terrain (membre)</a></li>
+                <li style="margin:20px 0;"><button id="member-btn-mobile" class="btn-membre"
+                        onclick="document.getElementById('member-login-modal').classList.remove('hidden'); document.querySelector('.mobile-nav-overlay').classList.remove('active');"
+                        style="font-size:1.2rem;">
+                        <i class="fas fa-id-card"></i> Espace Membre</button></li>
                 <li style="margin:20px 0;"><button id="admin-btn-mobile"
                         onclick="document.getElementById('login-modal').classList.remove('hidden'); document.querySelector('.mobile-nav-overlay').classList.remove('active');"
                         style="background:transparent; border:1px solid var(--electric-cyan); color:var(--electric-cyan); padding:10px 20px; border-radius:20px; font-size:1.2rem;">Espace
@@ -522,6 +529,9 @@
                 <div class="footer-actions">
                     <a href="https://www.facebook.com/TennisClubUSMMontargis" target="_blank" rel="noopener noreferrer" title="Facebook" class="footer-icon"><i class="fab fa-facebook"></i></a>
                     <button onclick="shareSite()" class="footer-icon" title="Partager"><i class="fas fa-share-alt"></i></button>
+                    <button id="member-btn-footer" onclick="document.getElementById('member-login-modal').classList.remove('hidden')" class="footer-espace-club" style="background:rgba(34,197,94,0.1); border-color:#22c55e; color:#22c55e;">
+                        <i class="fas fa-id-card"></i> Espace Membre
+                    </button>
                     <button id="admin-btn-footer" onclick="document.getElementById('login-modal').classList.remove('hidden')" class="footer-espace-club">
                         <i class="fas fa-user-shield"></i> Espace Club
                     </button>
@@ -769,6 +779,7 @@
     </div>
 
     <!-- Admin panel chargé dynamiquement à la connexion -->
+    <div id="member-zone-placeholder"></div>
     <div id="admin-zone-placeholder"></div>
 
     <script defer src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
@@ -807,8 +818,10 @@
 
     <!-- Script Admin séparé (Chargé dynamiquement dans script.js si admin connecté) -->
     <script id="admin-script-placeholder"></script>
+    <!-- Script Membre séparé (Chargé dynamiquement dans script.js si membre connecté) -->
+    <script id="member-script-placeholder"></script>
 
-    <!-- LOGIN MODAL (Ajouté pour compléter l'interface) -->
+    <!-- LOGIN MODAL ADMIN -->
     <div id="login-modal" class="hidden"
         style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:2000; display:flex; justify-content:center; align-items:center;">
         <div class="modal-content"
@@ -824,6 +837,29 @@
                 connecter</button>
             <button onclick="document.getElementById('login-modal').classList.add('hidden')"
                 style="background:transparent; border:none; color:white; margin-top:10px; cursor:pointer; text-decoration:underline;">Annuler</button>
+        </div>
+    </div>
+
+    <!-- LOGIN MODAL MEMBRE -->
+    <div id="member-login-modal" class="hidden"
+        style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:2000; display:flex; justify-content:center; align-items:center; backdrop-filter:blur(4px);">
+        <div style="background:linear-gradient(145deg, #0f172a, #020617); padding:35px; border:1px solid #22c55e; border-radius:18px; width:320px; text-align:center; box-shadow:0 20px 60px rgba(34,197,94,0.2);">
+            <div style="width:60px; height:60px; border-radius:50%; background:rgba(34,197,94,0.15); border:2px solid #22c55e; display:flex; align-items:center; justify-content:center; margin:0 auto 20px;">
+                <i class="fas fa-id-card" style="font-size:24px; color:#22c55e;"></i>
+            </div>
+            <h3 style="font-family:'Orbitron'; color:#22c55e; margin-bottom:6px; font-size:1rem;">Espace Membre</h3>
+            <p style="color:#64748b; font-size:0.8rem; margin-bottom:20px;">USM Tennis Montargis</p>
+            <input type="email" id="member-login-email" placeholder="Adresse email"
+                style="width:100%; padding:12px; margin-bottom:10px; background:#050a18; border:1px solid #334155; color:white; border-radius:8px; box-sizing:border-box; font-size:14px;">
+            <input type="password" id="member-login-password" placeholder="Mot de passe"
+                style="width:100%; padding:12px; margin-bottom:20px; background:#050a18; border:1px solid #334155; color:white; border-radius:8px; box-sizing:border-box; font-size:14px;"
+                onkeydown="if(event.key==='Enter') memberLoginWithEmail()">
+            <button onclick="memberLoginWithEmail()"
+                style="width:100%; background:linear-gradient(135deg,#22c55e,#16a34a); border:none; padding:13px; font-weight:bold; cursor:pointer; border-radius:8px; color:white; font-size:15px; margin-bottom:10px;">
+                <i class="fas fa-sign-in-alt" style="margin-right:8px;"></i>Se connecter
+            </button>
+            <button onclick="document.getElementById('member-login-modal').classList.add('hidden')"
+                style="background:transparent; border:none; color:#64748b; cursor:pointer; text-decoration:underline; font-size:13px;">Annuler</button>
         </div>
     </div>
 

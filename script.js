@@ -29,25 +29,42 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    window.isCurrentUserAdmin = false;
+    window.isCurrentUserMember = false;
+
     auth.onAuthStateChanged(user => {
         if (user) {
-            // Vérifier si l'utilisateur est dans la liste des admins
+            // Vérifier admin en priorité
             db_ref.ref('admins/' + user.uid).once('value', snapshot => {
-                window.isCurrentUserAdmin = snapshot.exists();
-                toggleAdminUI(window.isCurrentUserAdmin);
-
-                if (window.isCurrentUserAdmin) {
-                    // Définir le custom claim admin (pour les règles Storage)
-                    firebase.functions().httpsCallable('grantAdminClaim')()
-                        .then(() => user.getIdToken(true))
-                        .catch(e => console.warn('Custom claim Storage:', e.message));
+                if (snapshot.exists()) {
+                    window.isCurrentUserAdmin = true;
+                    toggleAdminUI(true);
+                    if (window.isCurrentUserAdmin) {
+                        firebase.functions().httpsCallable('grantAdminClaim')()
+                            .then(() => user.getIdToken(true))
+                            .catch(e => console.warn('Custom claim Storage:', e.message));
+                    }
+                    renderAll();
+                } else {
+                    // Vérifier si membre
+                    db_ref.ref('members/' + user.uid).once('value', memberSnap => {
+                        if (memberSnap.exists() && memberSnap.val().actif) {
+                            window.isCurrentUserMember = true;
+                            toggleMemberUI(true, memberSnap.val());
+                        } else {
+                            // Compte inconnu : déconnexion
+                            auth.signOut();
+                            window.showErrorMessage && window.showErrorMessage(
+                                { message: 'Compte non autorisé' }, 'login'
+                            );
+                        }
+                        renderAll();
+                    });
                 }
-
-                // Re-render pour afficher/cacher les boutons admin
-                renderAll();
             });
         } else {
             window.isCurrentUserAdmin = false;
+            window.isCurrentUserMember = false;
             toggleAdminUI(false);
             renderAll();
         }
@@ -804,6 +821,55 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         document.querySelectorAll('.admin-actions').forEach(el => el.classList.toggle('hidden', !isAdmin));
     }
+
+    function toggleMemberUI(isMember, memberData) {
+        if (isMember && memberData) {
+            const placeholder = document.getElementById('member-zone-placeholder');
+            if (placeholder) {
+                fetch('member-dashboard.html')
+                    .then(r => r.text())
+                    .then(html => {
+                        placeholder.outerHTML = html;
+                        // Charger member.js après injection du DOM
+                        const memberScript = document.getElementById('member-script-placeholder');
+                        if (memberScript && !memberScript.src) {
+                            memberScript.src = 'member.js';
+                            memberScript.onload = () => {
+                                if (window.initMemberDashboard) window.initMemberDashboard(memberData);
+                                document.getElementById('member-zone')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            };
+                        } else if (window.initMemberDashboard) {
+                            window.initMemberDashboard(memberData);
+                        }
+                    })
+                    .catch(e => console.error('Erreur chargement espace membre:', e));
+            } else {
+                document.getElementById('member-zone')?.classList.remove('hidden');
+            }
+            // Mettre à jour le bouton header
+            const btn = document.getElementById('member-btn-header');
+            if (btn) {
+                btn.innerHTML = `<i class="fas fa-id-card"></i> ${memberData.prenom || 'Mon Espace'}`;
+                btn.onclick = () => document.getElementById('member-zone')?.scrollIntoView({ behavior: 'smooth' });
+            }
+        } else {
+            document.getElementById('member-zone')?.classList.add('hidden');
+        }
+    }
+
+    // Login membre (appelé depuis le modal member-login-modal)
+    window.memberLoginWithEmail = () => {
+        const email = document.getElementById('member-login-email').value.trim();
+        const password = document.getElementById('member-login-password').value;
+        if (!email || !password) return;
+        auth.signInWithEmailAndPassword(email, password)
+            .then(() => {
+                document.getElementById('member-login-modal').classList.add('hidden');
+            })
+            .catch(err => {
+                window.showErrorMessage && window.showErrorMessage(err, 'login');
+            });
+    };
 
     window.openGallery = (section, index) => {
         const item = db[section][index];

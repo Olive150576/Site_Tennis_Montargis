@@ -287,6 +287,7 @@ if (form) {
                     desc,
                     price: currentSection === 'rates' ? price : (items[index]?.price || null),
                     url: currentSection === 'sponsors' ? document.getElementById('input-url').value : (items[index]?.url || null),
+                    avantage: currentSection === 'sponsors' ? (document.getElementById('input-avantage')?.value || null) : (items[index]?.avantage || null),
                     images: finalImages,
                     date: (index !== -1 && items[index].date) ? items[index].date : new Date().toLocaleDateString('fr-FR'),
                     createdAt: (index !== -1 && items[index].createdAt) ? items[index].createdAt : Date.now(), // Timestamp pour le nettoyage auto
@@ -429,26 +430,30 @@ window.switchAdmin = (section) => {
     const documentsAdmin = document.getElementById('documents-admin');
 
     const contactsAdmin = document.getElementById('contacts-admin');
+    const membersAdmin = document.getElementById('members-admin');
 
-    // Gérer l'affichage spécial pour les sections documents et contacts
+    // Gérer l'affichage spécial pour les sections documents, contacts et membres
+    const specialSections = ['documents', 'contacts', 'members'];
     if (section === 'documents') {
         if (universalForm) universalForm.style.display = 'none';
-        if (documentsAdmin) {
-            documentsAdmin.classList.remove('hidden');
-            if (window.loadDocumentsAdmin) window.loadDocumentsAdmin();
-        }
+        if (documentsAdmin) { documentsAdmin.classList.remove('hidden'); if (window.loadDocumentsAdmin) window.loadDocumentsAdmin(); }
         if (contactsAdmin) contactsAdmin.classList.add('hidden');
+        if (membersAdmin) membersAdmin.classList.add('hidden');
     } else if (section === 'contacts') {
         if (universalForm) universalForm.style.display = 'none';
         if (documentsAdmin) documentsAdmin.classList.add('hidden');
-        if (contactsAdmin) {
-            contactsAdmin.classList.remove('hidden');
-            window.loadContactsAdmin();
-        }
+        if (contactsAdmin) { contactsAdmin.classList.remove('hidden'); window.loadContactsAdmin(); }
+        if (membersAdmin) membersAdmin.classList.add('hidden');
+    } else if (section === 'members') {
+        if (universalForm) universalForm.style.display = 'none';
+        if (documentsAdmin) documentsAdmin.classList.add('hidden');
+        if (contactsAdmin) contactsAdmin.classList.add('hidden');
+        if (membersAdmin) { membersAdmin.classList.remove('hidden'); window.loadMembersAdmin && window.loadMembersAdmin(); }
     } else {
         if (universalForm) universalForm.style.display = 'block';
         if (documentsAdmin) documentsAdmin.classList.add('hidden');
         if (contactsAdmin) contactsAdmin.classList.add('hidden');
+        if (membersAdmin) membersAdmin.classList.add('hidden');
     }
 
     if (titleEl) titleEl.innerText = `Gérer : ${section.toUpperCase()}`;
@@ -457,11 +462,18 @@ window.switchAdmin = (section) => {
 
     document.getElementById('price-container').classList.toggle('hidden', section !== 'rates');
     document.getElementById('email-container').classList.toggle('hidden', section !== 'info');
-    document.getElementById('image-upload-container').classList.toggle('hidden', section === 'info' || section === 'rates' || section === 'documents' || section === 'contacts');
+    document.getElementById('image-upload-container').classList.toggle('hidden', section === 'info' || section === 'rates' || section === 'documents' || section === 'contacts' || section === 'members');
     document.getElementById('url-container').classList.toggle('hidden', section !== 'sponsors');
+    document.getElementById('avantage-container')?.classList.toggle('hidden', section !== 'sponsors');
+    // Prix disponible pour tarifs ET tournois
+    document.getElementById('price-container').classList.toggle('hidden', section !== 'rates' && section !== 'tournaments');
+    if (section === 'tournaments') {
+        const priceLabel = document.querySelector('#price-container label');
+        if (priceLabel) priceLabel.textContent = 'Tarif d\'inscription (optionnel)';
+    }
     document.getElementById('featured-container').classList.toggle('hidden', section !== 'news' && section !== 'rates');
-    // Mode brouillon disponible pour toutes les sections sauf info, documents et contacts
-    document.getElementById('draft-container')?.classList.toggle('hidden', section === 'info' || section === 'documents' || section === 'contacts');
+    // Mode brouillon disponible pour toutes les sections sauf info, documents, contacts, membres
+    document.getElementById('draft-container')?.classList.toggle('hidden', section === 'info' || section === 'documents' || section === 'contacts' || section === 'members');
     // Réinitialiser la checkbox brouillon
     const draftCheckbox = document.getElementById('input-draft');
     if (draftCheckbox) draftCheckbox.checked = false;
@@ -508,7 +520,11 @@ window.editItem = async (section, index) => {
     if (section === 'rates') document.getElementById('input-price').value = item.price || "";
     if (section === 'info') document.getElementById('input-email').value = item.email || "";
     if (section === 'news' || section === 'rates') document.getElementById('input-featured').checked = !!item.featured;
-    if (section === 'sponsors') document.getElementById('input-url').value = item.url || "";
+    if (section === 'sponsors') {
+        document.getElementById('input-url').value = item.url || "";
+        const avInput = document.getElementById('input-avantage');
+        if (avInput) avInput.value = item.avantage || "";
+    }
     // Restaurer l'état brouillon
     const draftCheckbox = document.getElementById('input-draft');
     if (draftCheckbox) draftCheckbox.checked = !!item.draft;
@@ -1025,6 +1041,99 @@ window.exportContacts = function() {
     a.download = `contacts_usm_tennis_${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
+};
+
+// ============================================================
+// GESTION DES MEMBRES
+// ============================================================
+
+window.createMemberAccount = async () => {
+    const btn = document.getElementById('create-member-btn');
+    const prenom = document.getElementById('new-member-prenom').value.trim();
+    const nom = document.getElementById('new-member-nom').value.trim();
+    const email = document.getElementById('new-member-email').value.trim();
+    const password = document.getElementById('new-member-password').value.trim();
+    const telephone = document.getElementById('new-member-telephone').value.trim();
+    const licence = document.getElementById('new-member-licence').value.trim();
+    const classement = document.getElementById('new-member-classement').value.trim();
+    const categorie = document.getElementById('new-member-categorie').value;
+
+    if (!prenom || !nom || !email || !password) {
+        window.showWarningMessage('Champs requis', 'Prénom, nom, email et mot de passe sont obligatoires.');
+        return;
+    }
+    if (password.length < 6) {
+        window.showWarningMessage('Mot de passe trop court', 'Le mot de passe doit contenir au moins 6 caractères.');
+        return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Création en cours...</span>';
+
+    try {
+        const createMember = firebase.functions().httpsCallable('createMember');
+        await createMember({ prenom, nom, email, password, telephone, licence, classement, categorie });
+        window.showSuccessMessage('Membre créé !', `Le compte de ${prenom} ${nom} a été créé. Partagez les identifiants au membre.`);
+        // Vider le formulaire
+        ['prenom','nom','email','password','telephone','licence','classement'].forEach(f => {
+            const el = document.getElementById(`new-member-${f}`);
+            if (el) el.value = '';
+        });
+        window.loadMembersAdmin();
+    } catch (err) {
+        window.showErrorMessage(err, 'save');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-user-plus"></i><span>Créer le compte membre</span>';
+    }
+};
+
+window.loadMembersAdmin = () => {
+    const list = document.getElementById('members-admin-list');
+    if (!list) return;
+    list.innerHTML = '<p style="color:#64748b; text-align:center;">Chargement...</p>';
+
+    db_ref.ref('members').once('value', snap => {
+        const data = snap.val();
+        if (!data) {
+            list.innerHTML = '<p style="color:#64748b; text-align:center;">Aucun membre enregistré.</p>';
+            return;
+        }
+        const members = Object.entries(data).map(([uid, m]) => ({ uid, ...m }));
+        members.sort((a, b) => (a.nom || '').localeCompare(b.nom || ''));
+
+        list.innerHTML = members.map(m => `
+            <div style="display:flex; align-items:center; gap:16px; background:rgba(34,197,94,0.05); border:1px solid rgba(34,197,94,0.15); border-radius:12px; padding:14px 18px; flex-wrap:wrap;">
+                <div style="width:42px; height:42px; border-radius:50%; background:rgba(34,197,94,0.15); border:1px solid #22c55e; display:flex; align-items:center; justify-content:center; color:#22c55e; font-weight:bold; flex-shrink:0;">
+                    ${(m.prenom || '?')[0]}${(m.nom || '?')[0]}
+                </div>
+                <div style="flex:1; min-width:150px;">
+                    <div style="color:white; font-weight:600;">${escapeHtml(m.prenom || '')} ${escapeHtml(m.nom || '')}</div>
+                    <div style="color:#64748b; font-size:12px;">${escapeHtml(m.email || '')} · Licence: ${escapeHtml(m.licence || '—')} · ${escapeHtml(m.classement || '—')}</div>
+                </div>
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <span style="padding:3px 10px; border-radius:50px; font-size:11px; font-weight:bold; background:${m.actif ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)'}; color:${m.actif ? '#22c55e' : '#ef4444'}; border:1px solid ${m.actif ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'};">
+                        ${m.actif ? 'Actif' : 'Inactif'}
+                    </span>
+                    <button onclick="toggleMemberActive('${m.uid}', ${!m.actif})"
+                        style="background:${m.actif ? 'rgba(239,68,68,0.1)' : 'rgba(34,197,94,0.1)'}; border:1px solid ${m.actif ? 'rgba(239,68,68,0.4)' : 'rgba(34,197,94,0.4)'}; color:${m.actif ? '#ef4444' : '#22c55e'}; padding:5px 12px; border-radius:8px; cursor:pointer; font-size:12px;">
+                        ${m.actif ? 'Désactiver' : 'Réactiver'}
+                    </button>
+                </div>
+            </div>
+        `).join('');
+    });
+};
+
+window.toggleMemberActive = async (uid, newStatus) => {
+    try {
+        const toggleFn = firebase.functions().httpsCallable('toggleMemberStatus');
+        await toggleFn({ uid, actif: newStatus });
+        window.showSuccessMessage(newStatus ? 'Membre réactivé' : 'Membre désactivé', '');
+        window.loadMembersAdmin();
+    } catch (err) {
+        window.showErrorMessage(err, 'save');
+    }
 };
 
 // Initialisation au chargement (Déplacé à la fin pour éviter les erreurs de référence)

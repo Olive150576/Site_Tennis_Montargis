@@ -161,3 +161,63 @@ exports.grantAdminClaim = functions.https.onCall(async (data, context) => {
 
 // Note: La fonction de nettoyage automatique peut être ajoutée ultérieurement
 // avec Firebase Scheduled Functions si nécessaire
+
+/**
+ * Cloud Function pour créer un compte membre
+ * Appelée par l'admin depuis le panel d'administration
+ */
+exports.createMember = functions.https.onCall(async (data, context) => {
+    if (!context.auth) {
+        throw new functions.https.HttpsError('unauthenticated', 'Vous devez être connecté.');
+    }
+    // Vérifier que l'appelant est admin
+    const adminSnap = await admin.database().ref(`admins/${context.auth.uid}`).once('value');
+    if (!adminSnap.exists()) {
+        throw new functions.https.HttpsError('permission-denied', 'Accès réservé aux administrateurs.');
+    }
+
+    const { email, password, nom, prenom, telephone, licence, classement, categorie } = data;
+
+    if (!email || !password || !nom || !prenom) {
+        throw new functions.https.HttpsError('invalid-argument', 'Prénom, nom, email et mot de passe sont requis.');
+    }
+
+    // Créer le compte Firebase Auth
+    const userRecord = await admin.auth().createUser({ email, password, displayName: `${prenom} ${nom}` });
+
+    // Créer le profil membre dans Realtime DB
+    await admin.database().ref(`members/${userRecord.uid}`).set({
+        nom,
+        prenom,
+        email,
+        telephone: telephone || '',
+        licence: licence || '',
+        classement: classement || '',
+        categorie: categorie || 'Adulte H',
+        actif: true,
+        createdAt: Date.now()
+    });
+
+    return { uid: userRecord.uid, success: true };
+});
+
+/**
+ * Cloud Function pour désactiver / réactiver un membre
+ */
+exports.toggleMemberStatus = functions.https.onCall(async (data, context) => {
+    if (!context.auth) {
+        throw new functions.https.HttpsError('unauthenticated', 'Vous devez être connecté.');
+    }
+    const adminSnap = await admin.database().ref(`admins/${context.auth.uid}`).once('value');
+    if (!adminSnap.exists()) {
+        throw new functions.https.HttpsError('permission-denied', 'Accès réservé aux administrateurs.');
+    }
+
+    const { uid, actif } = data;
+    if (!uid) throw new functions.https.HttpsError('invalid-argument', 'UID membre requis.');
+
+    await admin.database().ref(`members/${uid}/actif`).set(!!actif);
+    await admin.auth().updateUser(uid, { disabled: !actif });
+
+    return { success: true };
+});

@@ -66,6 +66,83 @@
             <button class="tab-btn" onclick="switchAdmin('contacts')" style="background:linear-gradient(135deg, #f59e0b, #d97706);">
                 <i class="fas fa-address-book"></i> Contacts
             </button>
+            <button class="tab-btn" onclick="switchAdmin('members')" style="background:linear-gradient(135deg, #22c55e, #16a34a);">
+                <i class="fas fa-users"></i> Membres
+            </button>
+            <button class="tab-btn" onclick="switchAdmin('tournaments')" style="background:linear-gradient(135deg, #00d2ff, #0099bb);">
+                <i class="fas fa-trophy"></i> Tournois TMC
+            </button>
+        </div>
+
+        <!-- SECTION GESTION MEMBRES (cachée par défaut) -->
+        <div id="members-admin" class="hidden" style="background:rgba(2,6,23,0.8); padding:25px; border-radius:15px; border:1px solid #22c55e; margin-bottom:30px;">
+            <h3 style="color:#22c55e; font-family:'Orbitron'; font-size:1.1rem; margin-bottom:20px; border-bottom:2px solid #334155; padding-bottom:15px;">
+                <i class="fas fa-users" style="margin-right:10px;"></i>Gestion des membres
+            </h3>
+
+            <!-- Formulaire création membre -->
+            <div style="background:rgba(34,197,94,0.06); border:1px solid rgba(34,197,94,0.25); border-radius:12px; padding:20px; margin-bottom:25px;">
+                <h4 style="color:#22c55e; margin-bottom:18px; font-size:0.95rem;"><i class="fas fa-user-plus" style="margin-right:8px;"></i>Créer un compte membre</h4>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+                    <div>
+                        <label style="color:#e2e8f0; font-size:13px; display:block; margin-bottom:6px;">Prénom *</label>
+                        <input type="text" id="new-member-prenom" placeholder="Jean"
+                            style="width:100%; padding:11px; background:#1e293b; border:1px solid #475569; color:white; border-radius:8px; box-sizing:border-box;">
+                    </div>
+                    <div>
+                        <label style="color:#e2e8f0; font-size:13px; display:block; margin-bottom:6px;">Nom *</label>
+                        <input type="text" id="new-member-nom" placeholder="Dupont"
+                            style="width:100%; padding:11px; background:#1e293b; border:1px solid #475569; color:white; border-radius:8px; box-sizing:border-box;">
+                    </div>
+                    <div>
+                        <label style="color:#e2e8f0; font-size:13px; display:block; margin-bottom:6px;">Email *</label>
+                        <input type="email" id="new-member-email" placeholder="jean.dupont@email.fr"
+                            style="width:100%; padding:11px; background:#1e293b; border:1px solid #475569; color:white; border-radius:8px; box-sizing:border-box;">
+                    </div>
+                    <div>
+                        <label style="color:#e2e8f0; font-size:13px; display:block; margin-bottom:6px;">Mot de passe provisoire *</label>
+                        <input type="text" id="new-member-password" placeholder="Min. 6 caractères"
+                            style="width:100%; padding:11px; background:#1e293b; border:1px solid #475569; color:white; border-radius:8px; box-sizing:border-box;">
+                    </div>
+                    <div>
+                        <label style="color:#e2e8f0; font-size:13px; display:block; margin-bottom:6px;">Téléphone</label>
+                        <input type="tel" id="new-member-telephone" placeholder="06 xx xx xx xx"
+                            style="width:100%; padding:11px; background:#1e293b; border:1px solid #475569; color:white; border-radius:8px; box-sizing:border-box;">
+                    </div>
+                    <div>
+                        <label style="color:#e2e8f0; font-size:13px; display:block; margin-bottom:6px;">N° Licence FFT</label>
+                        <input type="text" id="new-member-licence" placeholder="1234567"
+                            style="width:100%; padding:11px; background:#1e293b; border:1px solid #475569; color:white; border-radius:8px; box-sizing:border-box;">
+                    </div>
+                    <div>
+                        <label style="color:#e2e8f0; font-size:13px; display:block; margin-bottom:6px;">Classement</label>
+                        <input type="text" id="new-member-classement" placeholder="Ex: 15/4 ou NC"
+                            style="width:100%; padding:11px; background:#1e293b; border:1px solid #475569; color:white; border-radius:8px; box-sizing:border-box;">
+                    </div>
+                    <div>
+                        <label style="color:#e2e8f0; font-size:13px; display:block; margin-bottom:6px;">Catégorie</label>
+                        <select id="new-member-categorie"
+                            style="width:100%; padding:11px; background:#1e293b; border:1px solid #475569; color:white; border-radius:8px; box-sizing:border-box;">
+                            <option value="Adulte H">Adulte Homme</option>
+                            <option value="Adulte F">Adulte Femme</option>
+                            <option value="Jeune G">Jeune Garçon</option>
+                            <option value="Jeune F">Jeune Fille</option>
+                            <option value="Vétéran H">Vétéran Homme</option>
+                            <option value="Vétéran F">Vétéran Femme</option>
+                        </select>
+                    </div>
+                </div>
+                <button id="create-member-btn" onclick="createMemberAccount()"
+                    style="margin-top:18px; background:linear-gradient(135deg,#22c55e,#16a34a); color:white; border:none; padding:13px 28px; border-radius:10px; font-weight:bold; cursor:pointer; font-size:15px; display:flex; align-items:center; gap:10px;">
+                    <i class="fas fa-user-plus"></i><span>Créer le compte membre</span>
+                </button>
+            </div>
+
+            <!-- Liste des membres -->
+            <h4 style="color:#e2e8f0; margin-bottom:15px; border-left:4px solid #22c55e; padding-left:15px;">Membres inscrits</h4>
+            <div id="members-admin-list" style="display:grid; gap:10px;">
+                <p style="color:#64748b; text-align:center;">Chargement...</p>
+            </div>
         </div>
 
         <!-- SECTION GESTION DOCUMENTS (cachée par défaut) -->
@@ -175,6 +252,12 @@
                     <label style="color:#e2e8f0; font-weight:500;">Lien du site partenaire (URL)</label>
                     <input type="url" id="input-url" placeholder="https://..."
                         style="padding:14px; background:#1e293b; border:1px solid #475569; color:white; border-radius:8px; width:100%; font-size:15px; box-sizing:border-box;">
+                </div>
+
+                <div id="avantage-container" class="hidden" style="display:grid; gap:8px;">
+                    <label style="color:#22c55e; font-weight:500;"><i class="fas fa-gift" style="margin-right:6px;"></i>Avantage membre (affiché dans l'Espace Membre)</label>
+                    <input type="text" id="input-avantage" placeholder="Ex: 10% de réduction sur les cordages"
+                        style="padding:14px; background:#1e293b; border:1px solid #22c55e; color:white; border-radius:8px; width:100%; font-size:15px; box-sizing:border-box;">
                 </div>
 
                 <div id="featured-container" style="display:flex; align-items:center; gap:12px; padding:15px; background:rgba(227,255,0,0.1); border-radius:10px; border:1px solid rgba(227,255,0,0.3);">

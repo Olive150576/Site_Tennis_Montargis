@@ -2088,3 +2088,392 @@ section#contact-section.animate-in { transition-delay: 0.1s; }
         border-radius: 12px !important;
     }
 }
+
+/* ============================================
+   ESPACE MEMBRE — DASHBOARD
+   ============================================ */
+
+.btn-membre {
+    background: rgba(34, 197, 94, 0.12);
+    border: 1px solid #22c55e;
+    color: #22c55e;
+    padding: 7px 16px;
+    border-radius: 50px;
+    cursor: pointer;
+    font-size: 0.82rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    transition: background 0.2s, box-shadow 0.2s;
+    white-space: nowrap;
+}
+
+.btn-membre:hover {
+    background: rgba(34, 197, 94, 0.25);
+    box-shadow: 0 0 14px rgba(34, 197, 94, 0.35);
+}
+
+#member-zone {
+    border-top: 1px solid rgba(34, 197, 94, 0.2);
+    padding-top: 50px;
+    margin-top: 50px;
+}
+
+.member-header {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    padding: 28px 30px;
+    background: linear-gradient(135deg, rgba(34,197,94,0.08) 0%, rgba(2,6,23,0.8) 100%);
+    border: 1px solid rgba(34, 197, 94, 0.25);
+    border-radius: 20px;
+    margin-bottom: 30px;
+    flex-wrap: wrap;
+}
+
+.member-avatar-wrap { flex-shrink: 0; }
+
+.member-avatar {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: rgba(34,197,94,0.15);
+    border: 2px solid #22c55e;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    color: #22c55e;
+    overflow: hidden;
+}
+
+.member-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+.member-header-info { flex: 1; min-width: 200px; }
+
+.member-greeting {
+    font-family: 'Orbitron', sans-serif;
+    color: #22c55e;
+    font-size: 1.2rem;
+    margin: 0 0 10px;
+}
+
+.member-badges { display: flex; gap: 10px; flex-wrap: wrap; }
+
+.member-badge {
+    background: rgba(0, 210, 255, 0.1);
+    border: 1px solid rgba(0, 210, 255, 0.3);
+    color: #00d2ff;
+    padding: 4px 12px;
+    border-radius: 50px;
+    font-size: 0.78rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.member-badge-yellow { background: rgba(227,255,0,0.1); border-color: rgba(227,255,0,0.3); color: #e3ff00; }
+.member-badge-purple { background: rgba(168,85,247,0.1); border-color: rgba(168,85,247,0.3); color: #a855f7; }
+
+.member-logout-btn {
+    margin-left: auto;
+    background: rgba(239,68,68,0.1);
+    border: 1px solid rgba(239,68,68,0.4);
+    color: #ef4444;
+    padding: 8px 18px;
+    border-radius: 50px;
+    cursor: pointer;
+    font-size: 0.82rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    transition: background 0.2s;
+    white-space: nowrap;
+}
+
+.member-logout-btn:hover { background: rgba(239,68,68,0.25); }
+
+.member-tabs-bar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 28px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    overflow-x: auto;
+}
+
+.mtab {
+    background: transparent;
+    border: none;
+    border-bottom: 3px solid transparent;
+    color: #64748b;
+    padding: 12px 22px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: color 0.2s, border-color 0.2s;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.mtab:hover { color: #22c55e; }
+.mtab.active { color: #22c55e; border-bottom-color: #22c55e; }
+
+.member-tab-content { animation: fadeInUp 0.3s ease; }
+
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.member-section-title {
+    font-family: 'Orbitron', sans-serif;
+    color: #22c55e;
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 22px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-left: 4px solid #22c55e;
+    padding-left: 14px;
+}
+
+.member-profil-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 14px;
+    margin-bottom: 30px;
+}
+
+.member-info-card {
+    background: rgba(15,23,42,0.8);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 12px;
+    padding: 16px 20px;
+    transition: border-color 0.2s;
+}
+
+.member-info-card:hover { border-color: rgba(34,197,94,0.3); }
+
+.mic-label {
+    color: #64748b;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.mic-value { color: white; font-size: 1rem; font-weight: 600; word-break: break-word; }
+
+.member-quick-links { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 10px; }
+
+.member-quick-btn {
+    background: rgba(34,197,94,0.12);
+    border: 1px solid rgba(34,197,94,0.35);
+    color: #22c55e;
+    padding: 10px 22px;
+    border-radius: 50px;
+    text-decoration: none;
+    font-size: 0.88rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: background 0.2s, box-shadow 0.2s;
+}
+
+.member-quick-btn:hover { background: rgba(34,197,94,0.25); box-shadow: 0 0 14px rgba(34,197,94,0.25); }
+
+.member-quick-btn-secondary {
+    background: rgba(100,116,139,0.1);
+    border-color: rgba(100,116,139,0.3);
+    color: #94a3b8;
+}
+
+.member-quick-btn-secondary:hover { background: rgba(100,116,139,0.2); box-shadow: none; }
+
+.member-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+}
+
+.member-tournament-card {
+    background: rgba(15,23,42,0.85);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 16px;
+    overflow: hidden;
+    transition: transform 0.25s, border-color 0.25s, box-shadow 0.25s;
+}
+
+.member-tournament-card:hover {
+    transform: translateY(-4px);
+    border-color: rgba(34,197,94,0.35);
+    box-shadow: 0 8px 30px rgba(34,197,94,0.12);
+}
+
+.member-tournament-img { width: 100%; height: 160px; object-fit: cover; display: block; }
+
+.member-tournament-img-placeholder {
+    width: 100%;
+    height: 160px;
+    background: linear-gradient(135deg, rgba(34,197,94,0.08), rgba(2,6,23,0.8));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(34,197,94,0.3);
+    font-size: 3rem;
+}
+
+.member-tournament-body { padding: 18px; }
+
+.member-tournament-date {
+    color: #22c55e;
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.member-tournament-title {
+    color: white;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+    line-height: 1.3;
+}
+
+.member-tournament-desc {
+    color: #94a3b8;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.member-tournament-prix {
+    margin-top: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(227,255,0,0.1);
+    border: 1px solid rgba(227,255,0,0.3);
+    color: #e3ff00;
+    padding: 4px 12px;
+    border-radius: 50px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.member-sponsors-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+.member-sponsor-card {
+    background: rgba(15,23,42,0.85);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 16px;
+    padding: 24px;
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+    transition: transform 0.25s, border-color 0.25s;
+}
+
+.member-sponsor-card:hover { transform: translateY(-3px); border-color: rgba(34,197,94,0.3); }
+
+.member-sponsor-logo {
+    width: 80px;
+    height: 60px;
+    object-fit: contain;
+    background: white;
+    border-radius: 8px;
+    padding: 6px;
+    flex-shrink: 0;
+}
+
+.member-sponsor-logo-placeholder {
+    width: 80px;
+    height: 60px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 8px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #475569;
+    font-size: 1.5rem;
+}
+
+.member-sponsor-info { flex: 1; min-width: 0; }
+
+.member-sponsor-name { color: white; font-weight: 700; font-size: 1rem; margin-bottom: 10px; }
+
+.member-sponsor-avantage {
+    background: rgba(34,197,94,0.1);
+    border: 1px solid rgba(34,197,94,0.3);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: #22c55e;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+}
+
+.member-sponsor-avantage i { margin-top: 2px; flex-shrink: 0; }
+
+.member-sponsor-no-avantage { color: #475569; font-size: 0.82rem; font-style: italic; }
+
+.member-sponsor-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #00d2ff;
+    font-size: 0.8rem;
+    text-decoration: none;
+    margin-top: 10px;
+    transition: color 0.2s;
+}
+
+.member-sponsor-link:hover { color: var(--electric-cyan); }
+
+.member-empty-state {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 60px 20px;
+    color: #475569;
+}
+
+.member-empty-state i { font-size: 3rem; display: block; margin-bottom: 14px; opacity: 0.4; }
+
+@media (max-width: 768px) {
+    .member-header { padding: 20px; gap: 16px; }
+    .member-logout-btn { margin-left: 0; width: 100%; justify-content: center; }
+    .member-profil-grid { grid-template-columns: 1fr 1fr; }
+    .member-cards-grid, .member-sponsors-grid { grid-template-columns: 1fr; }
+    .member-sponsor-card { flex-direction: column; align-items: center; text-align: center; }
+    .member-sponsor-avantage { text-align: left; }
+}
+
+@media (max-width: 480px) {
+    .member-profil-grid { grid-template-columns: 1fr; }
+}
