@@ -2,6 +2,14 @@
 
 console.log("Admin module loaded");
 
+// Utilitaire échappement HTML (XSS protection)
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.appendChild(document.createTextNode(String(text)));
+    return div.innerHTML;
+}
+
 const db_ref = firebase.database();
 const storage = firebase.storage();
 const auth = firebase.auth();
@@ -753,6 +761,13 @@ async function updateAdminStats() {
         const contactCount = contactData ? Object.keys(contactData).length : 0;
         const contactEl = document.getElementById('stat-contacts');
         if (contactEl) contactEl.textContent = contactCount;
+
+        // Mettre à jour le compteur de membres
+        const memberSnap = await db_ref.ref('members').once('value');
+        const memberData = memberSnap.val();
+        const memberCount = memberData ? Object.values(memberData).filter(m => m && m.actif).length : 0;
+        const memberEl = document.getElementById('stat-members');
+        if (memberEl) memberEl.textContent = memberCount;
 
     } catch (error) {
         console.error('Erreur lors de la mise à jour des stats:', error);
