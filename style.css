@@ -2465,6 +2465,98 @@ section#contact-section.animate-in { transition-delay: 0.1s; }
 
 .member-empty-state i { font-size: 3rem; display: block; margin-bottom: 14px; opacity: 0.4; }
 
+/* === CARTE VIP MEMBRE === */
+.vip-card {
+    position: relative;
+    background: linear-gradient(135deg, #0d1b2e 0%, #1a2f4a 40%, #0d2235 100%);
+    border: 1px solid rgba(255, 215, 0, 0.35);
+    border-radius: 20px;
+    padding: 24px 28px;
+    margin-bottom: 28px;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,215,0,0.08), inset 0 1px 0 rgba(255,255,255,0.05);
+}
+
+.vip-card-shine {
+    position: absolute;
+    top: -60px; right: -60px;
+    width: 280px; height: 280px;
+    background: radial-gradient(circle, rgba(255,215,0,0.07) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+.vip-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid rgba(255,215,0,0.15);
+}
+
+.vip-card-club { display: flex; align-items: center; gap: 10px; }
+
+.vip-card-logo { height: 34px; width: auto; filter: brightness(1.1); }
+
+.vip-card-club-name {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.6rem;
+    color: rgba(255,215,0,0.9);
+    letter-spacing: 0.1em;
+}
+
+.vip-card-subtitle { font-size: 0.68rem; color: rgba(255,255,255,0.45); margin-top: 2px; }
+
+.vip-card-year {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.68rem;
+    color: rgba(255,255,255,0.35);
+}
+
+.vip-card-body {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 20px;
+}
+
+.vip-card-info { flex: 1; }
+
+.vip-card-name {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.15rem;
+    color: white;
+    letter-spacing: 0.04em;
+    margin-bottom: 14px;
+    text-shadow: 0 0 20px rgba(255,215,0,0.15);
+}
+
+.vip-card-details { display: flex; flex-direction: column; gap: 7px; }
+
+.vip-card-detail {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.82rem;
+    color: rgba(255,255,255,0.7);
+}
+
+.vip-card-detail i { color: rgba(255,215,0,0.8); width: 14px; text-align: center; }
+
+.vip-card-qr {
+    background: white;
+    border-radius: 10px;
+    padding: 7px;
+    flex-shrink: 0;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.4);
+}
+
+.vip-card-qr canvas, .vip-card-qr img {
+    display: block !important;
+    width: 88px !important;
+    height: 88px !important;
+}
+
 @media (max-width: 768px) {
     .member-header { padding: 20px; gap: 16px; }
     .member-logout-btn { margin-left: 0; width: 100%; justify-content: center; }
@@ -2472,8 +2564,12 @@ section#contact-section.animate-in { transition-delay: 0.1s; }
     .member-cards-grid, .member-sponsors-grid { grid-template-columns: 1fr; }
     .member-sponsor-card { flex-direction: column; align-items: center; text-align: center; }
     .member-sponsor-avantage { text-align: left; }
+    .vip-card { padding: 20px; }
+    .vip-card-name { font-size: 0.95rem; }
 }
 
 @media (max-width: 480px) {
     .member-profil-grid { grid-template-columns: 1fr; }
+    .vip-card-body { flex-direction: column; align-items: flex-start; gap: 16px; }
+    .vip-card-qr { align-self: flex-end; }
 }

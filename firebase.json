@@ -35,6 +35,15 @@
     ],
     "headers": [
       {
+        "source": "member-dashboard.html",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-store"
+          }
+        ]
+      },
+      {
         "source": "admin-panel.html",
         "headers": [
           {

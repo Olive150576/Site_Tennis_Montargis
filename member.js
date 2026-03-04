@@ -36,6 +36,31 @@ window.initMemberDashboard = function(memberData) {
         set('mp-depuis', date);
     }
 
+    // --- Carte VIP ---
+    const setVip = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val || '—'; };
+    setVip('vip-card-name', `${prenom} ${nom}`.toUpperCase());
+    setVip('vip-card-classement', memberData.classement);
+    setVip('vip-card-categorie', memberData.categorie);
+    setVip('vip-card-licence', memberData.licence);
+    const vipYearEl = document.getElementById('vip-card-year');
+    if (vipYearEl) vipYearEl.textContent = `Saison ${new Date().getFullYear()}`;
+
+    // QR Code (contenu : nom + licence pour vérification physique)
+    const qrEl = document.getElementById('vip-qrcode');
+    if (qrEl && typeof QRCode !== 'undefined') {
+        const qrContent = memberData.licence
+            ? `USM Tennis Montargis | ${prenom} ${nom} | Licence ${memberData.licence}`
+            : `USM Tennis Montargis | ${prenom} ${nom}`;
+        new QRCode(qrEl, {
+            text: qrContent,
+            width: 88,
+            height: 88,
+            colorDark: '#0d1b2e',
+            colorLight: '#ffffff',
+            correctLevel: QRCode.CorrectLevel.M
+        });
+    }
+
     // --- Année en cours dans l'onglet club ---
     const yearEl = document.getElementById('member-tournaments-year');
     if (yearEl) yearEl.textContent = new Date().getFullYear();

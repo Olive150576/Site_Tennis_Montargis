@@ -826,7 +826,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (isMember && memberData) {
             const placeholder = document.getElementById('member-zone-placeholder');
             if (placeholder) {
-                fetch('member-dashboard.html')
+                fetch('member-dashboard.html?v=33', { cache: 'no-store' })
                     .then(r => r.text())
                     .then(html => {
                         placeholder.outerHTML = html;
