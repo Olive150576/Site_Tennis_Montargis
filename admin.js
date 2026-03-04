@@ -293,7 +293,7 @@ if (form) {
                 const newItem = {
                     title,
                     desc,
-                    price: currentSection === 'rates' ? price : (items[index]?.price || null),
+                    price: (currentSection === 'rates' || currentSection === 'tournaments') ? price : (items[index]?.price || null),
                     url: currentSection === 'sponsors' ? document.getElementById('input-url').value : (items[index]?.url || null),
                     avantage: currentSection === 'sponsors' ? (document.getElementById('input-avantage')?.value || null) : (items[index]?.avantage || null),
                     images: finalImages,
@@ -468,7 +468,6 @@ window.switchAdmin = (section) => {
 
     window.resetAdminForm();
 
-    document.getElementById('price-container').classList.toggle('hidden', section !== 'rates');
     document.getElementById('email-container').classList.toggle('hidden', section !== 'info');
     document.getElementById('image-upload-container').classList.toggle('hidden', section === 'info' || section === 'rates' || section === 'documents' || section === 'contacts' || section === 'members');
     document.getElementById('url-container').classList.toggle('hidden', section !== 'sponsors');
@@ -525,7 +524,7 @@ window.editItem = async (section, index) => {
     document.getElementById('input-title').value = item.title || item.address || "";
     document.getElementById('input-desc').value = item.desc || item.phone || "";
 
-    if (section === 'rates') document.getElementById('input-price').value = item.price || "";
+    if (section === 'rates' || section === 'tournaments') document.getElementById('input-price').value = item.price || "";
     if (section === 'info') document.getElementById('input-email').value = item.email || "";
     if (section === 'news' || section === 'rates') document.getElementById('input-featured').checked = !!item.featured;
     if (section === 'sponsors') {
@@ -1126,13 +1125,17 @@ window.loadMembersAdmin = () => {
                     <div style="color:white; font-weight:600;">${escapeHtml(m.prenom || '')} ${escapeHtml(m.nom || '')}</div>
                     <div style="color:#64748b; font-size:12px;">${escapeHtml(m.email || '')} · Licence: ${escapeHtml(m.licence || '—')} · ${escapeHtml(m.classement || '—')}</div>
                 </div>
-                <div style="display:flex; gap:8px; align-items:center;">
+                <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
                     <span style="padding:3px 10px; border-radius:50px; font-size:11px; font-weight:bold; background:${m.actif ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)'}; color:${m.actif ? '#22c55e' : '#ef4444'}; border:1px solid ${m.actif ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'};">
                         ${m.actif ? 'Actif' : 'Inactif'}
                     </span>
-                    <button onclick="toggleMemberActive('${m.uid}', ${!m.actif})"
+                    <button onclick="window.toggleMemberActive('${m.uid}', ${!m.actif})"
                         style="background:${m.actif ? 'rgba(239,68,68,0.1)' : 'rgba(34,197,94,0.1)'}; border:1px solid ${m.actif ? 'rgba(239,68,68,0.4)' : 'rgba(34,197,94,0.4)'}; color:${m.actif ? '#ef4444' : '#22c55e'}; padding:5px 12px; border-radius:8px; cursor:pointer; font-size:12px;">
                         ${m.actif ? 'Désactiver' : 'Réactiver'}
+                    </button>
+                    <button onclick="window.deleteMemberAdmin('${m.uid}', '${escapeHtml(m.prenom || '')} ${escapeHtml(m.nom || '')}')"
+                        style="background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.3); color:#ef4444; padding:5px 10px; border-radius:8px; cursor:pointer; font-size:11px;">
+                        <i class="fas fa-trash"></i>
                     </button>
                 </div>
             </div>
@@ -1148,6 +1151,24 @@ window.toggleMemberActive = async (uid, newStatus) => {
         window.loadMembersAdmin();
     } catch (err) {
         window.showErrorMessage(err, 'save');
+    }
+};
+
+window.deleteMemberAdmin = async (uid, name) => {
+    const confirmed = await window.askConfirmation(
+        'Supprimer le membre',
+        `Êtes-vous sûr de vouloir supprimer le compte de ${name} ? Cette action est irréversible.`,
+        'danger'
+    );
+    if (!confirmed) return;
+
+    try {
+        const deleteFn = firebase.functions().httpsCallable('deleteMember');
+        await deleteFn({ uid });
+        window.showSuccessMessage('Membre supprimé', `Le compte de ${name} a été supprimé.`);
+        window.loadMembersAdmin();
+    } catch (err) {
+        window.showErrorMessage(err, 'delete');
     }
 };
 

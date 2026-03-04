@@ -159,6 +159,34 @@ exports.grantAdminClaim = functions.https.onCall(async (data, context) => {
     return { success: true };
 });
 
+/**
+ * Cloud Function pour supprimer un compte membre
+ */
+exports.deleteMember = functions.https.onCall(async (data, context) => {
+    if (!context.auth) {
+        throw new functions.https.HttpsError('unauthenticated', 'Vous devez être connecté.');
+    }
+    const adminSnap = await admin.database().ref(`admins/${context.auth.uid}`).once('value');
+    if (!adminSnap.exists()) {
+        throw new functions.https.HttpsError('permission-denied', 'Accès réservé aux administrateurs.');
+    }
+
+    const { uid } = data;
+    if (!uid) throw new functions.https.HttpsError('invalid-argument', 'UID membre requis.');
+
+    // Supprimer les données DB
+    await admin.database().ref(`members/${uid}`).remove();
+
+    // Supprimer le compte Auth si il existe
+    try {
+        await admin.auth().deleteUser(uid);
+    } catch (authErr) {
+        console.warn(`deleteMember: compte Auth introuvable pour uid ${uid}:`, authErr.message);
+    }
+
+    return { success: true };
+});
+
 // Note: La fonction de nettoyage automatique peut être ajoutée ultérieurement
 // avec Firebase Scheduled Functions si nécessaire
 
@@ -217,7 +245,13 @@ exports.toggleMemberStatus = functions.https.onCall(async (data, context) => {
     if (!uid) throw new functions.https.HttpsError('invalid-argument', 'UID membre requis.');
 
     await admin.database().ref(`members/${uid}/actif`).set(!!actif);
-    await admin.auth().updateUser(uid, { disabled: !actif });
+
+    // Mettre à jour le compte Auth si il existe (peut ne pas exister pour les données de test)
+    try {
+        await admin.auth().updateUser(uid, { disabled: !actif });
+    } catch (authErr) {
+        console.warn(`toggleMemberStatus: compte Auth introuvable pour uid ${uid}:`, authErr.message);
+    }
 
     return { success: true };
 });
