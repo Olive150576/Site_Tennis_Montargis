@@ -246,7 +246,7 @@ window.downloadMemberWallpaper = function() {
 
             const isPWA = window.matchMedia('(display-mode: standalone)').matches
                        || window.navigator.standalone === true;
-            if (isPWA) { showCardModal(dataUrl); return; }
+            if (isPWA) { showDownloadOverlay(dataUrl); return; }
 
             canvas.toBlob(blob => {
                 const url = URL.createObjectURL(blob);
@@ -463,7 +463,7 @@ window.downloadMemberCard = async function() {
 
             if (isPWA) {
                 // En PWA : afficher la carte dans une modale — appui long pour enregistrer
-                showCardModal(dataUrl);
+                showDownloadOverlay(dataUrl);
                 return;
             }
 
@@ -485,7 +485,7 @@ window.downloadMemberCard = async function() {
     }, 400);
 };
 
-function showCardModal(dataUrl) {
+function showDownloadOverlay(dataUrl) {
     // Overlay plein écran
     const overlay = document.createElement('div');
     overlay.style.cssText = [
