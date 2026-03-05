@@ -822,9 +822,24 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.admin-actions').forEach(el => el.classList.toggle('hidden', !isAdmin));
     }
 
-    function toggleMemberUI(isMember) {
-        if (isMember) {
-            window.location.href = '/espace-membre.html';
+    function toggleMemberUI(isMember, memberData) {
+        if (isMember && memberData) {
+            // Mettre à jour le bouton header pour pointer vers l'espace membre
+            const btn = document.getElementById('member-btn-header');
+            if (btn) {
+                btn.innerHTML = `<i class="fas fa-id-card"></i> ${memberData.prenom || 'Mon Espace'}`;
+                btn.onclick = () => window.location.href = '/espace-membre.html';
+            }
+            const btnMobile = document.getElementById('member-btn-mobile');
+            if (btnMobile) {
+                btnMobile.innerHTML = `<i class="fas fa-id-card"></i> ${memberData.prenom || 'Mon Espace'}`;
+                btnMobile.onclick = () => { window.location.href = '/espace-membre.html'; };
+            }
+            const btnFooter = document.getElementById('member-btn-footer');
+            if (btnFooter) {
+                btnFooter.innerHTML = `<i class="fas fa-id-card"></i> ${memberData.prenom || 'Mon Espace'}`;
+                btnFooter.onclick = () => window.location.href = '/espace-membre.html';
+            }
         }
     }
 

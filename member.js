@@ -397,6 +397,20 @@ window.downloadMemberCard = async function() {
     const cardEl = document.getElementById('member-card-print');
     if (!cardEl) return;
 
+    // Si les sponsors ne sont pas encore chargés, recharger avant de générer la carte
+    if (_cardSponsors.length === 0 && window.db_ref) {
+        await new Promise(resolve => {
+            window.db_ref.ref('sponsors').once('value', snap => {
+                const data = snap.val();
+                if (data) {
+                    const items = Array.isArray(data) ? data : Object.values(data);
+                    _cardSponsors = items.filter(s => s && !s.draft);
+                }
+                resolve();
+            });
+        });
+    }
+
     // Pré-charger les logos sponsors en base64 pour éviter les carrés blancs CORS
     const sponsorsPreloaded = await preloadSponsorLogos(_cardSponsors);
 

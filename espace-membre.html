@@ -88,25 +88,28 @@
         }
 
         .vip-dl-btn {
-            margin-top: 8px;
-            width: 100%;
-            padding: 7px 10px;
-            background: linear-gradient(135deg, rgba(255,215,0,0.15), rgba(245,158,11,0.1));
-            border: 1px solid rgba(255,215,0,0.3);
-            border-radius: 8px;
-            color: #ffd700;
-            font-size: 0.75rem;
-            font-family: inherit;
-            cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 6px;
+            gap: 10px;
+            width: 100%;
+            max-width: 520px;
+            margin: 14px auto 0;
+            padding: 13px 20px;
+            background: linear-gradient(135deg, rgba(255,215,0,0.12), rgba(245,158,11,0.08));
+            border: 1px solid rgba(255,215,0,0.35);
+            border-radius: 12px;
+            color: #ffd700;
+            font-size: 0.9rem;
+            font-family: inherit;
+            font-weight: 600;
+            cursor: pointer;
             transition: all 0.2s;
+            letter-spacing: 0.3px;
         }
         .vip-dl-btn:hover {
-            background: linear-gradient(135deg, rgba(255,215,0,0.25), rgba(245,158,11,0.18));
-            box-shadow: 0 0 12px rgba(255,215,0,0.2);
+            background: linear-gradient(135deg, rgba(255,215,0,0.22), rgba(245,158,11,0.15));
+            box-shadow: 0 0 18px rgba(255,215,0,0.2);
         }
     </style>
 </head>
@@ -193,12 +196,13 @@
                         </div>
                         <div class="vip-card-qr">
                             <div id="vip-qrcode" onclick="window.showCardModal()" title="Afficher la carte en plein écran" style="cursor:pointer;"></div>
-                            <button class="vip-dl-btn" onclick="window.downloadMemberCard()">
-                                <i class="fas fa-download"></i> Télécharger
-                            </button>
                         </div>
                     </div>
                 </div>
+
+                <button class="vip-dl-btn" onclick="window.downloadMemberCard()">
+                    <i class="fas fa-download"></i> Télécharger ma carte de membre
+                </button>
 
                 <div class="member-section-title">
                     <i class="fas fa-user-circle"></i> Mes informations
