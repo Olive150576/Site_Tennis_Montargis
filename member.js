@@ -290,35 +290,27 @@ function buildWallpaperHtml(m) {
     ">
         ${decorSvg}
 
-        <!-- TOP : nom du club -->
-        <div style="position:absolute;top:52px;left:0;right:0;text-align:center;">
-            <div style="color:rgba(255,215,0,0.5);font-size:10px;letter-spacing:5px;font-family:Arial,sans-serif;">USM TENNIS</div>
-            <div style="color:rgba(255,215,0,0.25);font-size:9px;letter-spacing:3px;margin-top:2px;font-family:Arial,sans-serif;">MONTARGIS</div>
+        <!-- TOP : initiales membre -->
+        <div style="position:absolute;top:52px;left:0;right:0;text-align:center;z-index:2;">
+            <div style="color:#ffffff;font-size:38px;font-weight:900;letter-spacing:8px;font-family:Arial,sans-serif;text-shadow:0 0 24px rgba(255,215,0,0.2);">
+                ${escMember((prenom.charAt(0) + nom.charAt(0)).toUpperCase())}
+            </div>
+            <div style="color:rgba(255,215,0,0.5);font-size:9px;letter-spacing:4px;margin-top:4px;font-family:Arial,sans-serif;">USM TENNIS MONTARGIS</div>
         </div>
 
-        <!-- LOGO CENTRAL -->
+        <!-- LOGO CENTRAL (plus grand) -->
         <div style="position:relative;z-index:2;text-align:center;margin-bottom:36px;">
             <div style="
-                width:150px;height:150px;border-radius:50%;
-                background:radial-gradient(circle,rgba(255,215,0,0.12) 0%,rgba(255,215,0,0.03) 60%,transparent 100%);
+                width:210px;height:210px;border-radius:50%;
+                background:radial-gradient(circle,rgba(255,215,0,0.14) 0%,rgba(255,215,0,0.04) 60%,transparent 100%);
                 display:flex;align-items:center;justify-content:center;
                 margin:0 auto;
-                box-shadow:0 0 40px rgba(255,215,0,0.25), 0 0 80px rgba(255,215,0,0.1), 0 0 120px rgba(255,215,0,0.05);
-                border:1px solid rgba(255,215,0,0.2);
+                box-shadow:0 0 50px rgba(255,215,0,0.3), 0 0 100px rgba(255,215,0,0.12), 0 0 150px rgba(255,215,0,0.06);
+                border:1px solid rgba(255,215,0,0.25);
             ">
                 <img src="/logo_usm_new.png" crossorigin="anonymous"
-                    style="width:120px;height:120px;object-fit:contain;filter:drop-shadow(0 0 14px rgba(255,215,0,0.8)) drop-shadow(0 0 30px rgba(255,215,0,0.4));"
+                    style="width:170px;height:170px;object-fit:contain;filter:drop-shadow(0 0 16px rgba(255,215,0,0.9)) drop-shadow(0 0 36px rgba(255,215,0,0.5));"
                     alt="USM">
-            </div>
-        </div>
-
-        <!-- NOM MEMBRE -->
-        <div style="position:relative;z-index:2;text-align:center;margin-bottom:28px;">
-            <div style="color:#ffffff;font-size:26px;font-weight:900;letter-spacing:2px;line-height:1.15;font-family:Arial,sans-serif;text-shadow:0 0 20px rgba(255,215,0,0.15);">
-                ${escMember(prenom.toUpperCase())}
-            </div>
-            <div style="color:#ffd700;font-size:26px;font-weight:900;letter-spacing:2px;font-family:Arial,sans-serif;text-shadow:0 0 20px rgba(255,215,0,0.4);">
-                ${escMember(nom.toUpperCase())}
             </div>
         </div>
 
