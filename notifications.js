@@ -223,6 +223,9 @@ window.showErrorMessage = function(error, context = '') {
     // Map des codes d'erreur Firebase vers messages clairs
     const errorMessages = {
         'permission-denied': 'Vous n\'avez pas les permissions nécessaires pour cette action.',
+        'functions/permission-denied': 'Vous n\'avez pas les permissions nécessaires pour cette action.',
+        'already-exists': 'Cet email est déjà utilisé par un autre compte membre.',
+        'functions/already-exists': 'Cet email est déjà utilisé par un autre compte membre.',
         'PERMISSION_DENIED': 'Vous n\'avez pas les permissions nécessaires pour cette action.',
         'auth/user-not-found': 'Aucun compte trouvé avec cet email.',
         'auth/wrong-password': 'Mot de passe incorrect.',

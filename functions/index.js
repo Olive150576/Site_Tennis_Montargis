@@ -211,7 +211,15 @@ exports.createMember = functions.https.onCall(async (data, context) => {
     }
 
     // Créer le compte Firebase Auth
-    const userRecord = await admin.auth().createUser({ email, password, displayName: `${prenom} ${nom}` });
+    let userRecord;
+    try {
+        userRecord = await admin.auth().createUser({ email, password, displayName: `${prenom} ${nom}` });
+    } catch (authErr) {
+        if (authErr.code === 'auth/email-already-exists') {
+            throw new functions.https.HttpsError('already-exists', `L'email ${email} est déjà utilisé par un autre compte.`);
+        }
+        throw new functions.https.HttpsError('internal', authErr.message);
+    }
 
     // Créer le profil membre dans Realtime DB
     await admin.database().ref(`members/${userRecord.uid}`).set({

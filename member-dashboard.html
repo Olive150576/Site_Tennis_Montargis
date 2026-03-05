@@ -3,6 +3,9 @@
 
     <!-- En-tête membre -->
     <div class="member-header">
+        <div class="member-header-logo-wrap">
+            <img src="/logo_usm_new.png" alt="USM Tennis Montargis" class="member-header-logo">
+        </div>
         <div class="member-avatar-wrap">
             <div class="member-avatar" id="member-avatar-img">
                 <i class="fas fa-user"></i>
@@ -107,11 +110,19 @@
             <a href="https://tenup.fft.fr" target="_blank" rel="noopener noreferrer" class="member-quick-btn">
                 <i class="fas fa-calendar-check"></i> Réserver un terrain
             </a>
-            <a href="https://www.fft.fr/mon-espace" target="_blank" rel="noopener noreferrer" class="member-quick-btn member-quick-btn-secondary">
-                <i class="fas fa-external-link-alt"></i> Mon espace FFT
-            </a>
+            <button class="member-quick-btn member-quick-btn-download" onclick="window.downloadMemberCard()">
+                <i class="fas fa-download"></i> Télécharger ma carte
+            </button>
+            <button class="member-quick-btn member-quick-btn-wallpaper" onclick="window.downloadMemberWallpaper()">
+                <i class="fas fa-mobile-alt"></i> Fond d'écran
+            </button>
         </div>
     </div>
+
+    <!-- Carte membre imprimable (hors écran, capturée par html2canvas) -->
+    <div id="member-card-print" style="position:fixed; left:-9999px; top:0; width:680px; z-index:-1;"></div>
+    <!-- Fond d'écran membre (hors écran, capturé par html2canvas) -->
+    <div id="member-wallpaper-print" style="position:fixed; left:-9999px; top:0; width:390px; z-index:-1;"></div>
 
     <!-- ===== ONGLET 2 : VIE DU CLUB ===== -->
     <div id="mtab-club" class="member-tab-content hidden">

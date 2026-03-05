@@ -439,29 +439,40 @@ window.switchAdmin = (section) => {
 
     const contactsAdmin = document.getElementById('contacts-admin');
     const membersAdmin = document.getElementById('members-admin');
+    const sponsorsListAdmin = document.getElementById('sponsors-list-admin');
 
     // Gérer l'affichage spécial pour les sections documents, contacts et membres
-    const specialSections = ['documents', 'contacts', 'members'];
     if (section === 'documents') {
         if (universalForm) universalForm.style.display = 'none';
         if (documentsAdmin) { documentsAdmin.classList.remove('hidden'); if (window.loadDocumentsAdmin) window.loadDocumentsAdmin(); }
         if (contactsAdmin) contactsAdmin.classList.add('hidden');
         if (membersAdmin) membersAdmin.classList.add('hidden');
+        if (sponsorsListAdmin) sponsorsListAdmin.classList.add('hidden');
     } else if (section === 'contacts') {
         if (universalForm) universalForm.style.display = 'none';
         if (documentsAdmin) documentsAdmin.classList.add('hidden');
         if (contactsAdmin) { contactsAdmin.classList.remove('hidden'); window.loadContactsAdmin(); }
         if (membersAdmin) membersAdmin.classList.add('hidden');
+        if (sponsorsListAdmin) sponsorsListAdmin.classList.add('hidden');
     } else if (section === 'members') {
         if (universalForm) universalForm.style.display = 'none';
         if (documentsAdmin) documentsAdmin.classList.add('hidden');
         if (contactsAdmin) contactsAdmin.classList.add('hidden');
         if (membersAdmin) { membersAdmin.classList.remove('hidden'); window.loadMembersAdmin && window.loadMembersAdmin(); }
+        if (sponsorsListAdmin) sponsorsListAdmin.classList.add('hidden');
     } else {
         if (universalForm) universalForm.style.display = 'block';
         if (documentsAdmin) documentsAdmin.classList.add('hidden');
         if (contactsAdmin) contactsAdmin.classList.add('hidden');
         if (membersAdmin) membersAdmin.classList.add('hidden');
+        if (sponsorsListAdmin) {
+            if (section === 'sponsors') {
+                sponsorsListAdmin.classList.remove('hidden');
+                loadSponsorsAdminList();
+            } else {
+                sponsorsListAdmin.classList.add('hidden');
+            }
+        }
     }
 
     if (titleEl) titleEl.innerText = `Gérer : ${section.toUpperCase()}`;
@@ -508,6 +519,48 @@ window.switchAdmin = (section) => {
         btn.classList.toggle('active', btn.getAttribute('onclick')?.includes(`'${section}'`));
     });
 };
+
+function loadSponsorsAdminList() {
+    const body = document.getElementById('sponsors-admin-list-body');
+    if (!body) return;
+    body.innerHTML = '<p style="color:#64748b;font-size:13px;">Chargement...</p>';
+
+    db_ref.ref('sponsors').once('value', snap => {
+        const data = snap.val();
+        if (!data) { body.innerHTML = '<p style="color:#64748b;font-size:13px;">Aucun partenaire.</p>'; return; }
+        const items = Array.isArray(data) ? data : Object.values(data);
+        const valid = items.map((s, i) => ({ ...s, _idx: i })).filter(s => s && s.title);
+
+        if (valid.length === 0) { body.innerHTML = '<p style="color:#64748b;font-size:13px;">Aucun partenaire.</p>'; return; }
+
+        body.innerHTML = valid.map(s => {
+            const logoHtml = (s.images && s.images[0])
+                ? `<img src="${escapeHtml(s.images[0])}" style="width:48px;height:48px;object-fit:contain;border-radius:6px;background:#fff;padding:3px;border:1px solid #334155;flex-shrink:0;" alt="">`
+                : `<div style="width:48px;height:48px;background:#1e293b;border:1px solid #334155;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#475569;font-size:18px;">★</div>`;
+            const avantage = s.avantage
+                ? `<span style="color:#94a3b8;font-size:12px;">${escapeHtml(s.avantage)}</span>`
+                : `<span style="color:#475569;font-size:12px;font-style:italic;">Aucun avantage renseigné</span>`;
+            const draftBadge = s.draft ? `<span style="background:#fb923c;color:#fff;font-size:10px;padding:1px 7px;border-radius:6px;margin-left:6px;">BROUILLON</span>` : '';
+            return `
+            <div style="display:flex;align-items:center;gap:14px;padding:12px;border-bottom:1px solid #1e293b;">
+                ${logoHtml}
+                <div style="flex:1;min-width:0;">
+                    <div style="color:#e2e8f0;font-size:14px;font-weight:600;">${escapeHtml(s.title)}${draftBadge}</div>
+                    <div style="margin-top:3px;">${avantage}</div>
+                </div>
+                <button onclick="window.editItem('sponsors', ${s._idx})"
+                    style="background:rgba(0,210,255,0.1);border:1px solid rgba(0,210,255,0.4);color:#00d2ff;padding:7px 16px;border-radius:8px;cursor:pointer;font-size:12px;white-space:nowrap;flex-shrink:0;">
+                    <i class="fas fa-edit"></i> Modifier
+                </button>
+                <button onclick="window.deleteItem('sponsors', ${s._idx})"
+                    style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.3);color:#ef4444;padding:7px 12px;border-radius:8px;cursor:pointer;font-size:12px;flex-shrink:0;">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>`;
+        }).join('');
+    });
+}
+window.loadSponsorsAdminList = loadSponsorsAdminList;
 
 window.editItem = async (section, index) => {
     window.switchAdmin(section);

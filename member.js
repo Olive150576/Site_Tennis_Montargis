@@ -3,8 +3,14 @@
 // Chargé dynamiquement après connexion d'un membre
 // ============================================================
 
+// Données mémorisées pour la génération de carte
+let _cardMemberData = null;
+let _cardSponsors = [];
+
 // Initialisation du dashboard avec les données du membre
 window.initMemberDashboard = function(memberData) {
+    _cardMemberData = memberData;
+
     // --- En-tête ---
     const prenom = memberData.prenom || '';
     const nom = memberData.nom || '';
@@ -48,6 +54,7 @@ window.initMemberDashboard = function(memberData) {
     // QR Code (contenu : nom + licence pour vérification physique)
     const qrEl = document.getElementById('vip-qrcode');
     if (qrEl && typeof QRCode !== 'undefined') {
+        qrEl.innerHTML = '';
         const qrContent = memberData.licence
             ? `USM Tennis Montargis | ${prenom} ${nom} | Licence ${memberData.licence}`
             : `USM Tennis Montargis | ${prenom} ${nom}`;
@@ -131,6 +138,7 @@ function loadMemberSponsors() {
         }
         const items = Array.isArray(data) ? data : Object.values(data);
         const visible = items.filter(s => s && !s.draft);
+        _cardSponsors = visible; // mémoriser pour la carte
 
         if (visible.length === 0) {
             grid.innerHTML = '<div class="member-empty-state"><i class="fas fa-handshake"></i><p>Aucun partenaire enregistré.</p></div>';
@@ -180,13 +188,11 @@ window.memberLogout = function() {
     window.auth.signOut().then(() => {
         const zone = document.getElementById('member-zone');
         if (zone) {
-            // Remettre le placeholder pour une éventuelle reconnexion
             const ph = document.createElement('div');
             ph.id = 'member-zone-placeholder';
             zone.replaceWith(ph);
         }
         window.isCurrentUserMember = false;
-        // Remettre le bouton header dans son état initial
         const btn = document.getElementById('member-btn-header');
         if (btn) {
             btn.innerHTML = '<i class="fas fa-id-card"></i> Espace Membre';
@@ -195,6 +201,375 @@ window.memberLogout = function() {
         window.showSuccessMessage && window.showSuccessMessage('Déconnexion', 'À bientôt !');
     });
 };
+
+// ============================================================
+// FOND D'ÉCRAN MOBILE MEMBRE
+// ============================================================
+window.downloadMemberWallpaper = function() {
+    if (!_cardMemberData) return;
+    if (typeof html2canvas === 'undefined') return;
+
+    const el = document.getElementById('member-wallpaper-print');
+    if (!el) return;
+
+    el.innerHTML = buildWallpaperHtml(_cardMemberData);
+    el.style.display = 'block';
+
+    setTimeout(() => {
+        html2canvas(el, {
+            scale: 3,
+            useCORS: true,
+            allowTaint: false,
+            backgroundColor: null,
+            logging: false
+        }).then(canvas => {
+            el.style.display = 'none';
+            el.innerHTML = '';
+            const nomFichier = (_cardMemberData.nom || 'membre').toLowerCase().replace(/\s+/g, '-');
+            const filename = `fond-ecran-usm-${nomFichier}.png`;
+            const dataUrl = canvas.toDataURL('image/png');
+
+            const isPWA = window.matchMedia('(display-mode: standalone)').matches
+                       || window.navigator.standalone === true;
+            if (isPWA) { showCardModal(dataUrl); return; }
+
+            canvas.toBlob(blob => {
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.download = filename;
+                link.href = url;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                setTimeout(() => URL.revokeObjectURL(url), 2000);
+            }, 'image/png');
+        }).catch(() => {
+            el.style.display = 'none';
+            el.innerHTML = '';
+        });
+    }, 200);
+};
+
+function buildWallpaperHtml(m) {
+    const prenom = m.prenom || '';
+    const nom = m.nom || '';
+    const annee = new Date().getFullYear();
+
+    // Lignes décoratives dorées en SVG (motif tennis / raquette stylisé)
+    const decorSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="390" height="844" style="position:absolute;top:0;left:0;pointer-events:none;">
+        <line x1="0" y1="200" x2="390" y2="200" stroke="rgba(255,215,0,0.07)" stroke-width="1"/>
+        <line x1="0" y1="644" x2="390" y2="644" stroke="rgba(255,215,0,0.07)" stroke-width="1"/>
+        <circle cx="195" cy="422" r="180" stroke="rgba(255,215,0,0.05)" stroke-width="1" fill="none"/>
+        <circle cx="195" cy="422" r="140" stroke="rgba(255,215,0,0.04)" stroke-width="1" fill="none"/>
+        <line x1="0" y1="422" x2="390" y2="422" stroke="rgba(255,215,0,0.05)" stroke-width="1"/>
+        <line x1="195" y1="242" x2="195" y2="602" stroke="rgba(255,215,0,0.05)" stroke-width="1"/>
+    </svg>`;
+
+    return `
+    <div style="
+        width:390px; height:844px;
+        background:linear-gradient(175deg, #0a1220 0%, #0d1b2e 30%, #112240 60%, #0a1628 100%);
+        position:relative; overflow:hidden; font-family:Arial,sans-serif;
+        display:flex; flex-direction:column; align-items:center; justify-content:center;
+        box-sizing:border-box; padding:40px 30px;
+    ">
+        ${decorSvg}
+
+        <!-- TOP : nom du club -->
+        <div style="position:absolute;top:52px;left:0;right:0;text-align:center;">
+            <div style="color:rgba(255,215,0,0.5);font-size:10px;letter-spacing:5px;font-family:Arial,sans-serif;">USM TENNIS</div>
+            <div style="color:rgba(255,215,0,0.25);font-size:9px;letter-spacing:3px;margin-top:2px;font-family:Arial,sans-serif;">MONTARGIS</div>
+        </div>
+
+        <!-- LOGO CENTRAL -->
+        <div style="position:relative;z-index:2;text-align:center;margin-bottom:36px;">
+            <div style="
+                width:150px;height:150px;border-radius:50%;
+                background:radial-gradient(circle,rgba(255,215,0,0.12) 0%,rgba(255,215,0,0.03) 60%,transparent 100%);
+                display:flex;align-items:center;justify-content:center;
+                margin:0 auto;
+                box-shadow:0 0 40px rgba(255,215,0,0.25), 0 0 80px rgba(255,215,0,0.1), 0 0 120px rgba(255,215,0,0.05);
+                border:1px solid rgba(255,215,0,0.2);
+            ">
+                <img src="/logo_usm_new.png" crossorigin="anonymous"
+                    style="width:120px;height:120px;object-fit:contain;filter:drop-shadow(0 0 14px rgba(255,215,0,0.8)) drop-shadow(0 0 30px rgba(255,215,0,0.4));"
+                    alt="USM">
+            </div>
+        </div>
+
+        <!-- NOM MEMBRE -->
+        <div style="position:relative;z-index:2;text-align:center;margin-bottom:28px;">
+            <div style="color:#ffffff;font-size:26px;font-weight:900;letter-spacing:2px;line-height:1.15;font-family:Arial,sans-serif;text-shadow:0 0 20px rgba(255,215,0,0.15);">
+                ${escMember(prenom.toUpperCase())}
+            </div>
+            <div style="color:#ffd700;font-size:26px;font-weight:900;letter-spacing:2px;font-family:Arial,sans-serif;text-shadow:0 0 20px rgba(255,215,0,0.4);">
+                ${escMember(nom.toUpperCase())}
+            </div>
+        </div>
+
+        <!-- SÉPARATEUR OR -->
+        <div style="position:relative;z-index:2;display:flex;align-items:center;gap:10px;width:220px;margin-bottom:28px;">
+            <div style="flex:1;height:1px;background:linear-gradient(90deg,transparent,rgba(255,215,0,0.6));"></div>
+            <div style="color:#ffd700;font-size:10px;">★</div>
+            <div style="flex:1;height:1px;background:linear-gradient(90deg,rgba(255,215,0,0.6),transparent);"></div>
+        </div>
+
+        <!-- LICENCE -->
+        ${m.licence ? `
+        <div style="position:relative;z-index:2;text-align:center;margin-bottom:14px;">
+            <div style="color:rgba(255,215,0,0.5);font-size:9px;letter-spacing:4px;font-family:Arial,sans-serif;margin-bottom:6px;">LICENCE FFT</div>
+            <div style="
+                color:#ffd700;font-size:22px;font-weight:700;letter-spacing:4px;font-family:Arial,sans-serif;
+                text-shadow:0 0 16px rgba(255,215,0,0.6);
+            ">${escMember(m.licence)}</div>
+        </div>` : ''}
+
+        <!-- SAISON -->
+        <div style="position:relative;z-index:2;margin-top:10px;">
+            <div style="
+                background:rgba(255,215,0,0.08);border:1px solid rgba(255,215,0,0.3);
+                color:rgba(255,215,0,0.7);font-size:11px;letter-spacing:3px;
+                padding:6px 20px;border-radius:20px;font-family:Arial,sans-serif;
+            ">SAISON ${annee}</div>
+        </div>
+
+        <!-- BAS : site web -->
+        <div style="position:absolute;bottom:40px;left:0;right:0;text-align:center;">
+            <div style="color:rgba(255,215,0,0.2);font-size:9px;letter-spacing:2px;font-family:Arial,sans-serif;">tennismontargis.fr</div>
+        </div>
+    </div>`;
+}
+
+// ============================================================
+// UTILITAIRE : convertir une URL image en base64 (contourne CORS pour html2canvas)
+// ============================================================
+function fetchImageAsBase64(url) {
+    return new Promise(resolve => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+            try {
+                const c = document.createElement('canvas');
+                c.width = img.naturalWidth || 100;
+                c.height = img.naturalHeight || 100;
+                c.getContext('2d').drawImage(img, 0, 0);
+                resolve(c.toDataURL('image/png'));
+            } catch { resolve(null); }
+        };
+        img.onerror = () => resolve(null);
+        img.src = url;
+    });
+}
+
+async function preloadSponsorLogos(sponsors) {
+    return Promise.all((sponsors || []).map(async s => {
+        if (!s || !s.images || !s.images[0]) return { ...s };
+        const b64 = await fetchImageAsBase64(s.images[0]);
+        return { ...s, _logoBase64: b64 };
+    }));
+}
+
+// ============================================================
+// TÉLÉCHARGEMENT CARTE MEMBRE EN PNG
+// ============================================================
+window.downloadMemberCard = async function() {
+    if (!_cardMemberData) return;
+    if (typeof html2canvas === 'undefined') {
+        window.showErrorMessage && window.showErrorMessage({ message: 'Librairie non chargée, réessayez.' }, 'download');
+        return;
+    }
+
+    const cardEl = document.getElementById('member-card-print');
+    if (!cardEl) return;
+
+    // Pré-charger les logos sponsors en base64 pour éviter les carrés blancs CORS
+    const sponsorsPreloaded = await preloadSponsorLogos(_cardSponsors);
+
+    // Construire le contenu de la carte avec inline styles (fiable pour html2canvas)
+    cardEl.innerHTML = buildCardHtml(_cardMemberData, sponsorsPreloaded);
+
+    // Rendre visible hors écran et capturer
+    cardEl.style.left = '-9999px';
+    cardEl.style.display = 'block';
+
+    // Générer le QR code dans la carte
+    const qrContainer = cardEl.querySelector('#card-print-qr');
+    if (qrContainer && typeof QRCode !== 'undefined') {
+        const prenom = _cardMemberData.prenom || '';
+        const nom = _cardMemberData.nom || '';
+        const qrContent = _cardMemberData.licence
+            ? `USM Tennis Montargis | ${prenom} ${nom} | Licence ${_cardMemberData.licence}`
+            : `USM Tennis Montargis | ${prenom} ${nom}`;
+        new QRCode(qrContainer, {
+            text: qrContent,
+            width: 110,
+            height: 110,
+            colorDark: '#0d1b2e',
+            colorLight: '#f5e88a',
+            correctLevel: QRCode.CorrectLevel.M
+        });
+    }
+
+    // Attendre le rendu QR code avant la capture
+    setTimeout(() => {
+        html2canvas(cardEl, {
+            scale: 2,
+            useCORS: true,
+            allowTaint: false,
+            backgroundColor: null,
+            logging: false
+        }).then(canvas => {
+            cardEl.style.display = 'none';
+            cardEl.innerHTML = '';
+            const nomFichier = (_cardMemberData.nom || 'membre').toLowerCase().replace(/\s+/g, '-');
+            const filename = `carte-membre-usm-${nomFichier}.png`;
+            const dataUrl = canvas.toDataURL('image/png');
+
+            // Détection PWA installée (standalone)
+            const isPWA = window.matchMedia('(display-mode: standalone)').matches
+                       || window.navigator.standalone === true;
+
+            if (isPWA) {
+                // En PWA : afficher la carte dans une modale — appui long pour enregistrer
+                showCardModal(dataUrl);
+                return;
+            }
+
+            // Navigateur : téléchargement direct via blob URL
+            canvas.toBlob(blob => {
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.download = filename;
+                link.href = url;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                setTimeout(() => URL.revokeObjectURL(url), 2000);
+            }, 'image/png');
+        }).catch(() => {
+            cardEl.style.display = 'none';
+            cardEl.innerHTML = '';
+        });
+    }, 400);
+};
+
+function showCardModal(dataUrl) {
+    // Overlay plein écran
+    const overlay = document.createElement('div');
+    overlay.style.cssText = [
+        'position:fixed;top:0;left:0;width:100%;height:100%;',
+        'background:rgba(0,0,0,0.93);z-index:99999;',
+        'display:flex;flex-direction:column;align-items:center;justify-content:center;',
+        'padding:20px;box-sizing:border-box;gap:16px;'
+    ].join('');
+
+    const hint = document.createElement('p');
+    hint.style.cssText = 'color:#ffd700;font-size:13px;text-align:center;margin:0;line-height:1.5;';
+    hint.innerHTML = '<strong>Appuyez longuement sur l\'image</strong> pour l\'enregistrer<br><span style="color:rgba(255,215,0,0.55);font-size:11px;">ou faites un clic droit → Enregistrer</span>';
+
+    const img = document.createElement('img');
+    img.src = dataUrl;
+    img.alt = 'Carte membre USM';
+    img.style.cssText = 'max-width:100%;max-height:65vh;border-radius:14px;border:2px solid rgba(255,215,0,0.45);display:block;';
+
+    const closeBtn = document.createElement('button');
+    closeBtn.innerHTML = '<i class="fas fa-times"></i> Fermer';
+    closeBtn.style.cssText = [
+        'background:rgba(255,215,0,0.1);border:1px solid rgba(255,215,0,0.4);',
+        'color:#ffd700;padding:10px 30px;border-radius:50px;font-size:14px;',
+        'cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:8px;'
+    ].join('');
+    closeBtn.onclick = () => document.body.removeChild(overlay);
+
+    overlay.appendChild(hint);
+    overlay.appendChild(img);
+    overlay.appendChild(closeBtn);
+    document.body.appendChild(overlay);
+}
+
+function buildCardHtml(m, sponsors) {
+    const prenom = m.prenom || '';
+    const nom = m.nom || '';
+    const annee = new Date().getFullYear();
+
+    const cardStyle = `
+        width:680px;
+        background:linear-gradient(145deg,#0d1b2e 0%,#112240 50%,#0a1628 100%);
+        border:2px solid rgba(255,215,0,0.6);
+        border-radius:20px;
+        overflow:hidden;
+        font-family:Arial,sans-serif;
+    `;
+
+    const headerHtml = (label) => `
+        <div style="
+            display:flex;align-items:center;gap:18px;
+            padding:18px 28px;
+            background:linear-gradient(90deg,rgba(255,215,0,0.12) 0%,rgba(255,215,0,0.04) 100%);
+            border-bottom:1px solid rgba(255,215,0,0.35);
+        ">
+            <img src="/logo_usm_new.png" style="width:60px;height:60px;object-fit:contain;border-radius:50%;border:2px solid rgba(255,215,0,0.5);" crossorigin="anonymous" alt="USM">
+            <div>
+                <div style="color:#ffd700;font-size:17px;font-weight:900;letter-spacing:2px;font-family:Arial,sans-serif;">USM TENNIS MONTARGIS</div>
+                <div style="color:rgba(255,215,0,0.65);font-size:11px;letter-spacing:3px;margin-top:3px;font-family:Arial,sans-serif;">${label} · SAISON ${annee}</div>
+            </div>
+        </div>`;
+
+    const footerHtml = `
+        <div style="text-align:center;padding:8px;border-top:1px solid rgba(255,215,0,0.15);color:rgba(255,215,0,0.3);font-size:10px;letter-spacing:1px;font-family:Arial,sans-serif;">
+            tennismontargis.fr
+        </div>`;
+
+    // ── RECTO ──────────────────────────────────────────────
+    const recto = `
+    <div style="${cardStyle}">
+        ${headerHtml('CARTE MEMBRE')}
+        <div style="display:flex;align-items:center;gap:28px;padding:24px 28px 20px;">
+            <div style="flex:1;">
+                <div style="color:#ffffff;font-size:22px;font-weight:900;letter-spacing:1px;margin-bottom:14px;font-family:Arial,sans-serif;">${escMember(`${prenom} ${nom}`.toUpperCase())}</div>
+                ${m.classement ? `<div style="margin-bottom:8px;"><span style="background:rgba(255,215,0,0.12);border:1px solid rgba(255,215,0,0.4);color:#ffd700;padding:4px 14px;border-radius:20px;font-size:12px;font-family:Arial,sans-serif;">Classement : ${escMember(m.classement)}</span></div>` : ''}
+                ${m.categorie  ? `<div style="margin-bottom:8px;"><span style="background:rgba(255,215,0,0.08);border:1px solid rgba(255,215,0,0.25);color:rgba(255,215,0,0.8);padding:4px 14px;border-radius:20px;font-size:12px;font-family:Arial,sans-serif;">Catégorie : ${escMember(m.categorie)}</span></div>` : ''}
+                ${m.licence    ? `<div style="margin-top:8px;"><div style="color:rgba(255,255,255,0.45);font-size:10px;letter-spacing:1px;font-family:Arial,sans-serif;">LICENCE FFT</div><div style="color:#ffffff;font-size:17px;font-weight:700;letter-spacing:2px;font-family:Arial,sans-serif;">${escMember(m.licence)}</div></div>` : ''}
+            </div>
+            <div style="flex-shrink:0;text-align:center;">
+                <div id="card-print-qr" style="width:110px;height:110px;background:#f5e88a;border-radius:10px;padding:6px;display:flex;align-items:center;justify-content:center;border:2px solid rgba(255,215,0,0.5);"></div>
+                <div style="color:rgba(255,215,0,0.45);font-size:9px;margin-top:5px;letter-spacing:1px;font-family:Arial,sans-serif;">SCANNER POUR VÉRIFIER</div>
+            </div>
+        </div>
+        ${footerHtml}
+    </div>`;
+
+    // ── VERSO ──────────────────────────────────────────────
+    const sponsorsWithAvantage = (sponsors || []).filter(s => s && s.title && s.avantage);
+
+    const sponsorCards = sponsorsWithAvantage.map(s => {
+        // Utiliser base64 pré-chargé si disponible, sinon URL directe en fallback
+        const logoSrc = s._logoBase64 || (s.images && s.images[0]);
+        const logoHtml = logoSrc
+            ? `<img src="${logoSrc}" style="width:56px;height:56px;object-fit:contain;border-radius:8px;background:#fff;padding:4px;border:1px solid rgba(255,215,0,0.3);flex-shrink:0;" alt="${escMember(s.title)}">`
+            : `<div style="width:56px;height:56px;background:rgba(255,215,0,0.08);border:1px solid rgba(255,215,0,0.25);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:rgba(255,215,0,0.4);font-size:20px;">★</div>`;
+        return `
+        <div style="display:flex;align-items:flex-start;gap:12px;padding:12px;background:rgba(255,215,0,0.04);border:1px solid rgba(255,215,0,0.15);border-radius:10px;">
+            ${logoHtml}
+            <div style="flex:1;min-width:0;">
+                <div style="color:#ffd700;font-size:12px;font-weight:700;font-family:Arial,sans-serif;margin-bottom:4px;">${escMember(s.title)}</div>
+                <div style="color:rgba(255,255,255,0.8);font-size:11px;font-family:Arial,sans-serif;line-height:1.4;">${escMember(s.avantage)}</div>
+            </div>
+        </div>`;
+    }).join('');
+
+    const verso = sponsorsWithAvantage.length > 0 ? `
+    <div style="${cardStyle}">
+        ${headerHtml('VOS AVANTAGES PARTENAIRES')}
+        <div style="padding:20px 28px;display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            ${sponsorCards}
+        </div>
+        ${footerHtml}
+    </div>` : '';
+
+    // ── WRAPPER vertical recto + verso ─────────────────────
+    return `<div style="display:flex;flex-direction:column;gap:20px;width:680px;">${recto}${verso}</div>`;
+}
 
 // --- Utilitaire échappement HTML ---
 function escMember(str) {
