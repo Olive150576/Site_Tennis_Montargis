@@ -67,6 +67,47 @@
         #member-page {
             display: none;
         }
+
+        .member-back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 14px;
+            background: rgba(100,116,139,0.12);
+            border: 1px solid rgba(148,163,184,0.25);
+            border-radius: 8px;
+            color: #94a3b8;
+            font-size: 0.8rem;
+            text-decoration: none;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .member-back-btn:hover {
+            background: rgba(100,116,139,0.22);
+            color: #e2e8f0;
+        }
+
+        .vip-dl-btn {
+            margin-top: 8px;
+            width: 100%;
+            padding: 7px 10px;
+            background: linear-gradient(135deg, rgba(255,215,0,0.15), rgba(245,158,11,0.1));
+            border: 1px solid rgba(255,215,0,0.3);
+            border-radius: 8px;
+            color: #ffd700;
+            font-size: 0.75rem;
+            font-family: inherit;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+        .vip-dl-btn:hover {
+            background: linear-gradient(135deg, rgba(255,215,0,0.25), rgba(245,158,11,0.18));
+            box-shadow: 0 0 12px rgba(255,215,0,0.2);
+        }
     </style>
 </head>
 
@@ -104,6 +145,9 @@
                         <span class="member-badge member-badge-purple" id="member-categorie-badge"><i class="fas fa-layer-group"></i> <span id="member-categorie-val">—</span></span>
                     </div>
                 </div>
+                <a href="/" class="member-back-btn">
+                    <i class="fas fa-arrow-left"></i> Site
+                </a>
                 <button class="member-logout-btn" onclick="window.memberLogout()">
                     <i class="fas fa-sign-out-alt"></i> Déconnexion
                 </button>
@@ -148,7 +192,10 @@
                             </div>
                         </div>
                         <div class="vip-card-qr">
-                            <div id="vip-qrcode"></div>
+                            <div id="vip-qrcode" onclick="window.showCardModal()" title="Afficher la carte en plein écran" style="cursor:pointer;"></div>
+                            <button class="vip-dl-btn" onclick="window.downloadMemberCard()">
+                                <i class="fas fa-download"></i> Télécharger
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -195,9 +242,6 @@
                     <a href="https://tenup.fft.fr" target="_blank" rel="noopener noreferrer" class="member-quick-btn">
                         <i class="fas fa-calendar-check"></i> Réserver un terrain
                     </a>
-                    <button class="member-quick-btn member-quick-btn-download" onclick="window.downloadMemberCard()">
-                        <i class="fas fa-download"></i> Télécharger ma carte
-                    </button>
                     <button class="member-quick-btn member-quick-btn-wallpaper" onclick="window.downloadMemberWallpaper()">
                         <i class="fas fa-mobile-alt"></i> Fond d'écran
                     </button>
@@ -238,6 +282,13 @@
         </div><!-- /#member-zone -->
 
     </div><!-- /#member-page -->
+
+    <!-- Modal plein écran : visualisation de la carte membre -->
+    <div id="card-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(2,6,23,0.96); z-index:9999; align-items:center; justify-content:center; flex-direction:column; gap:24px; padding:20px; box-sizing:border-box;" onclick="if(event.target===this)window.hideCardModal()">
+        <button onclick="window.hideCardModal()" style="position:absolute; top:16px; right:20px; background:none; border:none; color:#94a3b8; font-size:2rem; cursor:pointer; line-height:1;">&times;</button>
+        <div id="card-modal-content" style="width:100%; max-width:420px;"></div>
+        <p style="color:#64748b; font-size:0.8rem; margin:0; text-align:center;">Appuyez en dehors pour fermer</p>
+    </div>
 
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>

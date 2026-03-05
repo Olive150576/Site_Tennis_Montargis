@@ -190,6 +190,33 @@ window.memberLogout = function() {
     });
 };
 
+// --- Modal plein écran : afficher la carte membre ---
+window.showCardModal = function() {
+    const modal = document.getElementById('card-modal');
+    if (!modal) return;
+    const content = document.getElementById('card-modal-content');
+    if (content) {
+        // Cloner la carte VIP dans le modal
+        const card = document.querySelector('.vip-card');
+        if (card) {
+            content.innerHTML = '';
+            const clone = card.cloneNode(true);
+            // Retirer le QR cliquable du clone pour éviter boucle
+            const qrWrap = clone.querySelector('.vip-card-qr');
+            if (qrWrap) qrWrap.style.pointerEvents = 'none';
+            content.appendChild(clone);
+        }
+    }
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+};
+
+window.hideCardModal = function() {
+    const modal = document.getElementById('card-modal');
+    if (modal) modal.style.display = 'none';
+    document.body.style.overflow = '';
+};
+
 // ============================================================
 // FOND D'ÉCRAN MOBILE MEMBRE
 // ============================================================

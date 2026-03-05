@@ -834,8 +834,18 @@ document.addEventListener('DOMContentLoaded', () => {
         const password = document.getElementById('member-login-password').value;
         if (!email || !password) return;
         auth.signInWithEmailAndPassword(email, password)
-            .then(() => {
-                document.getElementById('member-login-modal').classList.add('hidden');
+            .then((userCred) => {
+                return db_ref.ref('members/' + userCred.user.uid).once('value').then(memberSnap => {
+                    if (memberSnap.exists() && memberSnap.val().actif) {
+                        window.location.href = '/espace-membre.html';
+                    } else {
+                        return auth.signOut().then(() => {
+                            window.showErrorMessage && window.showErrorMessage(
+                                { message: 'Compte non autorisé ou inactif.' }, 'login'
+                            );
+                        });
+                    }
+                });
             })
             .catch(err => {
                 window.showErrorMessage && window.showErrorMessage(err, 'login');
