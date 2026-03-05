@@ -553,6 +553,20 @@ function buildCardHtml(m, sponsors) {
         </div>`;
 
     // ── RECTO ──────────────────────────────────────────────
+    // Bande de logos partenaires (max 6) pour le bas du recto
+    const rectoSponsors = (sponsors || []).filter(s => s && s.title).slice(0, 6);
+    const rectoLogosHtml = rectoSponsors.length > 0 ? `
+        <div style="padding:10px 28px 14px;border-top:1px solid rgba(255,215,0,0.15);display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <div style="color:rgba(255,215,0,0.35);font-size:8px;letter-spacing:2px;font-family:Arial,sans-serif;margin-right:4px;">PARTENAIRES</div>
+            ${rectoSponsors.map(s => {
+                const src = s._logoBase64;
+                const initiale = (s.title || '?').charAt(0).toUpperCase();
+                return src
+                    ? `<img src="${src}" style="height:28px;width:auto;max-width:52px;object-fit:contain;background:#fff;border-radius:4px;padding:2px;" alt="${escMember(s.title)}">`
+                    : `<div style="height:28px;width:28px;background:rgba(255,215,0,0.1);border:1px solid rgba(255,215,0,0.3);border-radius:4px;display:flex;align-items:center;justify-content:center;color:#ffd700;font-size:11px;font-weight:700;font-family:Arial,sans-serif;">${initiale}</div>`;
+            }).join('')}
+        </div>` : '';
+
     const recto = `
     <div style="${cardStyle}">
         ${headerHtml('CARTE MEMBRE')}
@@ -568,6 +582,7 @@ function buildCardHtml(m, sponsors) {
                 <div style="color:rgba(255,215,0,0.45);font-size:9px;margin-top:5px;letter-spacing:1px;font-family:Arial,sans-serif;">SCANNER POUR VÉRIFIER</div>
             </div>
         </div>
+        ${rectoLogosHtml}
         ${footerHtml}
     </div>`;
 
