@@ -569,7 +569,8 @@ function buildCardHtml(m, sponsors) {
     </div>`;
 
     // ── VERSO ──────────────────────────────────────────────
-    const sponsorsWithAvantage = (sponsors || []).filter(s => s && s.title && s.avantage);
+    // Inclure tous les sponsors avec un titre (avantage optionnel)
+    const sponsorsWithAvantage = (sponsors || []).filter(s => s && s.title);
 
     const sponsorCards = sponsorsWithAvantage.map(s => {
         // Utiliser base64 pré-chargé si disponible, sinon URL directe en fallback
@@ -577,19 +578,22 @@ function buildCardHtml(m, sponsors) {
         const logoHtml = logoSrc
             ? `<img src="${logoSrc}" style="width:56px;height:56px;object-fit:contain;border-radius:8px;background:#fff;padding:4px;border:1px solid rgba(255,215,0,0.3);flex-shrink:0;" alt="${escMember(s.title)}">`
             : `<div style="width:56px;height:56px;background:rgba(255,215,0,0.08);border:1px solid rgba(255,215,0,0.25);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:rgba(255,215,0,0.4);font-size:20px;">★</div>`;
+        const avantageHtml = s.avantage
+            ? `<div style="color:rgba(255,255,255,0.8);font-size:11px;font-family:Arial,sans-serif;line-height:1.4;">${escMember(s.avantage)}</div>`
+            : '';
         return `
         <div style="display:flex;align-items:flex-start;gap:12px;padding:12px;background:rgba(255,215,0,0.04);border:1px solid rgba(255,215,0,0.15);border-radius:10px;">
             ${logoHtml}
             <div style="flex:1;min-width:0;">
                 <div style="color:#ffd700;font-size:12px;font-weight:700;font-family:Arial,sans-serif;margin-bottom:4px;">${escMember(s.title)}</div>
-                <div style="color:rgba(255,255,255,0.8);font-size:11px;font-family:Arial,sans-serif;line-height:1.4;">${escMember(s.avantage)}</div>
+                ${avantageHtml}
             </div>
         </div>`;
     }).join('');
 
     const verso = sponsorsWithAvantage.length > 0 ? `
     <div style="${cardStyle}">
-        ${headerHtml('VOS AVANTAGES PARTENAIRES')}
+        ${headerHtml('NOS PARTENAIRES')}
         <div style="padding:20px 28px;display:grid;grid-template-columns:1fr 1fr;gap:10px;">
             ${sponsorCards}
         </div>
