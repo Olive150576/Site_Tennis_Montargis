@@ -51,14 +51,15 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (memberSnap.exists() && memberSnap.val().actif) {
                             window.isCurrentUserMember = true;
                             toggleMemberUI(true, memberSnap.val());
+                            // Pas de renderAll() : le site garde son aspect visiteur pour les membres
                         } else {
                             // Compte inconnu : déconnexion
                             auth.signOut();
                             window.showErrorMessage && window.showErrorMessage(
                                 { message: 'Compte non autorisé' }, 'login'
                             );
+                            renderAll();
                         }
-                        renderAll();
                     });
                 }
             });
