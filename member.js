@@ -397,14 +397,17 @@ window.downloadMemberCard = async function() {
     const cardEl = document.getElementById('member-card-print');
     if (!cardEl) return;
 
-    // Si les sponsors ne sont pas encore chargés, recharger avant de générer la carte
-    if (_cardSponsors.length === 0 && window.db_ref) {
+    // Toujours recharger les sponsors depuis Firebase avant de générer la carte
+    // (garantit la fraîcheur des données et évite le verso vide)
+    if (window.db_ref) {
         await new Promise(resolve => {
             window.db_ref.ref('sponsors').once('value', snap => {
                 const data = snap.val();
                 if (data) {
                     const items = Array.isArray(data) ? data : Object.values(data);
                     _cardSponsors = items.filter(s => s && !s.draft);
+                } else {
+                    _cardSponsors = [];
                 }
                 resolve();
             });
@@ -573,11 +576,12 @@ function buildCardHtml(m, sponsors) {
     const sponsorsWithAvantage = (sponsors || []).filter(s => s && s.title);
 
     const sponsorCards = sponsorsWithAvantage.map(s => {
-        // Utiliser base64 pré-chargé si disponible, sinon URL directe en fallback
-        const logoSrc = s._logoBase64 || (s.images && s.images[0]);
+        // Utiliser UNIQUEMENT le base64 pré-chargé (URL directe = blanc dans html2canvas si CORS absent)
+        const logoSrc = s._logoBase64;
+        const initiale = (s.title || '?').charAt(0).toUpperCase();
         const logoHtml = logoSrc
             ? `<img src="${logoSrc}" style="width:56px;height:56px;object-fit:contain;border-radius:8px;background:#fff;padding:4px;border:1px solid rgba(255,215,0,0.3);flex-shrink:0;" alt="${escMember(s.title)}">`
-            : `<div style="width:56px;height:56px;background:rgba(255,215,0,0.08);border:1px solid rgba(255,215,0,0.25);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:rgba(255,215,0,0.4);font-size:20px;">★</div>`;
+            : `<div style="width:56px;height:56px;background:rgba(255,215,0,0.1);border:1px solid rgba(255,215,0,0.35);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#ffd700;font-size:22px;font-weight:900;font-family:Arial,sans-serif;">${initiale}</div>`;
         const avantageHtml = s.avantage
             ? `<div style="color:rgba(255,255,255,0.8);font-size:11px;font-family:Arial,sans-serif;line-height:1.4;">${escMember(s.avantage)}</div>`
             : '';
