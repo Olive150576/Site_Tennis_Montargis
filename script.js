@@ -822,38 +822,9 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.admin-actions').forEach(el => el.classList.toggle('hidden', !isAdmin));
     }
 
-    function toggleMemberUI(isMember, memberData) {
-        if (isMember && memberData) {
-            const placeholder = document.getElementById('member-zone-placeholder');
-            if (placeholder) {
-                fetch('member-dashboard.html?v=33', { cache: 'no-store' })
-                    .then(r => r.text())
-                    .then(html => {
-                        placeholder.outerHTML = html;
-                        // Charger member.js après injection du DOM
-                        const memberScript = document.getElementById('member-script-placeholder');
-                        if (memberScript && !memberScript.src) {
-                            memberScript.src = 'member.js';
-                            memberScript.onload = () => {
-                                if (window.initMemberDashboard) window.initMemberDashboard(memberData);
-                                document.getElementById('member-zone')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                            };
-                        } else if (window.initMemberDashboard) {
-                            window.initMemberDashboard(memberData);
-                        }
-                    })
-                    .catch(e => console.error('Erreur chargement espace membre:', e));
-            } else {
-                document.getElementById('member-zone')?.classList.remove('hidden');
-            }
-            // Mettre à jour le bouton header
-            const btn = document.getElementById('member-btn-header');
-            if (btn) {
-                btn.innerHTML = `<i class="fas fa-id-card"></i> ${memberData.prenom || 'Mon Espace'}`;
-                btn.onclick = () => document.getElementById('member-zone')?.scrollIntoView({ behavior: 'smooth' });
-            }
-        } else {
-            document.getElementById('member-zone')?.classList.add('hidden');
+    function toggleMemberUI(isMember) {
+        if (isMember) {
+            window.location.href = '/espace-membre.html';
         }
     }
 

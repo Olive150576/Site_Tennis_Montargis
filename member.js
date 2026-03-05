@@ -186,19 +186,7 @@ window.switchMemberTab = function(tab) {
 // --- Déconnexion membre ---
 window.memberLogout = function() {
     window.auth.signOut().then(() => {
-        const zone = document.getElementById('member-zone');
-        if (zone) {
-            const ph = document.createElement('div');
-            ph.id = 'member-zone-placeholder';
-            zone.replaceWith(ph);
-        }
-        window.isCurrentUserMember = false;
-        const btn = document.getElementById('member-btn-header');
-        if (btn) {
-            btn.innerHTML = '<i class="fas fa-id-card"></i> Espace Membre';
-            btn.onclick = () => document.getElementById('member-login-modal').classList.remove('hidden');
-        }
-        window.showSuccessMessage && window.showSuccessMessage('Déconnexion', 'À bientôt !');
+        window.location.href = '/';
     });
 };
 

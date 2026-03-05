@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Espace Membre — USM Tennis Montargis</title>
+    <meta name="robots" content="noindex, nofollow">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png">
+
+    <!-- Preconnect -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+
+    <style>
+        body {
+            background: #020617;
+            color: #e2e8f0;
+            font-family: 'Poppins', sans-serif;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+        }
+
+        #auth-loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            gap: 20px;
+        }
+
+        #auth-loading img {
+            width: 80px;
+            opacity: 0.85;
+        }
+
+        #auth-loading p {
+            color: #64748b;
+            font-size: 0.9rem;
+            margin: 0;
+        }
+
+        .auth-spinner {
+            width: 36px;
+            height: 36px;
+            border: 3px solid rgba(255,255,255,0.08);
+            border-top-color: #22c55e;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        #member-page {
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Écran de chargement (affiché pendant la vérification auth) -->
+    <div id="auth-loading">
+        <img src="/logo_usm_new.png" alt="USM Tennis Montargis">
+        <div class="auth-spinner"></div>
+        <p>Vérification de votre accès...</p>
+    </div>
+
+    <!-- Dashboard membre (affiché après auth réussie) -->
+    <div id="member-page">
+
+        <div id="member-zone" class="container" style="margin-top:50px; padding-bottom:80px;">
+
+            <!-- En-tête membre -->
+            <div class="member-header">
+                <div class="member-header-logo-wrap">
+                    <a href="/" title="Retour au site">
+                        <img src="/logo_usm_new.png" alt="USM Tennis Montargis" class="member-header-logo">
+                    </a>
+                </div>
+                <div class="member-avatar-wrap">
+                    <div class="member-avatar" id="member-avatar-img">
+                        <i class="fas fa-user"></i>
+                    </div>
+                </div>
+                <div class="member-header-info">
+                    <h2 class="member-greeting" id="member-greeting">Bonjour !</h2>
+                    <div class="member-badges">
+                        <span class="member-badge" id="member-licence-badge"><i class="fas fa-id-card"></i> <span id="member-licence-val">—</span></span>
+                        <span class="member-badge member-badge-yellow" id="member-classement-badge"><i class="fas fa-trophy"></i> <span id="member-classement-val">—</span></span>
+                        <span class="member-badge member-badge-purple" id="member-categorie-badge"><i class="fas fa-layer-group"></i> <span id="member-categorie-val">—</span></span>
+                    </div>
+                </div>
+                <button class="member-logout-btn" onclick="window.memberLogout()">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </button>
+            </div>
+
+            <!-- Onglets navigation -->
+            <div class="member-tabs-bar">
+                <button class="mtab active" onclick="window.switchMemberTab('profil')" id="mtab-btn-profil">
+                    <i class="fas fa-user-circle"></i> Mon Profil
+                </button>
+                <button class="mtab" onclick="window.switchMemberTab('club')" id="mtab-btn-club">
+                    <i class="fas fa-calendar-alt"></i> Vie du Club
+                </button>
+                <button class="mtab" onclick="window.switchMemberTab('partenaires')" id="mtab-btn-partenaires">
+                    <i class="fas fa-handshake"></i> Partenaires
+                </button>
+            </div>
+
+            <!-- ===== ONGLET 1 : MON PROFIL ===== -->
+            <div id="mtab-profil" class="member-tab-content">
+
+                <!-- CARTE VIP -->
+                <div class="vip-card">
+                    <div class="vip-card-shine"></div>
+                    <div class="vip-card-header">
+                        <div class="vip-card-club">
+                            <img src="/logo_usm_new.png" alt="USM" class="vip-card-logo">
+                            <div>
+                                <div class="vip-card-club-name">USM TENNIS MONTARGIS</div>
+                                <div class="vip-card-subtitle">Carte Membre</div>
+                            </div>
+                        </div>
+                        <div class="vip-card-year" id="vip-card-year"></div>
+                    </div>
+                    <div class="vip-card-body">
+                        <div class="vip-card-info">
+                            <div class="vip-card-name" id="vip-card-name">—</div>
+                            <div class="vip-card-details">
+                                <div class="vip-card-detail"><i class="fas fa-trophy"></i> <span id="vip-card-classement">—</span></div>
+                                <div class="vip-card-detail"><i class="fas fa-layer-group"></i> <span id="vip-card-categorie">—</span></div>
+                                <div class="vip-card-detail"><i class="fas fa-id-card"></i> Licence&nbsp;<span id="vip-card-licence">—</span></div>
+                            </div>
+                        </div>
+                        <div class="vip-card-qr">
+                            <div id="vip-qrcode"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="member-section-title">
+                    <i class="fas fa-user-circle"></i> Mes informations
+                </div>
+                <div class="member-profil-grid">
+                    <div class="member-info-card">
+                        <div class="mic-label"><i class="fas fa-user"></i> Prénom</div>
+                        <div class="mic-value" id="mp-prenom">—</div>
+                    </div>
+                    <div class="member-info-card">
+                        <div class="mic-label"><i class="fas fa-user"></i> Nom</div>
+                        <div class="mic-value" id="mp-nom">—</div>
+                    </div>
+                    <div class="member-info-card">
+                        <div class="mic-label"><i class="fas fa-envelope"></i> Email</div>
+                        <div class="mic-value" id="mp-email">—</div>
+                    </div>
+                    <div class="member-info-card">
+                        <div class="mic-label"><i class="fas fa-phone"></i> Téléphone</div>
+                        <div class="mic-value" id="mp-telephone">—</div>
+                    </div>
+                    <div class="member-info-card">
+                        <div class="mic-label"><i class="fas fa-id-card"></i> N° Licence FFT</div>
+                        <div class="mic-value" id="mp-licence">—</div>
+                    </div>
+                    <div class="member-info-card">
+                        <div class="mic-label"><i class="fas fa-trophy"></i> Classement</div>
+                        <div class="mic-value" id="mp-classement">—</div>
+                    </div>
+                    <div class="member-info-card">
+                        <div class="mic-label"><i class="fas fa-layer-group"></i> Catégorie</div>
+                        <div class="mic-value" id="mp-categorie">—</div>
+                    </div>
+                    <div class="member-info-card">
+                        <div class="mic-label"><i class="fas fa-calendar-check"></i> Membre depuis</div>
+                        <div class="mic-value" id="mp-depuis">—</div>
+                    </div>
+                </div>
+
+                <div class="member-quick-links">
+                    <a href="https://tenup.fft.fr" target="_blank" rel="noopener noreferrer" class="member-quick-btn">
+                        <i class="fas fa-calendar-check"></i> Réserver un terrain
+                    </a>
+                    <button class="member-quick-btn member-quick-btn-download" onclick="window.downloadMemberCard()">
+                        <i class="fas fa-download"></i> Télécharger ma carte
+                    </button>
+                    <button class="member-quick-btn member-quick-btn-wallpaper" onclick="window.downloadMemberWallpaper()">
+                        <i class="fas fa-mobile-alt"></i> Fond d'écran
+                    </button>
+                </div>
+            </div>
+
+            <!-- Carte membre imprimable (hors écran, capturée par html2canvas) -->
+            <div id="member-card-print" style="position:fixed; left:-9999px; top:0; width:680px; z-index:-1;"></div>
+            <!-- Fond d'écran membre (hors écran, capturé par html2canvas) -->
+            <div id="member-wallpaper-print" style="position:fixed; left:-9999px; top:0; width:390px; z-index:-1;"></div>
+
+            <!-- ===== ONGLET 2 : VIE DU CLUB ===== -->
+            <div id="mtab-club" class="member-tab-content hidden">
+                <div class="member-section-title">
+                    <i class="fas fa-calendar-alt"></i> Tournois TMC <span id="member-tournaments-year" style="color:#64748b; font-size:0.8rem; font-family:inherit; font-weight:normal;"></span>
+                </div>
+                <div id="member-tournaments-grid" class="member-cards-grid">
+                    <div class="member-empty-state">
+                        <i class="fas fa-calendar-times"></i>
+                        <p>Aucun tournoi programmé pour l'instant.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== ONGLET 3 : PARTENAIRES ===== -->
+            <div id="mtab-partenaires" class="member-tab-content hidden">
+                <div class="member-section-title">
+                    <i class="fas fa-handshake"></i> Nos partenaires &amp; vos avantages
+                </div>
+                <div id="member-sponsors-grid" class="member-sponsors-grid">
+                    <div class="member-empty-state">
+                        <i class="fas fa-handshake"></i>
+                        <p>Chargement des partenaires...</p>
+                    </div>
+                </div>
+            </div>
+
+        </div><!-- /#member-zone -->
+
+    </div><!-- /#member-page -->
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyA4GdfEh3M6mEszwRFif049qsmoLq4tn7c",
+            authDomain: "usm-tennis.firebaseapp.com",
+            databaseURL: "https://usm-tennis-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "usm-tennis",
+            storageBucket: "usm-tennis.firebasestorage.app",
+            messagingSenderId: "631286589550",
+            appId: "1:631286589550:web:7e68afcddfbb8e16d79e7f"
+        };
+        firebase.initializeApp(firebaseConfig);
+        window.db_ref = firebase.database();
+        window.auth = firebase.auth();
+        window.storage = firebase.storage();
+
+        // Auth guard : vérifie que l'utilisateur est un membre actif
+        firebase.auth().onAuthStateChanged(function(user) {
+            if (!user) {
+                // Non connecté → retour au site
+                window.location.href = '/';
+                return;
+            }
+            // Vérifier si admin (les admins n'ont pas accès à cette page)
+            window.db_ref.ref('admins/' + user.uid).once('value', function(adminSnap) {
+                if (adminSnap.exists()) {
+                    // C'est un admin → retour au site (son panel est sur index.html)
+                    window.location.href = '/';
+                    return;
+                }
+                // Vérifier si membre actif
+                window.db_ref.ref('members/' + user.uid).once('value', function(memberSnap) {
+                    if (memberSnap.exists() && memberSnap.val().actif) {
+                        // Membre valide → afficher le dashboard
+                        document.getElementById('auth-loading').style.display = 'none';
+                        document.getElementById('member-page').style.display = 'block';
+                        if (window.initMemberDashboard) {
+                            window.initMemberDashboard(memberSnap.val());
+                        }
+                    } else {
+                        // Compte non autorisé → déconnexion et retour
+                        firebase.auth().signOut().then(function() {
+                            window.location.href = '/';
+                        });
+                    }
+                });
+            });
+        });
+    </script>
+
+    <!-- QR Code -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <!-- html2canvas pour téléchargement carte/fond d'écran -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <!-- Dashboard membre -->
+    <script src="member.js"></script>
+
+</body>
+</html>

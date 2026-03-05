@@ -29,6 +29,10 @@
         "destination": "/sitemap.xml"
       },
       {
+        "source": "/espace-membre.html",
+        "destination": "/espace-membre.html"
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }
@@ -36,6 +40,15 @@
     "headers": [
       {
         "source": "member-dashboard.html",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-store"
+          }
+        ]
+      },
+      {
+        "source": "espace-membre.html",
         "headers": [
           {
             "key": "Cache-Control",
