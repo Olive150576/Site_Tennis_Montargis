@@ -485,17 +485,6 @@ function buildDesktopWallpaperHtml(m) {
 
         ${separatorHtml}
 
-        <!-- NOM DU MEMBRE -->
-        <div style="position:relative;z-index:2;text-align:center;margin-bottom:${statut ? '12px' : '16px'};">
-            <div style="color:#ffffff;font-size:20px;font-weight:700;letter-spacing:3px;font-family:Arial,sans-serif;text-shadow:0 0 20px rgba(255,255,255,0.12);">${escMember(`${prenom} ${nom}`.toUpperCase())}</div>
-        </div>
-
-        <!-- STATUT (si applicable) -->
-        ${statut ? `
-        <div style="position:relative;z-index:2;text-align:center;margin-bottom:16px;">
-            <span style="background:rgba(255,215,0,0.12);border:1px solid rgba(255,215,0,0.45);color:#ffd700;padding:4px 18px;border-radius:20px;font-size:11px;letter-spacing:1px;font-family:Arial,sans-serif;">★ ${escMember(statut)}</span>
-        </div>` : ''}
-
         <!-- SAISON -->
         <div style="position:relative;z-index:2;text-align:center;">
             <div style="
