@@ -204,7 +204,7 @@ exports.createMember = functions.https.onCall(async (data, context) => {
         throw new functions.https.HttpsError('permission-denied', 'Accès réservé aux administrateurs.');
     }
 
-    const { email, password, nom, prenom, telephone, licence, classement, categorie } = data;
+    const { email, password, nom, prenom, telephone, licence, classement, categorie, statut } = data;
 
     if (!email || !password || !nom || !prenom) {
         throw new functions.https.HttpsError('invalid-argument', 'Prénom, nom, email et mot de passe sont requis.');
@@ -230,6 +230,7 @@ exports.createMember = functions.https.onCall(async (data, context) => {
         licence: licence || '',
         classement: classement || '',
         categorie: categorie || 'Adulte H',
+        statut: statut || 'Membre',
         actif: true,
         createdAt: Date.now()
     });

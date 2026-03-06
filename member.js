@@ -48,6 +48,14 @@ window.initMemberDashboard = function(memberData) {
     setVip('vip-card-classement', memberData.classement);
     setVip('vip-card-categorie', memberData.categorie);
     setVip('vip-card-licence', memberData.licence);
+    // Statut (masqué pour les simples membres)
+    const statut = memberData.statut || 'Membre';
+    const statutWrap = document.getElementById('vip-card-statut-wrap');
+    const statutEl   = document.getElementById('vip-card-statut');
+    if (statutEl && statut && statut !== 'Membre') {
+        statutEl.innerHTML = `<i class="fas fa-star" style="font-size:0.6rem;"></i> ${statut}`;
+        if (statutWrap) statutWrap.style.display = 'block';
+    }
     const vipYearEl = document.getElementById('vip-card-year');
     if (vipYearEl) vipYearEl.textContent = `Saison ${new Date().getFullYear()}`;
 
@@ -550,7 +558,8 @@ function buildCardHtml(m, sponsors) {
         ${headerHtml('CARTE MEMBRE')}
         <div style="display:flex;align-items:center;gap:28px;padding:24px 28px 20px;">
             <div style="flex:1;">
-                <div style="color:#ffffff;font-size:22px;font-weight:900;letter-spacing:1px;margin-bottom:14px;font-family:Arial,sans-serif;">${escMember(`${prenom} ${nom}`.toUpperCase())}</div>
+                <div style="color:#ffffff;font-size:22px;font-weight:900;letter-spacing:1px;margin-bottom:10px;font-family:Arial,sans-serif;">${escMember(`${prenom} ${nom}`.toUpperCase())}</div>
+                ${m.statut && m.statut !== 'Membre' ? `<div style="margin-bottom:10px;"><span style="background:rgba(255,215,0,0.14);border:1px solid rgba(255,215,0,0.5);color:#ffd700;padding:3px 14px;border-radius:20px;font-size:11px;letter-spacing:0.5px;font-family:Arial,sans-serif;">★ ${escMember(m.statut)}</span></div>` : ''}
                 ${m.classement ? `<div style="margin-bottom:8px;"><span style="background:rgba(255,215,0,0.12);border:1px solid rgba(255,215,0,0.4);color:#ffd700;padding:4px 14px;border-radius:20px;font-size:12px;font-family:Arial,sans-serif;">Classement : ${escMember(m.classement)}</span></div>` : ''}
                 ${m.categorie  ? `<div style="margin-bottom:8px;"><span style="background:rgba(255,215,0,0.08);border:1px solid rgba(255,215,0,0.25);color:rgba(255,215,0,0.8);padding:4px 14px;border-radius:20px;font-size:12px;font-family:Arial,sans-serif;">Catégorie : ${escMember(m.categorie)}</span></div>` : ''}
                 ${m.licence    ? `<div style="margin-top:8px;"><div style="color:rgba(255,255,255,0.45);font-size:10px;letter-spacing:1px;font-family:Arial,sans-serif;">LICENCE FFT</div><div style="color:#ffffff;font-size:17px;font-weight:700;letter-spacing:2px;font-family:Arial,sans-serif;">${escMember(m.licence)}</div></div>` : ''}

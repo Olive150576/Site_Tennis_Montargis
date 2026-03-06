@@ -1124,6 +1124,7 @@ window.createMemberAccount = async () => {
     const licence = document.getElementById('new-member-licence').value.trim();
     const classement = document.getElementById('new-member-classement').value.trim();
     const categorie = document.getElementById('new-member-categorie').value;
+    const statut = document.getElementById('new-member-statut').value;
 
     if (!prenom || !nom || !email || !password) {
         window.showWarningMessage('Champs requis', 'Prénom, nom, email et mot de passe sont obligatoires.');
@@ -1139,7 +1140,7 @@ window.createMemberAccount = async () => {
 
     try {
         const createMember = firebase.functions().httpsCallable('createMember');
-        await createMember({ prenom, nom, email, password, telephone, licence, classement, categorie });
+        await createMember({ prenom, nom, email, password, telephone, licence, classement, categorie, statut });
         window.showSuccessMessage('Membre créé !', `Le compte de ${prenom} ${nom} a été créé. Partagez les identifiants au membre.`);
         // Vider le formulaire
         ['prenom','nom','email','password','telephone','licence','classement'].forEach(f => {
