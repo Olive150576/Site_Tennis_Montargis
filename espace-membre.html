@@ -336,7 +336,9 @@
                         document.getElementById('auth-loading').style.display = 'none';
                         document.getElementById('member-page').style.display = 'block';
                         if (window.initMemberDashboard) {
-                            window.initMemberDashboard(memberSnap.val());
+                            const memberData = memberSnap.val();
+                            memberData._uid = user.uid; // UID passé directement pour le QR code
+                            window.initMemberDashboard(memberData);
                         }
                     } else {
                         // Compte non autorisé → déconnexion et retour

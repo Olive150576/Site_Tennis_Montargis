@@ -2656,13 +2656,18 @@ section#contact-section.animate-in { transition-delay: 0.1s; }
     padding: 7px;
     flex-shrink: 0;
     box-shadow: 0 2px 16px rgba(0,0,0,0.4);
+    min-width: 114px;
+    min-height: 114px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .vip-card-qr canvas { display: none !important; }
 .vip-card-qr img {
     display: block !important;
-    width: 88px !important;
-    height: 88px !important;
+    width: 100px !important;
+    height: 100px !important;
 }
 
 @media (max-width: 768px) {

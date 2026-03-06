@@ -55,17 +55,17 @@ window.initMemberDashboard = function(memberData) {
     const qrEl = document.getElementById('vip-qrcode');
     if (qrEl && typeof QRCode !== 'undefined') {
         qrEl.innerHTML = '';
-        const memberUid = window.auth && window.auth.currentUser ? window.auth.currentUser.uid : '';
+        const memberUid = memberData._uid || (window.auth && window.auth.currentUser ? window.auth.currentUser.uid : '');
         const qrContent = memberUid
             ? `https://tennismontargis.fr/v/${memberUid}`
             : `USM Tennis Montargis | ${prenom} ${nom}`;
         new QRCode(qrEl, {
             text: qrContent,
-            width: 88,
-            height: 88,
+            width: 100,
+            height: 100,
             colorDark: '#0d1b2e',
             colorLight: '#ffffff',
-            correctLevel: QRCode.CorrectLevel.M
+            correctLevel: QRCode.CorrectLevel.L
         });
     }
 
