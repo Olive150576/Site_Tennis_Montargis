@@ -789,11 +789,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- UTILS ---
     function toggleAdminUI(isAdmin) {
-        // Si admin vient de se connecter : fermer la modal et rediriger vers la page admin
-        if (isAdmin) {
+        // Si admin vient de se connecter (flag sessionStorage) : rediriger vers la page admin
+        if (isAdmin && sessionStorage.getItem('_adminLogin')) {
+            sessionStorage.removeItem('_adminLogin');
             document.getElementById('login-modal')?.classList.add('hidden');
             document.body.style.overflow = '';
             window.location.href = '/admin-panel.html';
+            return;
+        }
+        // Admin déjà connecté qui revient sur index.html : ne pas rediriger, juste état boutons
+        if (isAdmin) {
+            document.querySelectorAll('.admin-actions').forEach(el => el.classList.remove('hidden'));
             return;
         }
         // Remettre les boutons admin en état "connecté" / "déconnecté"
@@ -1327,12 +1333,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     window.loginWithEmail = (email, password) => {
+        sessionStorage.setItem('_adminLogin', '1');
         auth.signInWithEmailAndPassword(email, password)
             .then(() => {
                 window.showSuccessMessage('Connexion réussie !', 'Bienvenue dans l\'espace admin.');
                 document.getElementById('login-modal').classList.add('hidden');
             })
             .catch(err => {
+                sessionStorage.removeItem('_adminLogin');
                 window.showErrorMessage(err, 'login');
             });
     }

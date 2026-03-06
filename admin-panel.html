@@ -150,17 +150,17 @@
             <button class="tab-btn" onclick="switchAdmin('coach')">Coachs</button>
             <button class="tab-btn" onclick="switchAdmin('rates')">Tarifs</button>
             <button class="tab-btn" onclick="switchAdmin('sponsors')">Partenaires</button>
-            <button class="tab-btn" onclick="switchAdmin('documents')" style="background:linear-gradient(135deg, #8b5cf6, #6366f1);">
+            <button class="tab-btn" onclick="switchAdmin('documents')" style="background:linear-gradient(135deg, #8b5cf6, #6366f1); color:white;">
                 <i class="fas fa-file-pdf"></i> Documents
             </button>
             <button class="tab-btn" onclick="switchAdmin('info')">Infos Club</button>
-            <button class="tab-btn" onclick="switchAdmin('contacts')" style="background:linear-gradient(135deg, #f59e0b, #d97706);">
+            <button class="tab-btn" onclick="switchAdmin('contacts')" style="background:linear-gradient(135deg, #f59e0b, #d97706); color:white;">
                 <i class="fas fa-address-book"></i> Contacts
             </button>
-            <button class="tab-btn" onclick="switchAdmin('members')" style="background:linear-gradient(135deg, #22c55e, #16a34a);">
+            <button class="tab-btn" onclick="switchAdmin('members')" style="background:linear-gradient(135deg, #22c55e, #16a34a); color:white;">
                 <i class="fas fa-users"></i> Membres
             </button>
-            <button class="tab-btn" onclick="switchAdmin('tournaments')" style="background:linear-gradient(135deg, #00d2ff, #0099bb);">
+            <button class="tab-btn" onclick="switchAdmin('tournaments')" style="background:linear-gradient(135deg, #00d2ff, #0099bb); color:white;">
                 <i class="fas fa-trophy"></i> Tournois TMC
             </button>
         </div>
@@ -345,8 +345,8 @@
                         <button type="button" onclick="formatText('underline')" title="Souligné (Ctrl+U)" style="background:#334155; border:none; color:#e2e8f0; width:32px; height:32px; border-radius:6px; cursor:pointer; text-decoration:underline; font-size:14px;">U</button>
                         <button type="button" onclick="formatText('link')" title="Insérer un lien" style="background:#334155; border:none; color:#00d2ff; width:32px; height:32px; border-radius:6px; cursor:pointer; font-size:14px;"><i class="fas fa-link"></i></button>
                     </div>
-                    <textarea id="input-desc" rows="4" required
-                        style="padding:14px; background:#1e293b; border:1px solid #475569; color:white; border-radius:0 0 8px 8px; width:100%; font-family:inherit; font-size:15px; box-sizing:border-box;"></textarea>
+                    <textarea id="input-desc" rows="8" required
+                        style="padding:14px; background:#1e293b; border:1px solid #475569; color:white; border-radius:0 0 8px 8px; width:100%; font-family:inherit; font-size:15px; box-sizing:border-box; resize:vertical;"></textarea>
                 </div>
 
                 <div id="price-container" class="hidden" style="display:grid; gap:8px;">
