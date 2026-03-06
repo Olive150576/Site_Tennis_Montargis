@@ -158,6 +158,15 @@
             <div id="members-admin-list" style="display:grid; gap:10px;">
                 <p style="color:#64748b; text-align:center;">Chargement...</p>
             </div>
+
+            <!-- Statistiques QR scans -->
+            <h4 style="color:#e2e8f0; margin-top:30px; margin-bottom:15px; border-left:4px solid rgba(255,215,0,0.7); padding-left:15px; display:flex; align-items:center; gap:10px;">
+                <i class="fas fa-qrcode" style="color:rgba(255,215,0,0.7);"></i> Statistiques QR — Scans partenaires
+                <button onclick="window.loadScanStats()" style="margin-left:auto; background:rgba(255,215,0,0.1); border:1px solid rgba(255,215,0,0.35); color:#ffd700; padding:4px 14px; border-radius:8px; cursor:pointer; font-size:12px;"><i class="fas fa-sync-alt"></i> Actualiser</button>
+            </h4>
+            <div id="scan-stats-list" style="display:grid; gap:8px;">
+                <p style="color:#64748b; font-size:13px; text-align:center;">Cliquez sur Actualiser pour charger les statistiques.</p>
+            </div>
         </div>
 
         <!-- SECTION GESTION DOCUMENTS (cachée par défaut) -->

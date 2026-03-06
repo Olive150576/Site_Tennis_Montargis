@@ -1196,6 +1196,67 @@ window.loadMembersAdmin = () => {
     });
 };
 
+window.loadScanStats = () => {
+    const el = document.getElementById('scan-stats-list');
+    if (!el) return;
+    el.innerHTML = '<p style="color:#64748b; font-size:13px; text-align:center;"><i class="fas fa-spinner fa-spin"></i> Chargement...</p>';
+
+    Promise.all([
+        db_ref.ref('scans').once('value'),
+        db_ref.ref('members').once('value')
+    ]).then(([scansSnap, membersSnap]) => {
+        const scansData  = scansSnap.val()  || {};
+        const membersData = membersSnap.val() || {};
+
+        // Compter les scans par UID
+        const counts = {};
+        Object.entries(scansData).forEach(([uid, entries]) => {
+            counts[uid] = Object.keys(entries || {}).length;
+        });
+
+        const totalScans = Object.values(counts).reduce((a, b) => a + b, 0);
+
+        if (totalScans === 0) {
+            el.innerHTML = '<p style="color:#64748b; font-size:13px; text-align:center;">Aucun scan enregistré pour l\'instant.</p>';
+            return;
+        }
+
+        // Trier par nombre de scans décroissant
+        const rows = Object.entries(counts)
+            .sort(([, a], [, b]) => b - a)
+            .map(([uid, count]) => {
+                const m = membersData[uid] || {};
+                const name = m.prenom && m.nom ? `${escapeHtml(m.prenom)} ${escapeHtml(m.nom)}` : `<span style="color:#64748b;">${uid.substring(0,8)}…</span>`;
+                const pct  = Math.round(count / totalScans * 100);
+                return `
+                <div style="display:flex; align-items:center; gap:14px; background:rgba(255,215,0,0.04); border:1px solid rgba(255,215,0,0.12); border-radius:10px; padding:12px 16px;">
+                    <div style="width:36px; height:36px; border-radius:50%; background:rgba(255,215,0,0.1); border:1px solid rgba(255,215,0,0.3); display:flex; align-items:center; justify-content:center; color:#ffd700; font-size:11px; font-weight:700; flex-shrink:0;">
+                        <i class="fas fa-qrcode"></i>
+                    </div>
+                    <div style="flex:1; min-width:0;">
+                        <div style="color:#e2e8f0; font-size:13px; font-weight:600;">${name}</div>
+                        <div style="margin-top:5px; height:4px; background:rgba(255,255,255,0.06); border-radius:2px; overflow:hidden;">
+                            <div style="height:100%; width:${pct}%; background:linear-gradient(90deg,rgba(255,215,0,0.7),rgba(255,215,0,0.4)); border-radius:2px;"></div>
+                        </div>
+                    </div>
+                    <div style="text-align:right; flex-shrink:0;">
+                        <div style="color:#ffd700; font-size:18px; font-weight:700;">${count}</div>
+                        <div style="color:#64748b; font-size:10px; letter-spacing:1px;">SCAN${count > 1 ? 'S' : ''}</div>
+                    </div>
+                </div>`;
+            }).join('');
+
+        el.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,215,0,0.06); border:1px solid rgba(255,215,0,0.2); border-radius:10px; padding:12px 18px; margin-bottom:4px;">
+                <span style="color:rgba(255,215,0,0.7); font-size:12px; letter-spacing:1px;"><i class="fas fa-chart-bar" style="margin-right:6px;"></i>TOTAL</span>
+                <span style="color:#ffd700; font-weight:700; font-size:18px;">${totalScans} scan${totalScans > 1 ? 's' : ''}</span>
+            </div>
+            ${rows}`;
+    }).catch(() => {
+        el.innerHTML = '<p style="color:#ef4444; font-size:13px; text-align:center;">Erreur lors du chargement.</p>';
+    });
+};
+
 window.toggleMemberActive = async (uid, newStatus) => {
     try {
         const toggleFn = firebase.functions().httpsCallable('toggleMemberStatus');
