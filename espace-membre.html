@@ -200,9 +200,14 @@
                     </div>
                 </div>
 
-                <button class="vip-dl-btn" onclick="window.downloadMemberCard()">
-                    <i class="fas fa-download"></i> Télécharger ma carte de membre
-                </button>
+                <div style="display:flex; gap:12px; max-width:520px; margin:14px auto 0;">
+                    <button class="vip-dl-btn" style="flex:1; margin:0;" onclick="window.downloadMemberCard()">
+                        <i class="fas fa-download"></i> Carte membre
+                    </button>
+                    <button class="vip-dl-btn" style="flex:1; margin:0; background:linear-gradient(135deg,rgba(100,116,139,0.18),rgba(71,85,105,0.1)); border-color:rgba(148,163,184,0.4); color:#cbd5e1;" onclick="window.downloadMemberWallpaper()">
+                        <i class="fas fa-mobile-alt"></i> Fond d'écran
+                    </button>
+                </div>
 
                 <div class="member-section-title">
                     <i class="fas fa-user-circle"></i> Mes informations
@@ -246,9 +251,6 @@
                     <a href="https://tenup.fft.fr" target="_blank" rel="noopener noreferrer" class="member-quick-btn">
                         <i class="fas fa-calendar-check"></i> Réserver un terrain
                     </a>
-                    <button class="member-quick-btn member-quick-btn-wallpaper" onclick="window.downloadMemberWallpaper()">
-                        <i class="fas fa-mobile-alt"></i> Fond d'écran
-                    </button>
                 </div>
             </div>
 
