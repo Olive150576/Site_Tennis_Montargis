@@ -203,12 +203,15 @@
                     </div>
                 </div>
 
-                <div style="display:flex; gap:12px; max-width:520px; margin:14px auto 0;">
-                    <button class="vip-dl-btn" style="flex:1; margin:0;" onclick="window.downloadMemberCard()">
-                        <i class="fas fa-download"></i> Carte membre
+                <div style="display:flex; gap:10px; max-width:560px; margin:14px auto 0; flex-wrap:wrap;">
+                    <button class="vip-dl-btn" style="flex:1; min-width:140px; margin:0;" onclick="window.downloadMemberCard()">
+                        <i class="fas fa-id-card"></i> Carte membre
                     </button>
-                    <button class="vip-dl-btn" style="flex:1; margin:0; background:linear-gradient(135deg,rgba(100,116,139,0.18),rgba(71,85,105,0.1)); border-color:rgba(148,163,184,0.4); color:#cbd5e1;" onclick="window.downloadMemberWallpaper()">
-                        <i class="fas fa-mobile-alt"></i> Fond d'écran
+                    <button class="vip-dl-btn" style="flex:1; min-width:130px; margin:0; background:linear-gradient(135deg,rgba(100,116,139,0.18),rgba(71,85,105,0.1)); border-color:rgba(148,163,184,0.4); color:#cbd5e1;" onclick="window.downloadMemberWallpaper()">
+                        <i class="fas fa-mobile-alt"></i> Fond mobile
+                    </button>
+                    <button class="vip-dl-btn" style="flex:1; min-width:130px; margin:0; background:linear-gradient(135deg,rgba(79,70,229,0.18),rgba(55,48,163,0.1)); border-color:rgba(129,140,248,0.4); color:#a5b4fc;" onclick="window.downloadMemberWallpaperDesktop()">
+                        <i class="fas fa-desktop"></i> Fond bureau
                     </button>
                 </div>
 
@@ -261,6 +264,7 @@
             <div id="member-card-print" style="position:fixed; left:-9999px; top:0; width:680px; z-index:-1;"></div>
             <!-- Fond d'écran membre (hors écran, capturé par html2canvas) -->
             <div id="member-wallpaper-print" style="position:fixed; left:-9999px; top:0; width:390px; z-index:-1;"></div>
+            <div id="member-wallpaper-desktop-print" style="position:fixed; left:-9999px; top:0; width:1280px; z-index:-1;"></div>
 
             <!-- ===== ONGLET 2 : VIE DU CLUB ===== -->
             <div id="mtab-club" class="member-tab-content hidden">

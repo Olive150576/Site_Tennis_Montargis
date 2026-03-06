@@ -367,6 +367,157 @@ function buildWallpaperHtml(m) {
 }
 
 // ============================================================
+// FOND D'ÉCRAN BUREAU (16:9 — 1280×720px → scale:1.5 → 1920×1080px)
+// ============================================================
+window.downloadMemberWallpaperDesktop = function() {
+    if (!_cardMemberData) return;
+    if (typeof html2canvas === 'undefined') return;
+
+    const el = document.getElementById('member-wallpaper-desktop-print');
+    if (!el) return;
+
+    el.innerHTML = buildDesktopWallpaperHtml(_cardMemberData);
+    el.style.display = 'block';
+
+    setTimeout(() => {
+        html2canvas(el, {
+            scale: 1.5,
+            useCORS: true,
+            allowTaint: false,
+            backgroundColor: null,
+            logging: false
+        }).then(canvas => {
+            el.style.display = 'none';
+            el.innerHTML = '';
+            const nomFichier = (_cardMemberData.nom || 'membre').toLowerCase().replace(/\s+/g, '-');
+            const filename = `fond-ecran-bureau-usm-${nomFichier}.png`;
+            const dataUrl = canvas.toDataURL('image/png');
+
+            const isPWA = window.matchMedia('(display-mode: standalone)').matches
+                       || window.navigator.standalone === true;
+            if (isPWA) { showDownloadOverlay(dataUrl); return; }
+
+            canvas.toBlob(blob => {
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.download = filename;
+                link.href = url;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                setTimeout(() => URL.revokeObjectURL(url), 2000);
+            }, 'image/png');
+        }).catch(() => {
+            el.style.display = 'none';
+            el.innerHTML = '';
+        });
+    }, 200);
+};
+
+function buildDesktopWallpaperHtml(m) {
+    const prenom = m.prenom || '';
+    const nom    = m.nom    || '';
+    const annee  = new Date().getFullYear();
+    const statut = m.statut && m.statut !== 'Membre' ? m.statut : null;
+
+    const W = 1280, H = 720;
+    const cx = W / 2, cy = H / 2;
+
+    const decorSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" style="position:absolute;top:0;left:0;pointer-events:none;">
+        <!-- Lignes horizontales de cadre -->
+        <line x1="0" y1="80"  x2="${W}" y2="80"  stroke="rgba(255,215,0,0.06)" stroke-width="1"/>
+        <line x1="0" y1="${H-80}" x2="${W}" y2="${H-80}" stroke="rgba(255,215,0,0.06)" stroke-width="1"/>
+        <!-- Cercles concentriques centraux -->
+        <circle cx="${cx}" cy="${cy}" r="310" stroke="rgba(255,215,0,0.05)" stroke-width="1" fill="none"/>
+        <circle cx="${cx}" cy="${cy}" r="240" stroke="rgba(255,215,0,0.04)" stroke-width="1" fill="none"/>
+        <circle cx="${cx}" cy="${cy}" r="170" stroke="rgba(255,215,0,0.03)" stroke-width="1" fill="none"/>
+        <!-- Croix centrale -->
+        <line x1="0" y1="${cy}" x2="${W}" y2="${cy}" stroke="rgba(255,215,0,0.04)" stroke-width="1"/>
+        <line x1="${cx}" y1="0" x2="${cx}" y2="${H}" stroke="rgba(255,215,0,0.04)" stroke-width="1"/>
+        <!-- Coins dorés -->
+        <path d="M40,40 L40,90 M40,40 L90,40"   stroke="rgba(255,215,0,0.18)" stroke-width="1.5" fill="none"/>
+        <path d="M${W-40},40 L${W-40},90 M${W-40},40 L${W-90},40" stroke="rgba(255,215,0,0.18)" stroke-width="1.5" fill="none"/>
+        <path d="M40,${H-40} L40,${H-90} M40,${H-40} L90,${H-40}" stroke="rgba(255,215,0,0.18)" stroke-width="1.5" fill="none"/>
+        <path d="M${W-40},${H-40} L${W-40},${H-90} M${W-40},${H-40} L${W-90},${H-40}" stroke="rgba(255,215,0,0.18)" stroke-width="1.5" fill="none"/>
+        <!-- Lignes diagonales légères -->
+        <line x1="0" y1="0" x2="200" y2="${H}" stroke="rgba(255,215,0,0.02)" stroke-width="1"/>
+        <line x1="${W}" y1="0" x2="${W-200}" y2="${H}" stroke="rgba(255,215,0,0.02)" stroke-width="1"/>
+    </svg>`;
+
+    const separatorHtml = `
+        <div style="display:flex;align-items:center;gap:12px;width:280px;margin:20px auto;">
+            <div style="flex:1;height:1px;background:linear-gradient(90deg,transparent,rgba(255,215,0,0.6));"></div>
+            <div style="color:#ffd700;font-size:12px;">★</div>
+            <div style="flex:1;height:1px;background:linear-gradient(90deg,rgba(255,215,0,0.6),transparent);"></div>
+        </div>`;
+
+    return `
+    <div style="
+        width:${W}px; height:${H}px;
+        background:linear-gradient(160deg, #070e1a 0%, #0d1b2e 35%, #112240 65%, #080f1c 100%);
+        position:relative; overflow:hidden; font-family:Arial,sans-serif;
+        display:flex; flex-direction:column; align-items:center; justify-content:center;
+        box-sizing:border-box;
+    ">
+        ${decorSvg}
+
+        <!-- LOGO central avec halo doré -->
+        <div style="position:relative;z-index:2;text-align:center;margin-bottom:24px;">
+            <div style="
+                width:220px; height:220px; border-radius:50%;
+                background:radial-gradient(circle, rgba(255,215,0,0.16) 0%, rgba(255,215,0,0.05) 55%, transparent 100%);
+                display:flex; align-items:center; justify-content:center;
+                margin:0 auto;
+                box-shadow:0 0 60px rgba(255,215,0,0.35), 0 0 120px rgba(255,215,0,0.15), 0 0 200px rgba(255,215,0,0.06);
+                border:1px solid rgba(255,215,0,0.28);
+            ">
+                <img src="/logo_usm_new.png" crossorigin="anonymous"
+                    style="width:178px;height:178px;object-fit:contain;filter:drop-shadow(0 0 18px rgba(255,215,0,0.95)) drop-shadow(0 0 40px rgba(255,215,0,0.55));"
+                    alt="USM">
+            </div>
+        </div>
+
+        <!-- NOM DU CLUB -->
+        <div style="position:relative;z-index:2;text-align:center;">
+            <div style="color:rgba(255,215,0,0.45);font-size:11px;letter-spacing:6px;font-family:Arial,sans-serif;margin-bottom:8px;">CLUB DE TENNIS</div>
+            <div style="color:#ffd700;font-size:30px;font-weight:900;letter-spacing:4px;font-family:Arial,sans-serif;text-shadow:0 0 30px rgba(255,215,0,0.35);">USM TENNIS MONTARGIS</div>
+        </div>
+
+        ${separatorHtml}
+
+        <!-- NOM DU MEMBRE -->
+        <div style="position:relative;z-index:2;text-align:center;margin-bottom:${statut ? '12px' : '16px'};">
+            <div style="color:#ffffff;font-size:20px;font-weight:700;letter-spacing:3px;font-family:Arial,sans-serif;text-shadow:0 0 20px rgba(255,255,255,0.12);">${escMember(`${prenom} ${nom}`.toUpperCase())}</div>
+        </div>
+
+        <!-- STATUT (si applicable) -->
+        ${statut ? `
+        <div style="position:relative;z-index:2;text-align:center;margin-bottom:16px;">
+            <span style="background:rgba(255,215,0,0.12);border:1px solid rgba(255,215,0,0.45);color:#ffd700;padding:4px 18px;border-radius:20px;font-size:11px;letter-spacing:1px;font-family:Arial,sans-serif;">★ ${escMember(statut)}</span>
+        </div>` : ''}
+
+        <!-- SAISON -->
+        <div style="position:relative;z-index:2;text-align:center;">
+            <div style="
+                background:rgba(255,215,0,0.07); border:1px solid rgba(255,215,0,0.28);
+                color:rgba(255,215,0,0.65); font-size:11px; letter-spacing:4px;
+                padding:6px 22px; border-radius:20px; font-family:Arial,sans-serif;
+            ">SAISON ${annee}</div>
+        </div>
+
+        <!-- BAS GAUCHE : logo FFT -->
+        <img src="/Logo_F%C3%A9d%C3%A9ration_Fran%C3%A7aise_de_Tennis.png" crossorigin="anonymous"
+            style="position:absolute;bottom:32px;left:48px;width:48px;height:48px;object-fit:contain;opacity:0.45;z-index:2;"
+            alt="FFT">
+
+        <!-- BAS : site web -->
+        <div style="position:absolute;bottom:36px;left:0;right:0;text-align:center;z-index:2;">
+            <div style="color:rgba(255,215,0,0.2);font-size:10px;letter-spacing:3px;font-family:Arial,sans-serif;">tennismontargis.fr</div>
+        </div>
+    </div>`;
+}
+
+// ============================================================
 // UTILITAIRE : convertir une URL image en base64 (contourne CORS pour html2canvas)
 // ============================================================
 function fetchImageAsBase64(url) {
