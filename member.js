@@ -428,7 +428,7 @@ window.downloadMemberCard = async function() {
     // Générer le QR code dans la carte (URL de vérification)
     const qrContainer = cardEl.querySelector('#card-print-qr');
     if (qrContainer && typeof QRCode !== 'undefined') {
-        const memberUid = window.auth && window.auth.currentUser ? window.auth.currentUser.uid : '';
+        const memberUid = (_cardMemberData && _cardMemberData._uid) || (window.auth && window.auth.currentUser ? window.auth.currentUser.uid : '');
         const qrContent = memberUid
             ? `https://tennismontargis.fr/v/${memberUid}`
             : `USM Tennis Montargis | ${_cardMemberData.prenom || ''} ${_cardMemberData.nom || ''}`;
