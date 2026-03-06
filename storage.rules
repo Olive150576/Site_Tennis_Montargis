@@ -8,13 +8,11 @@ service firebase.storage {
       // Lecture publique
       allow read: if true;
 
-      // Écriture : utilisateurs authentifiés + validation
-      allow write: if request.auth != null
+      // Écriture et suppression : admins uniquement (via custom claim)
+      allow write, delete: if request.auth != null
+                   && request.auth.token.admin == true
                    && request.resource.size < 5 * 1024 * 1024
                    && request.resource.contentType.matches('image/.*');
-
-      // Suppression : admins uniquement (via custom claim)
-      allow delete: if request.auth != null && request.auth.token.admin == true;
     }
 
     // Règles pour le dossier documents/
@@ -22,13 +20,11 @@ service firebase.storage {
       // Lecture publique
       allow read: if true;
 
-      // Écriture : utilisateurs authentifiés + validation PDF
-      allow write: if request.auth != null
+      // Écriture et suppression : admins uniquement (via custom claim)
+      allow write, delete: if request.auth != null
+                   && request.auth.token.admin == true
                    && request.resource.size < 10 * 1024 * 1024
                    && request.resource.contentType == 'application/pdf';
-
-      // Suppression : admins uniquement (via custom claim)
-      allow delete: if request.auth != null && request.auth.token.admin == true;
     }
   }
 }

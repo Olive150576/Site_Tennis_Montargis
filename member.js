@@ -53,7 +53,7 @@ window.initMemberDashboard = function(memberData) {
     const statutWrap = document.getElementById('vip-card-statut-wrap');
     const statutEl   = document.getElementById('vip-card-statut');
     if (statutEl && statut && statut !== 'Membre') {
-        statutEl.innerHTML = `<i class="fas fa-star" style="font-size:0.6rem;"></i> ${statut}`;
+        statutEl.innerHTML = `<i class="fas fa-star" style="font-size:0.6rem;"></i> ${escMember(statut)}`;
         if (statutWrap) statutWrap.style.display = 'block';
     }
     const vipYearEl = document.getElementById('vip-card-year');
