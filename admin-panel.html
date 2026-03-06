@@ -492,6 +492,20 @@
             firebase.functions().httpsCallable('grantAdminClaim')()
                 .then(function() { return user.getIdToken(true); })
                 .catch(function(e) { console.warn('Custom claim:', e.message); });
+            // Params URL : ?section=news&edit=3 → ouvrir directement l'édition
+            var params = new URLSearchParams(window.location.search);
+            var pSection = params.get('section');
+            var pEdit = params.get('edit');
+            var pDel = params.get('del');
+            if (pSection && window.switchAdmin) {
+                window.switchAdmin(pSection);
+                if (pEdit !== null && window.editItem) {
+                    setTimeout(function() { window.editItem(pSection, parseInt(pEdit)); }, 400);
+                }
+                if (pDel !== null && window.deleteItem) {
+                    setTimeout(function() { window.deleteItem(pSection, parseInt(pDel)); }, 400);
+                }
+            }
         });
     });
 </script>

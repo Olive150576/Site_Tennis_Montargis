@@ -797,15 +797,33 @@ document.addEventListener('DOMContentLoaded', () => {
             window.location.href = '/admin-panel.html';
             return;
         }
-        // Admin déjà connecté qui revient sur index.html : ne pas rediriger, juste état boutons
+        // Admin déjà connecté qui revient sur index.html : boutons → panel admin
         if (isAdmin) {
+            ['admin-btn-mobile', 'admin-btn-footer'].forEach(id => {
+                const btn = document.getElementById(id);
+                if (!btn) return;
+                btn.style.borderColor = '#ff4444';
+                btn.innerHTML = '<i class="fas fa-lock-open"></i> Panel Admin';
+                btn.onclick = () => window.location.href = '/admin-panel.html';
+            });
             document.querySelectorAll('.admin-actions').forEach(el => el.classList.remove('hidden'));
+            // Stubs : boutons Modifier/Supprimer/Déplacer → redirection vers le panel admin
+            window.editItem = (section, index) => {
+                window.location.href = `/admin-panel.html?section=${encodeURIComponent(section)}&edit=${index}`;
+            };
+            window.deleteItem = (section, index) => {
+                window.location.href = `/admin-panel.html?section=${encodeURIComponent(section)}&del=${index}`;
+            };
+            window.moveItem = (section, index, dir) => {
+                window.location.href = `/admin-panel.html?section=${encodeURIComponent(section)}`;
+            };
             return;
         }
-        // Remettre les boutons admin en état "connecté" / "déconnecté"
+        // Déconnecté : restaurer les boutons admin
         ['admin-btn-mobile', 'admin-btn-footer'].forEach(id => {
             const btn = document.getElementById(id);
             if (!btn) return;
+            btn.style.borderColor = '';
             btn.innerHTML = '<i class="fas fa-user-shield"></i> Espace Club';
             btn.onclick = () => document.getElementById('login-modal').classList.remove('hidden');
         });
