@@ -577,18 +577,28 @@ function buildCardHtml(m, sponsors) {
     const recto = `
     <div style="${cardStyle}">
         ${headerHtml('CARTE MEMBRE')}
-        <div style="flex:1;display:flex;align-items:center;gap:24px;padding:16px 22px;">
-            <div style="flex:1;overflow:hidden;">
-                <div style="color:#ffffff;font-size:20px;font-weight:900;letter-spacing:1px;margin-bottom:10px;font-family:Arial,sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escMember(`${prenom} ${nom}`.toUpperCase())}</div>
-                ${m.statut && m.statut !== 'Membre' ? `<div style="margin-bottom:9px;"><span style="background:rgba(255,215,0,0.14);border:1px solid rgba(255,215,0,0.5);color:#ffd700;padding:3px 12px;border-radius:20px;font-size:10px;letter-spacing:0.5px;font-family:Arial,sans-serif;">★ ${escMember(m.statut)}</span></div>` : ''}
+        <div style="flex:1;display:flex;align-items:center;gap:18px;padding:14px 20px;">
+
+            <!-- Logo USM grand, même taille que le QR -->
+            <div style="flex-shrink:0;text-align:center;">
+                <img src="/logo_usm_new.png" style="width:110px;height:110px;object-fit:contain;border-radius:50%;border:3px solid rgba(255,215,0,0.6);display:block;" crossorigin="anonymous" alt="USM">
+            </div>
+
+            <!-- Données membre centrées -->
+            <div style="flex:1;text-align:center;overflow:hidden;">
+                <div style="color:#ffffff;font-size:19px;font-weight:900;letter-spacing:1px;margin-bottom:10px;font-family:Arial,sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escMember(`${prenom} ${nom}`.toUpperCase())}</div>
+                ${m.statut && m.statut !== 'Membre' ? `<div style="margin-bottom:8px;"><span style="background:rgba(255,215,0,0.14);border:1px solid rgba(255,215,0,0.5);color:#ffd700;padding:3px 12px;border-radius:20px;font-size:10px;letter-spacing:0.5px;font-family:Arial,sans-serif;">★ ${escMember(m.statut)}</span></div>` : ''}
                 ${m.classement ? `<div style="margin-bottom:7px;"><span style="background:rgba(255,215,0,0.12);border:1px solid rgba(255,215,0,0.4);color:#ffd700;padding:3px 12px;border-radius:20px;font-size:11px;font-family:Arial,sans-serif;">Classement : ${escMember(m.classement)}</span></div>` : ''}
                 ${m.categorie  ? `<div style="margin-bottom:7px;"><span style="background:rgba(255,215,0,0.08);border:1px solid rgba(255,215,0,0.25);color:rgba(255,215,0,0.8);padding:3px 12px;border-radius:20px;font-size:11px;font-family:Arial,sans-serif;">Catégorie : ${escMember(m.categorie)}</span></div>` : ''}
                 ${m.licence    ? `<div style="margin-top:10px;"><div style="color:rgba(255,255,255,0.45);font-size:9px;letter-spacing:1.5px;font-family:Arial,sans-serif;">LICENCE FFT</div><div style="color:#ffffff;font-size:16px;font-weight:700;letter-spacing:2px;font-family:Arial,sans-serif;">${escMember(m.licence)}</div></div>` : ''}
             </div>
+
+            <!-- QR code -->
             <div style="flex-shrink:0;text-align:center;">
                 <div id="card-print-qr" style="width:110px;height:110px;background:#f5e88a;border-radius:10px;padding:5px;display:flex;align-items:center;justify-content:center;border:2px solid rgba(255,215,0,0.5);"></div>
                 <div style="color:rgba(255,215,0,0.45);font-size:8px;margin-top:4px;letter-spacing:1px;font-family:Arial,sans-serif;">SCANNER POUR VÉRIFIER</div>
             </div>
+
         </div>
         ${footerHtml}
     </div>`;
