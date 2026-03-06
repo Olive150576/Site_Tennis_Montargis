@@ -330,24 +330,26 @@
             // Vérifier si admin ou membre actif
             window.db_ref.ref('admins/' + user.uid).once('value', function(adminSnap) {
                 var isAdmin = adminSnap.exists();
-                // Vérifier si membre actif
-                window.db_ref.ref('members/' + user.uid).once('value', function(memberSnap) {
+                // UID cible : paramètre ?uid=xxx (admin uniquement) ou uid courant
+                var params = new URLSearchParams(window.location.search);
+                var targetUid = (isAdmin && params.get('uid')) ? params.get('uid') : user.uid;
+
+                window.db_ref.ref('members/' + targetUid).once('value', function(memberSnap) {
                     if (memberSnap.exists() && memberSnap.val().actif) {
-                        // Membre valide (ou admin avec profil membre) → afficher le dashboard
                         document.getElementById('auth-loading').style.display = 'none';
                         document.getElementById('member-page').style.display = 'block';
                         if (window.initMemberDashboard) {
                             const memberData = memberSnap.val();
-                            memberData._uid = user.uid;
+                            memberData._uid = targetUid;
                             memberData._isAdmin = isAdmin;
                             window.initMemberDashboard(memberData);
                         }
                     } else if (isAdmin) {
-                        // Admin sans profil membre → accès quand même pour prévisualisation
+                        // Admin sans profil membre correspondant → prévisualisation vide
                         document.getElementById('auth-loading').style.display = 'none';
                         document.getElementById('member-page').style.display = 'block';
                         if (window.initMemberDashboard) {
-                            window.initMemberDashboard({ prenom: 'Admin', nom: '', _uid: user.uid, _isAdmin: true });
+                            window.initMemberDashboard({ prenom: 'Admin', nom: '', _uid: targetUid, _isAdmin: true });
                         }
                     } else {
                         // Compte non autorisé → déconnexion et retour

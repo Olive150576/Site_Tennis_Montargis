@@ -1188,6 +1188,10 @@ window.loadMembersAdmin = () => {
                         <span style="padding:3px 10px; border-radius:50px; font-size:11px; font-weight:bold; background:${m.actif ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)'}; color:${m.actif ? '#22c55e' : '#ef4444'}; border:1px solid ${m.actif ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'};">
                             ${m.actif ? 'Actif' : 'Inactif'}
                         </span>
+                        <button onclick="window.open('/espace-membre.html?uid=${m.uid}', '_blank')"
+                            style="background:rgba(0,210,255,0.08); border:1px solid rgba(0,210,255,0.35); color:#00d2ff; padding:5px 12px; border-radius:8px; cursor:pointer; font-size:12px;">
+                            <i class="fas fa-id-card"></i> Dashboard
+                        </button>
                         <button onclick="window.toggleMemberEdit('${m.uid}')"
                             style="background:rgba(255,215,0,0.08); border:1px solid rgba(255,215,0,0.35); color:#ffd700; padding:5px 12px; border-radius:8px; cursor:pointer; font-size:12px;">
                             <i class="fas fa-edit"></i> Modifier
