@@ -789,35 +789,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- UTILS ---
     function toggleAdminUI(isAdmin) {
-        if (isAdmin) {
-            const placeholder = document.getElementById('admin-zone-placeholder');
-            if (placeholder) {
-                // Premier chargement : injecter le panel admin depuis son fichier dédié
-                fetch('admin-panel.html?v=32', { cache: 'no-store' })
-                    .then(r => r.text())
-                    .then(html => {
-                        placeholder.outerHTML = html;
-                        renderAll();
-                        // Charger admin.js après injection du panel (le form doit exister)
-                        const adminScript = document.getElementById('admin-script-placeholder');
-                        if (adminScript && !adminScript.src) {
-                            adminScript.src = 'admin.js';
-                        }
-                    })
-                    .catch(e => console.error('Erreur chargement panneau admin:', e));
-            } else {
-                // Panel déjà dans le DOM (ex: re-connexion) : juste l'afficher
-                document.getElementById('admin-zone')?.classList.remove('hidden');
-            }
-        } else {
-            document.getElementById('admin-zone')?.classList.add('hidden');
-        }
         const btnD = document.getElementById('admin-btn-desktop');
         if (btnD) {
             btnD.style.borderColor = isAdmin ? "#ff4444" : "#00d2ff";
-            btnD.innerHTML = isAdmin ? '<i class="fas fa-lock-open"></i> Mode Admin' : '<i class="fas fa-user-shield"></i> Espace Club';
+            btnD.innerHTML = isAdmin ? '<i class="fas fa-lock-open"></i> Panel Admin' : '<i class="fas fa-user-shield"></i> Espace Club';
             btnD.onclick = isAdmin
-                ? () => document.getElementById('admin-zone')?.scrollIntoView({ behavior: 'smooth' })
+                ? () => window.location.href = '/admin-panel.html'
                 : () => document.getElementById('login-modal').classList.remove('hidden');
         }
         document.querySelectorAll('.admin-actions').forEach(el => el.classList.toggle('hidden', !isAdmin));

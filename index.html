@@ -668,118 +668,12 @@
                     }
                 }
 
-                /* Corrections mobile pour le panneau admin */
-                @media (max-width: 768px) {
-                    /* Conteneur principal admin - réduire padding */
-                    #admin-zone {
-                        padding-left: 5px !important;
-                        padding-right: 5px !important;
-                    }
-
-                    #admin-zone > div {
-                        padding: 12px !important;
-                        border-radius: 12px !important;
-                    }
-
-                    /* Formulaire interne */
-                    #admin-zone form,
-                    #universal-form {
-                        max-width: 100% !important;
-                        box-sizing: border-box !important;
-                    }
-
-                    /* Zone formulaire avec fond */
-                    #universal-form,
-                    #documents-admin {
-                        padding: 12px !important;
-                    }
-
-                    /* Tous les éléments du formulaire - box-sizing */
-                    #admin-zone *,
-                    #universal-form * {
-                        box-sizing: border-box !important;
-                    }
-
-                    /* Checkboxes featured et draft en colonne sur mobile */
-                    #featured-container,
-                    #draft-container {
-                        flex-direction: column !important;
-                        align-items: flex-start !important;
-                        gap: 8px !important;
-                        padding: 10px !important;
-                    }
-
-                    #featured-container span,
-                    #draft-container span {
-                        margin-left: 0 !important;
-                        font-size: 11px !important;
-                    }
-
-                    #featured-container label,
-                    #draft-container label {
-                        font-size: 13px !important;
-                    }
-
-                    /* Zone upload images */
-                    #image-upload-container {
-                        padding: 15px 10px !important;
-                    }
-
-                    #image-upload-container i {
-                        font-size: 32px !important;
-                    }
-
-                    #image-upload-container p {
-                        font-size: 13px !important;
-                    }
-
-                    /* Boutons du formulaire admin */
-                    #admin-buttons-container {
-                        flex-direction: column !important;
-                        padding: 10px !important;
-                    }
-
-                    #admin-buttons-container button {
-                        width: 100% !important;
-                        min-width: unset !important;
-                        flex: none !important;
-                    }
-
-                    /* Inputs et textarea */
-                    #admin-zone input,
-                    #admin-zone textarea,
-                    #admin-zone select {
-                        width: 100% !important;
-                        max-width: 100% !important;
-                        box-sizing: border-box !important;
-                    }
-
-                    /* Tabs admin scroll horizontal */
-                    .tab-btn {
-                        flex-shrink: 0;
-                        padding: 8px 12px !important;
-                        font-size: 11px !important;
-                    }
-
-                    /* Stats cards */
-                    #admin-stats {
-                        grid-template-columns: repeat(2, 1fr) !important;
-                        gap: 8px !important;
-                    }
-
-                    #admin-stats > div {
-                        padding: 10px !important;
-                    }
-                }
             </style>
             <div id="gallery-content">
                 <!-- Images will be injected here -->
             </div>
         </div>
     </div>
-
-    <!-- Admin panel chargé dynamiquement à la connexion -->
-    <div id="admin-zone-placeholder"></div>
 
     <script defer src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 
@@ -817,9 +711,6 @@
 
     <!-- html2canvas pour génération carte membre téléchargeable -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
-    <!-- Script Admin séparé (Chargé dynamiquement dans script.js si admin connecté) -->
-    <script id="admin-script-placeholder"></script>
-
     <!-- LOGIN MODAL ADMIN -->
     <div id="login-modal" class="hidden"
         style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:2000; display:flex; justify-content:center; align-items:center;">
