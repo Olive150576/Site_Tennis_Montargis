@@ -789,15 +789,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- UTILS ---
     function toggleAdminUI(isAdmin) {
-        const btnD = document.getElementById('admin-btn-desktop');
-        if (btnD) {
-            btnD.style.borderColor = isAdmin ? "#ff4444" : "#00d2ff";
-            btnD.innerHTML = isAdmin ? '<i class="fas fa-lock-open"></i> Panel Admin' : '<i class="fas fa-user-shield"></i> Espace Club';
-            btnD.onclick = isAdmin
-                ? () => window.location.href = '/admin-panel.html'
-                : () => document.getElementById('login-modal').classList.remove('hidden');
+        // Si admin vient de se connecter : fermer la modal et rediriger vers la page admin
+        if (isAdmin) {
+            document.getElementById('login-modal')?.classList.add('hidden');
+            document.body.style.overflow = '';
+            window.location.href = '/admin-panel.html';
+            return;
         }
-        document.querySelectorAll('.admin-actions').forEach(el => el.classList.toggle('hidden', !isAdmin));
+        // Remettre les boutons admin en état "connecté" / "déconnecté"
+        ['admin-btn-mobile', 'admin-btn-footer'].forEach(id => {
+            const btn = document.getElementById(id);
+            if (!btn) return;
+            btn.innerHTML = '<i class="fas fa-user-shield"></i> Espace Club';
+            btn.onclick = () => document.getElementById('login-modal').classList.remove('hidden');
+        });
+        document.querySelectorAll('.admin-actions').forEach(el => el.classList.add('hidden'));
     }
 
     function toggleMemberUI(isMember, memberData) {
