@@ -60,21 +60,31 @@ window.initMemberDashboard = function(memberData) {
     if (vipYearEl) vipYearEl.textContent = `Saison ${new Date().getFullYear()}`;
 
     // QR Code (URL vers page de vérification membre)
+    // Retry car qrcode.min.js (CDN) peut ne pas encore être chargé sur mobile lent
     const qrEl = document.getElementById('vip-qrcode');
-    if (qrEl && typeof QRCode !== 'undefined') {
-        qrEl.innerHTML = '';
+    if (qrEl) {
         const memberUid = memberData._uid || (window.auth && window.auth.currentUser ? window.auth.currentUser.uid : '');
         const qrContent = memberUid
             ? `https://tennismontargis.fr/v/${memberUid}`
             : `USM Tennis Montargis | ${prenom} ${nom}`;
-        new QRCode(qrEl, {
-            text: qrContent,
-            width: 100,
-            height: 100,
-            colorDark: '#0d1b2e',
-            colorLight: '#ffffff',
-            correctLevel: QRCode.CorrectLevel.L
-        });
+        let qrRetries = 0;
+        function renderVipQR() {
+            if (typeof QRCode !== 'undefined') {
+                qrEl.innerHTML = '';
+                new QRCode(qrEl, {
+                    text: qrContent,
+                    width: 100,
+                    height: 100,
+                    colorDark: '#0d1b2e',
+                    colorLight: '#ffffff',
+                    correctLevel: QRCode.CorrectLevel.L
+                });
+            } else if (qrRetries < 20) {
+                qrRetries++;
+                setTimeout(renderVipQR, 300);
+            }
+        }
+        renderVipQR();
     }
 
     // --- Année en cours dans l'onglet club ---
