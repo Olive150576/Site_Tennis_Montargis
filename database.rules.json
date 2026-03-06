@@ -48,8 +48,18 @@
       ".read": "auth != null && root.child('admins').child(auth.uid).exists()",
       ".write": "auth != null && root.child('admins').child(auth.uid).exists()",
       "$uid": {
-        ".read": "auth != null && (auth.uid === $uid || root.child('admins').child(auth.uid).exists())"
+        ".read": "auth != null && (auth.uid === $uid || root.child('admins').child(auth.uid).exists())",
+        "prenom":     { ".read": true },
+        "nom":        { ".read": true },
+        "actif":      { ".read": true },
+        "classement": { ".read": true },
+        "categorie":  { ".read": true },
+        "licence":    { ".read": true }
       }
+    },
+    "scans": {
+      ".read": "auth != null && root.child('admins').child(auth.uid).exists()",
+      ".write": true
     },
     "tournaments": {
       ".read": "auth != null && (root.child('admins').child(auth.uid).exists() || root.child('members').child(auth.uid).child('actif').val() === true)",

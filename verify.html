@@ -442,13 +442,28 @@
         if (!uid) {
             showError();
         } else {
-            // Charger membre + sponsors en parallèle
+            // Lire les champs publics individuellement (règles DB : lecture par champ sans auth)
+            // + sponsors en parallèle
             Promise.all([
-                db.ref('members/' + uid).once('value'),
+                db.ref('members/' + uid + '/prenom').once('value'),
+                db.ref('members/' + uid + '/nom').once('value'),
+                db.ref('members/' + uid + '/actif').once('value'),
+                db.ref('members/' + uid + '/classement').once('value'),
+                db.ref('members/' + uid + '/categorie').once('value'),
+                db.ref('members/' + uid + '/licence').once('value'),
                 db.ref('sponsors').once('value')
-            ]).then(([memberSnap, sponsorsSnap]) => {
-                const member = memberSnap.val();
-                if (!member) { showError(); return; }
+            ]).then(([prenomSnap, nomSnap, actifSnap, classementSnap, categorieSnap, licenceSnap, sponsorsSnap]) => {
+                // Si prenom et nom sont null → UID inconnu
+                if (prenomSnap.val() === null && nomSnap.val() === null) { showError(); return; }
+                const member = {
+                    prenom:     prenomSnap.val(),
+                    nom:        nomSnap.val(),
+                    actif:      actifSnap.val() === true,
+                    classement: classementSnap.val(),
+                    categorie:  categorieSnap.val(),
+                    licence:    licenceSnap.val()
+                };
+                if (!member.actif && !member.prenom) { showError(); return; }
 
                 const sponsorsData = sponsorsSnap.val();
                 const sponsors = sponsorsData
