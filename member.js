@@ -51,12 +51,13 @@ window.initMemberDashboard = function(memberData) {
     const vipYearEl = document.getElementById('vip-card-year');
     if (vipYearEl) vipYearEl.textContent = `Saison ${new Date().getFullYear()}`;
 
-    // QR Code (contenu : nom + licence pour vérification physique)
+    // QR Code (URL vers page de vérification membre)
     const qrEl = document.getElementById('vip-qrcode');
     if (qrEl && typeof QRCode !== 'undefined') {
         qrEl.innerHTML = '';
-        const qrContent = memberData.licence
-            ? `USM Tennis Montargis | ${prenom} ${nom} | Licence ${memberData.licence}`
+        const memberUid = window.auth && window.auth.currentUser ? window.auth.currentUser.uid : '';
+        const qrContent = memberUid
+            ? `https://tennismontargis.fr/v/${memberUid}`
             : `USM Tennis Montargis | ${prenom} ${nom}`;
         new QRCode(qrEl, {
             text: qrContent,
@@ -416,14 +417,13 @@ window.downloadMemberCard = async function() {
     cardEl.style.left = '-9999px';
     cardEl.style.display = 'block';
 
-    // Générer le QR code dans la carte
+    // Générer le QR code dans la carte (URL de vérification)
     const qrContainer = cardEl.querySelector('#card-print-qr');
     if (qrContainer && typeof QRCode !== 'undefined') {
-        const prenom = _cardMemberData.prenom || '';
-        const nom = _cardMemberData.nom || '';
-        const qrContent = _cardMemberData.licence
-            ? `USM Tennis Montargis | ${prenom} ${nom} | Licence ${_cardMemberData.licence}`
-            : `USM Tennis Montargis | ${prenom} ${nom}`;
+        const memberUid = window.auth && window.auth.currentUser ? window.auth.currentUser.uid : '';
+        const qrContent = memberUid
+            ? `https://tennismontargis.fr/v/${memberUid}`
+            : `USM Tennis Montargis | ${_cardMemberData.prenom || ''} ${_cardMemberData.nom || ''}`;
         new QRCode(qrContainer, {
             text: qrContent,
             width: 110,

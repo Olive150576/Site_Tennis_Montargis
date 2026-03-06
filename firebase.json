@@ -33,6 +33,10 @@
         "destination": "/espace-membre.html"
       },
       {
+        "source": "/v/**",
+        "destination": "/verify.html"
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }
