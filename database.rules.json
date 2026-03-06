@@ -63,7 +63,7 @@
       "$uid": {
         ".write": true,
         "$scanId": {
-          ".validate": "newData.hasChildren(['t']) && newData.child('t').isNumber() && newData.child('t').val() >= (now - 60000) && newData.child('t').val() <= (now + 10000) && newData.keys().count() === 1"
+          ".validate": "newData.hasChildren(['t']) && newData.child('t').isNumber() && newData.child('t').val() >= (now - 60000) && newData.child('t').val() <= (now + 10000)"
         }
       }
     },
