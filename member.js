@@ -445,7 +445,7 @@ window.downloadMemberCard = async function() {
     // Attendre le rendu QR code avant la capture
     setTimeout(() => {
         html2canvas(cardEl, {
-            scale: 2,
+            scale: 3,
             useCORS: true,
             allowTaint: false,
             backgroundColor: null,
@@ -524,31 +524,42 @@ function buildCardHtml(m, sponsors) {
     const nom = m.nom || '';
     const annee = new Date().getFullYear();
 
+    // Format carte bancaire ISO 7810 : 85,6 × 53,98 mm → ratio 1,586:1
+    // À 680px de large → hauteur = 680 / 1.5857 ≈ 429px
+    const CARD_W = 680;
+    const CARD_H = 429;
+
     const cardStyle = `
-        width:680px;
-        background:linear-gradient(145deg,#0d1b2e 0%,#112240 50%,#0a1628 100%);
+        width:${CARD_W}px;
+        height:${CARD_H}px;
+        box-sizing:border-box;
+        background:linear-gradient(145deg,#0d1b2e 0%,#112240 55%,#0a1628 100%);
         border:2px solid rgba(255,215,0,0.6);
-        border-radius:20px;
+        border-radius:18px;
         overflow:hidden;
         font-family:Arial,sans-serif;
+        display:flex;
+        flex-direction:column;
     `;
 
     const headerHtml = (label) => `
         <div style="
-            display:flex;align-items:center;gap:18px;
-            padding:18px 28px;
-            background:linear-gradient(90deg,rgba(255,215,0,0.12) 0%,rgba(255,215,0,0.04) 100%);
+            display:flex;align-items:center;
+            padding:11px 18px;
+            background:linear-gradient(90deg,rgba(255,215,0,0.13) 0%,rgba(255,215,0,0.04) 100%);
             border-bottom:1px solid rgba(255,215,0,0.35);
+            flex-shrink:0;
         ">
-            <img src="/logo_usm_new.png" style="width:60px;height:60px;object-fit:contain;border-radius:50%;border:2px solid rgba(255,215,0,0.5);" crossorigin="anonymous" alt="USM">
-            <div>
-                <div style="color:#ffd700;font-size:17px;font-weight:900;letter-spacing:2px;font-family:Arial,sans-serif;">USM TENNIS MONTARGIS</div>
-                <div style="color:rgba(255,215,0,0.65);font-size:11px;letter-spacing:3px;margin-top:3px;font-family:Arial,sans-serif;">${label} · SAISON ${annee}</div>
+            <img src="/logo_usm_new.png" style="width:62px;height:62px;object-fit:contain;border-radius:50%;border:2px solid rgba(255,215,0,0.5);flex-shrink:0;" crossorigin="anonymous" alt="USM">
+            <div style="flex:1;text-align:center;padding:0 10px;">
+                <div style="color:#ffd700;font-size:15px;font-weight:900;letter-spacing:2px;font-family:Arial,sans-serif;">USM TENNIS MONTARGIS</div>
+                <div style="color:rgba(255,215,0,0.65);font-size:10px;letter-spacing:3px;margin-top:2px;font-family:Arial,sans-serif;">${label} · SAISON ${annee}</div>
             </div>
+            <img src="/Logo_F%C3%A9d%C3%A9ration_Fran%C3%A7aise_de_Tennis.png" style="width:52px;height:52px;object-fit:contain;flex-shrink:0;" crossorigin="anonymous" alt="FFT">
         </div>`;
 
     const footerHtml = `
-        <div style="text-align:center;padding:8px;border-top:1px solid rgba(255,215,0,0.15);color:rgba(255,215,0,0.3);font-size:10px;letter-spacing:1px;font-family:Arial,sans-serif;">
+        <div style="text-align:center;padding:6px;border-top:1px solid rgba(255,215,0,0.15);color:rgba(255,215,0,0.3);font-size:9px;letter-spacing:1px;font-family:Arial,sans-serif;flex-shrink:0;">
             tennismontargis.fr
         </div>`;
 
@@ -556,41 +567,39 @@ function buildCardHtml(m, sponsors) {
     const recto = `
     <div style="${cardStyle}">
         ${headerHtml('CARTE MEMBRE')}
-        <div style="display:flex;align-items:center;gap:28px;padding:24px 28px 20px;">
-            <div style="flex:1;">
-                <div style="color:#ffffff;font-size:22px;font-weight:900;letter-spacing:1px;margin-bottom:10px;font-family:Arial,sans-serif;">${escMember(`${prenom} ${nom}`.toUpperCase())}</div>
-                ${m.statut && m.statut !== 'Membre' ? `<div style="margin-bottom:10px;"><span style="background:rgba(255,215,0,0.14);border:1px solid rgba(255,215,0,0.5);color:#ffd700;padding:3px 14px;border-radius:20px;font-size:11px;letter-spacing:0.5px;font-family:Arial,sans-serif;">★ ${escMember(m.statut)}</span></div>` : ''}
-                ${m.classement ? `<div style="margin-bottom:8px;"><span style="background:rgba(255,215,0,0.12);border:1px solid rgba(255,215,0,0.4);color:#ffd700;padding:4px 14px;border-radius:20px;font-size:12px;font-family:Arial,sans-serif;">Classement : ${escMember(m.classement)}</span></div>` : ''}
-                ${m.categorie  ? `<div style="margin-bottom:8px;"><span style="background:rgba(255,215,0,0.08);border:1px solid rgba(255,215,0,0.25);color:rgba(255,215,0,0.8);padding:4px 14px;border-radius:20px;font-size:12px;font-family:Arial,sans-serif;">Catégorie : ${escMember(m.categorie)}</span></div>` : ''}
-                ${m.licence    ? `<div style="margin-top:8px;"><div style="color:rgba(255,255,255,0.45);font-size:10px;letter-spacing:1px;font-family:Arial,sans-serif;">LICENCE FFT</div><div style="color:#ffffff;font-size:17px;font-weight:700;letter-spacing:2px;font-family:Arial,sans-serif;">${escMember(m.licence)}</div></div>` : ''}
+        <div style="flex:1;display:flex;align-items:center;gap:24px;padding:16px 22px;">
+            <div style="flex:1;overflow:hidden;">
+                <div style="color:#ffffff;font-size:20px;font-weight:900;letter-spacing:1px;margin-bottom:10px;font-family:Arial,sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escMember(`${prenom} ${nom}`.toUpperCase())}</div>
+                ${m.statut && m.statut !== 'Membre' ? `<div style="margin-bottom:9px;"><span style="background:rgba(255,215,0,0.14);border:1px solid rgba(255,215,0,0.5);color:#ffd700;padding:3px 12px;border-radius:20px;font-size:10px;letter-spacing:0.5px;font-family:Arial,sans-serif;">★ ${escMember(m.statut)}</span></div>` : ''}
+                ${m.classement ? `<div style="margin-bottom:7px;"><span style="background:rgba(255,215,0,0.12);border:1px solid rgba(255,215,0,0.4);color:#ffd700;padding:3px 12px;border-radius:20px;font-size:11px;font-family:Arial,sans-serif;">Classement : ${escMember(m.classement)}</span></div>` : ''}
+                ${m.categorie  ? `<div style="margin-bottom:7px;"><span style="background:rgba(255,215,0,0.08);border:1px solid rgba(255,215,0,0.25);color:rgba(255,215,0,0.8);padding:3px 12px;border-radius:20px;font-size:11px;font-family:Arial,sans-serif;">Catégorie : ${escMember(m.categorie)}</span></div>` : ''}
+                ${m.licence    ? `<div style="margin-top:10px;"><div style="color:rgba(255,255,255,0.45);font-size:9px;letter-spacing:1.5px;font-family:Arial,sans-serif;">LICENCE FFT</div><div style="color:#ffffff;font-size:16px;font-weight:700;letter-spacing:2px;font-family:Arial,sans-serif;">${escMember(m.licence)}</div></div>` : ''}
             </div>
             <div style="flex-shrink:0;text-align:center;">
-                <div id="card-print-qr" style="width:110px;height:110px;background:#f5e88a;border-radius:10px;padding:6px;display:flex;align-items:center;justify-content:center;border:2px solid rgba(255,215,0,0.5);"></div>
-                <div style="color:rgba(255,215,0,0.45);font-size:9px;margin-top:5px;letter-spacing:1px;font-family:Arial,sans-serif;">SCANNER POUR VÉRIFIER</div>
+                <div id="card-print-qr" style="width:110px;height:110px;background:#f5e88a;border-radius:10px;padding:5px;display:flex;align-items:center;justify-content:center;border:2px solid rgba(255,215,0,0.5);"></div>
+                <div style="color:rgba(255,215,0,0.45);font-size:8px;margin-top:4px;letter-spacing:1px;font-family:Arial,sans-serif;">SCANNER POUR VÉRIFIER</div>
             </div>
         </div>
         ${footerHtml}
     </div>`;
 
     // ── VERSO ──────────────────────────────────────────────
-    // Inclure tous les sponsors avec un titre (avantage optionnel)
     const sponsorsWithAvantage = (sponsors || []).filter(s => s && s.title);
 
     const sponsorCards = sponsorsWithAvantage.map(s => {
-        // Utiliser UNIQUEMENT le base64 pré-chargé (URL directe = blanc dans html2canvas si CORS absent)
         const logoSrc = s._logoBase64;
         const initiale = (s.title || '?').charAt(0).toUpperCase();
         const logoHtml = logoSrc
-            ? `<img src="${logoSrc}" style="width:56px;height:56px;object-fit:contain;border-radius:8px;background:#fff;padding:4px;border:1px solid rgba(255,215,0,0.3);flex-shrink:0;" alt="${escMember(s.title)}">`
-            : `<div style="width:56px;height:56px;background:rgba(255,215,0,0.1);border:1px solid rgba(255,215,0,0.35);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#ffd700;font-size:22px;font-weight:900;font-family:Arial,sans-serif;">${initiale}</div>`;
+            ? `<img src="${logoSrc}" style="width:50px;height:50px;object-fit:contain;border-radius:7px;background:#fff;padding:3px;border:1px solid rgba(255,215,0,0.3);flex-shrink:0;" alt="${escMember(s.title)}">`
+            : `<div style="width:50px;height:50px;background:rgba(255,215,0,0.1);border:1px solid rgba(255,215,0,0.35);border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#ffd700;font-size:20px;font-weight:900;font-family:Arial,sans-serif;">${initiale}</div>`;
         const avantageHtml = s.avantage
-            ? `<div style="color:rgba(255,255,255,0.8);font-size:11px;font-family:Arial,sans-serif;line-height:1.4;">${escMember(s.avantage)}</div>`
+            ? `<div style="color:rgba(255,255,255,0.8);font-size:10px;font-family:Arial,sans-serif;line-height:1.4;">${escMember(s.avantage)}</div>`
             : '';
         return `
-        <div style="display:flex;align-items:flex-start;gap:12px;padding:12px;background:rgba(255,215,0,0.04);border:1px solid rgba(255,215,0,0.15);border-radius:10px;">
+        <div style="display:flex;align-items:flex-start;gap:10px;padding:10px;background:rgba(255,215,0,0.04);border:1px solid rgba(255,215,0,0.15);border-radius:9px;">
             ${logoHtml}
             <div style="flex:1;min-width:0;">
-                <div style="color:#ffd700;font-size:12px;font-weight:700;font-family:Arial,sans-serif;margin-bottom:4px;">${escMember(s.title)}</div>
+                <div style="color:#ffd700;font-size:11px;font-weight:700;font-family:Arial,sans-serif;margin-bottom:3px;">${escMember(s.title)}</div>
                 ${avantageHtml}
             </div>
         </div>`;
@@ -599,14 +608,14 @@ function buildCardHtml(m, sponsors) {
     const verso = sponsorsWithAvantage.length > 0 ? `
     <div style="${cardStyle}">
         ${headerHtml('NOS PARTENAIRES')}
-        <div style="padding:20px 28px;display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div style="flex:1;padding:14px 20px;display:grid;grid-template-columns:1fr 1fr;gap:9px;align-content:start;overflow:hidden;">
             ${sponsorCards}
         </div>
         ${footerHtml}
     </div>` : '';
 
     // ── WRAPPER vertical recto + verso ─────────────────────
-    return `<div style="display:flex;flex-direction:column;gap:20px;width:680px;">${recto}${verso}</div>`;
+    return `<div style="display:flex;flex-direction:column;gap:16px;width:${CARD_W}px;">${recto}${verso}</div>`;
 }
 
 // --- Utilitaire échappement HTML ---
