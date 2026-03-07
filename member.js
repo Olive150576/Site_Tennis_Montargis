@@ -782,6 +782,140 @@ function buildVersoHtml(m, sponsors) {
     </div>`;
 }
 
+// ── CARTE MOBILE : portrait 390×844 — toutes infos + QR ────
+function buildMobileCardHtml(m) {
+    const prenom = m.prenom || '';
+    const nom    = m.nom    || '';
+    const annee  = new Date().getFullYear();
+
+    const decorSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="390" height="844" style="position:absolute;top:0;left:0;pointer-events:none;">
+        <line x1="0" y1="210" x2="390" y2="210" stroke="rgba(255,215,0,0.06)" stroke-width="1"/>
+        <line x1="0" y1="634" x2="390" y2="634" stroke="rgba(255,215,0,0.06)" stroke-width="1"/>
+        <circle cx="195" cy="390" r="210" stroke="rgba(255,215,0,0.04)" stroke-width="1" fill="none"/>
+        <circle cx="195" cy="390" r="165" stroke="rgba(255,215,0,0.03)" stroke-width="1" fill="none"/>
+        <line x1="0" y1="390" x2="390" y2="390" stroke="rgba(255,215,0,0.03)" stroke-width="1"/>
+    </svg>`;
+
+    const QR_SIZE = 148;
+    const LOGO_SIZE = 36;
+    const LOGO_OFFSET = Math.round((QR_SIZE - LOGO_SIZE) / 2);
+
+    return `
+    <div style="
+        width:390px; height:844px;
+        background:linear-gradient(175deg, #0a1220 0%, #0d1b2e 30%, #112240 60%, #0a1628 100%);
+        position:relative; overflow:hidden; font-family:Arial,sans-serif;
+        display:flex; flex-direction:column; align-items:center;
+        box-sizing:border-box; padding:0 28px 28px;
+    ">
+        ${decorSvg}
+
+        <!-- HEADER -->
+        <div style="width:100%; display:flex; align-items:center; justify-content:center; gap:10px; padding:32px 0 20px; z-index:2; position:relative; border-bottom:1px solid rgba(255,215,0,0.1); margin-bottom:0;">
+            <img src="/logo_usm_new.png" style="width:32px;height:32px;object-fit:contain;" crossorigin="anonymous" alt="USM">
+            <div style="text-align:center;">
+                <div style="color:rgba(255,215,0,0.75);font-size:9px;letter-spacing:4px;font-family:Arial,sans-serif;">USM TENNIS MONTARGIS</div>
+                <div style="color:rgba(255,255,255,0.3);font-size:8px;letter-spacing:2px;font-family:Arial,sans-serif;margin-top:2px;">CARTE MEMBRE · SAISON ${annee}</div>
+            </div>
+            <img src="/Logo_F%C3%A9d%C3%A9ration_Fran%C3%A7aise_de_Tennis.png" style="width:32px;height:32px;object-fit:contain;opacity:0.7;" crossorigin="anonymous" alt="FFT">
+        </div>
+
+        <!-- LOGO CENTRAL -->
+        <div style="position:relative;z-index:2;text-align:center;margin-top:28px;margin-bottom:18px;">
+            <div style="
+                width:128px;height:128px;border-radius:50%;
+                background:radial-gradient(circle,rgba(255,215,0,0.14) 0%,rgba(255,215,0,0.04) 60%,transparent 100%);
+                display:flex;align-items:center;justify-content:center;margin:0 auto;
+                box-shadow:0 0 40px rgba(255,215,0,0.25), 0 0 80px rgba(255,215,0,0.1);
+                border:1px solid rgba(255,215,0,0.28);
+            ">
+                <img src="/logo_usm_new.png" crossorigin="anonymous"
+                    style="width:104px;height:104px;object-fit:contain;filter:drop-shadow(0 0 14px rgba(255,215,0,0.85)) drop-shadow(0 0 28px rgba(255,215,0,0.4));"
+                    alt="USM">
+            </div>
+        </div>
+
+        <!-- SÉPARATEUR OR -->
+        <div style="position:relative;z-index:2;display:flex;align-items:center;gap:10px;width:210px;margin-bottom:16px;">
+            <div style="flex:1;height:1px;background:linear-gradient(90deg,transparent,rgba(255,215,0,0.55));"></div>
+            <div style="color:#ffd700;font-size:10px;">★</div>
+            <div style="flex:1;height:1px;background:linear-gradient(90deg,rgba(255,215,0,0.55),transparent);"></div>
+        </div>
+
+        <!-- NOM PRÉNOM -->
+        <div style="position:relative;z-index:2;text-align:center;margin-bottom:10px;">
+            <div style="color:#ffffff;font-size:21px;font-weight:900;letter-spacing:2px;font-family:Arial,sans-serif;text-shadow:0 0 20px rgba(255,255,255,0.15);">
+                ${escMember(`${prenom} ${nom}`.toUpperCase())}
+            </div>
+        </div>
+
+        <!-- STATUT (si pas Membre simple) -->
+        ${m.statut && m.statut !== 'Membre' ? `
+        <div style="position:relative;z-index:2;margin-bottom:10px;">
+            <span style="background:rgba(255,215,0,0.12);border:1px solid rgba(255,215,0,0.45);color:#ffd700;padding:5px 16px;border-radius:20px;font-size:11px;letter-spacing:0.5px;font-family:Arial,sans-serif;">★ ${escMember(m.statut)}</span>
+        </div>` : ''}
+
+        <!-- CLASSEMENT + CATÉGORIE -->
+        <div style="position:relative;z-index:2;display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;justify-content:center;">
+            ${m.classement ? `<span style="background:rgba(255,215,0,0.08);border:1px solid rgba(255,215,0,0.3);color:rgba(255,215,0,0.85);padding:4px 14px;border-radius:20px;font-size:12px;font-family:Arial,sans-serif;">Cl. ${escMember(m.classement)}</span>` : ''}
+            ${m.categorie  ? `<span style="background:rgba(0,210,255,0.07);border:1px solid rgba(0,210,255,0.25);color:rgba(0,210,255,0.8);padding:4px 14px;border-radius:20px;font-size:12px;font-family:Arial,sans-serif;">${escMember(m.categorie)}</span>` : ''}
+        </div>
+
+        <!-- LICENCE FFT -->
+        ${m.licence ? `
+        <div style="position:relative;z-index:2;text-align:center;margin-bottom:20px;">
+            <div style="color:rgba(255,215,0,0.45);font-size:9px;letter-spacing:3px;font-family:Arial,sans-serif;margin-bottom:4px;">LICENCE FFT</div>
+            <div style="color:#ffd700;font-size:20px;font-weight:700;letter-spacing:4px;font-family:Arial,sans-serif;text-shadow:0 0 12px rgba(255,215,0,0.5);">${escMember(m.licence)}</div>
+        </div>` : `<div style="margin-bottom:20px;"></div>`}
+
+        <!-- QR CODE avec logo USM intégré -->
+        <div style="position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;">
+            <div style="position:relative;width:${QR_SIZE}px;height:${QR_SIZE}px;">
+                <div id="card-mobile-qr" style="width:${QR_SIZE}px;height:${QR_SIZE}px;background:#f5e88a;border-radius:12px;border:2px solid rgba(255,215,0,0.5);overflow:hidden;"></div>
+                <div style="position:absolute;top:${LOGO_OFFSET}px;left:${LOGO_OFFSET}px;width:${LOGO_SIZE}px;height:${LOGO_SIZE}px;background:#f5e88a;border-radius:50%;padding:2px;box-sizing:border-box;">
+                    <img src="/logo_usm_new.png" style="width:100%;height:100%;object-fit:contain;display:block;" crossorigin="anonymous" alt="USM">
+                </div>
+            </div>
+            <div style="color:rgba(255,215,0,0.35);font-size:8px;margin-top:7px;letter-spacing:1.5px;font-family:Arial,sans-serif;text-align:center;">SCANNER POUR VÉRIFIER</div>
+        </div>
+
+        <!-- BAS : site + saison -->
+        <div style="position:absolute;bottom:26px;left:0;right:0;text-align:center;z-index:2;">
+            <div style="color:rgba(255,215,0,0.2);font-size:8px;letter-spacing:1.5px;font-family:Arial,sans-serif;">tennismontargis.fr</div>
+        </div>
+    </div>`;
+}
+
+window.downloadMemberCardMobile = async function() {
+    if (!_cardMemberData || typeof html2canvas === 'undefined') return;
+    const el = document.getElementById('member-card-mobile-print');
+    if (!el) return;
+
+    el.innerHTML = buildMobileCardHtml(_cardMemberData);
+    el.style.display = 'block';
+
+    // QR code avec logo USM intégré
+    const qrContainer = el.querySelector('#card-mobile-qr');
+    if (qrContainer && typeof QRCode !== 'undefined') {
+        const memberUid = (_cardMemberData && _cardMemberData._uid)
+            || (window.auth && window.auth.currentUser ? window.auth.currentUser.uid : '');
+        const qrContent = memberUid
+            ? `https://tennismontargis.fr/v/${memberUid}`
+            : `USM Tennis Montargis | ${_cardMemberData.prenom || ''} ${_cardMemberData.nom || ''}`;
+        new QRCode(qrContainer, {
+            text: qrContent,
+            width: 148,
+            height: 148,
+            colorDark: '#0d1b2e',
+            colorLight: '#f5e88a',
+            correctLevel: QRCode.CorrectLevel.H
+        });
+    }
+
+    const nomFichier = (_cardMemberData.nom || 'membre').toLowerCase().replace(/\s+/g, '-');
+    await _captureAndDownload(el, `carte-mobile-usm-${nomFichier}.png`, 400);
+};
+
 // --- Utilitaire échappement HTML ---
 function escMember(str) {
     if (!str) return '';

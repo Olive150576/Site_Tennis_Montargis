@@ -203,23 +203,64 @@
                     </div>
                 </div>
 
-                <!-- Ligne 1 : téléchargement carte recto / verso -->
-                <div style="display:flex; gap:10px; max-width:520px; margin:14px auto 0;">
-                    <button class="vip-dl-btn" style="flex:1; margin:0;" onclick="window.downloadMemberCardRecto()">
-                        <i class="fas fa-id-card"></i> Recto
-                    </button>
-                    <button class="vip-dl-btn" style="flex:1; margin:0; background:linear-gradient(135deg,rgba(255,215,0,0.1),rgba(180,150,0,0.06)); border-color:rgba(255,215,0,0.35); color:#ffd700;" onclick="window.downloadMemberCardVerso()">
-                        <i class="fas fa-qrcode"></i> Verso
-                    </button>
+                <!-- ── SECTION TÉLÉCHARGEMENTS ── -->
+                <div class="member-section-title" style="margin-top:28px;">
+                    <i class="fas fa-download"></i> Téléchargements
                 </div>
-                <!-- Ligne 2 : fonds d'écran -->
-                <div style="display:flex; gap:10px; max-width:520px; margin:8px auto 0;">
-                    <button class="vip-dl-btn" style="flex:1; margin:0; background:linear-gradient(135deg,rgba(100,116,139,0.18),rgba(71,85,105,0.1)); border-color:rgba(148,163,184,0.4); color:#cbd5e1;" onclick="window.downloadMemberWallpaper()">
-                        <i class="fas fa-mobile-alt"></i> Fond mobile
-                    </button>
-                    <button class="vip-dl-btn" style="flex:1; margin:0; background:linear-gradient(135deg,rgba(79,70,229,0.18),rgba(55,48,163,0.1)); border-color:rgba(129,140,248,0.4); color:#a5b4fc;" onclick="window.downloadMemberWallpaperDesktop()">
-                        <i class="fas fa-desktop"></i> Fond bureau
-                    </button>
+                <div style="display:grid; grid-template-columns:1fr; gap:12px; max-width:520px; margin:0 auto;">
+
+                    <!-- Carte bancaire recto / verso -->
+                    <div style="background:rgba(0,210,255,0.05); border:1px solid rgba(0,210,255,0.18); border-radius:14px; padding:16px 18px;">
+                        <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+                            <i class="fas fa-credit-card" style="color:#00d2ff; font-size:18px; flex-shrink:0;"></i>
+                            <div>
+                                <div style="color:white; font-weight:600; font-size:14px;">Carte de membre</div>
+                                <div style="color:#475569; font-size:11px; margin-top:2px;">Format carte bancaire · À imprimer</div>
+                            </div>
+                        </div>
+                        <div style="display:flex; gap:8px;">
+                            <button class="vip-dl-btn" style="flex:1; margin:0; padding:10px 8px;" onclick="window.downloadMemberCardRecto()">
+                                <i class="fas fa-id-card"></i> Recto
+                            </button>
+                            <button class="vip-dl-btn" style="flex:1; margin:0; padding:10px 8px; background:linear-gradient(135deg,rgba(255,215,0,0.1),rgba(180,150,0,0.06)); border-color:rgba(255,215,0,0.35); color:#ffd700;" onclick="window.downloadMemberCardVerso()">
+                                <i class="fas fa-qrcode"></i> Verso
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Carte mobile -->
+                    <div style="background:rgba(255,215,0,0.05); border:1px solid rgba(255,215,0,0.18); border-radius:14px; padding:16px 18px;">
+                        <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+                            <i class="fas fa-mobile-alt" style="color:#ffd700; font-size:18px; flex-shrink:0;"></i>
+                            <div>
+                                <div style="color:white; font-weight:600; font-size:14px;">Carte mobile</div>
+                                <div style="color:#475569; font-size:11px; margin-top:2px;">Format portrait · Toutes les infos + QR code</div>
+                            </div>
+                        </div>
+                        <button class="vip-dl-btn" style="width:100%; margin:0;" onclick="window.downloadMemberCardMobile()">
+                            <i class="fas fa-download"></i> Télécharger la carte mobile
+                        </button>
+                    </div>
+
+                    <!-- Fonds d'écran -->
+                    <div style="background:rgba(129,140,248,0.05); border:1px solid rgba(129,140,248,0.18); border-radius:14px; padding:16px 18px;">
+                        <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+                            <i class="fas fa-image" style="color:#a5b4fc; font-size:18px; flex-shrink:0;"></i>
+                            <div>
+                                <div style="color:white; font-weight:600; font-size:14px;">Fonds d'écran</div>
+                                <div style="color:#475569; font-size:11px; margin-top:2px;">Personnalise ton écran de veille</div>
+                            </div>
+                        </div>
+                        <div style="display:flex; gap:8px;">
+                            <button class="vip-dl-btn" style="flex:1; margin:0; padding:10px 8px; background:linear-gradient(135deg,rgba(100,116,139,0.18),rgba(71,85,105,0.1)); border-color:rgba(148,163,184,0.35); color:#cbd5e1;" onclick="window.downloadMemberWallpaper()">
+                                <i class="fas fa-mobile-alt"></i> Mobile
+                            </button>
+                            <button class="vip-dl-btn" style="flex:1; margin:0; padding:10px 8px; background:linear-gradient(135deg,rgba(79,70,229,0.18),rgba(55,48,163,0.1)); border-color:rgba(129,140,248,0.35); color:#a5b4fc;" onclick="window.downloadMemberWallpaperDesktop()">
+                                <i class="fas fa-desktop"></i> Bureau
+                            </button>
+                        </div>
+                    </div>
+
                 </div>
 
                 <div class="member-section-title">
@@ -269,6 +310,8 @@
 
             <!-- Carte membre imprimable (hors écran, capturée par html2canvas) -->
             <div id="member-card-print" style="position:fixed; left:-9999px; top:0; width:680px; z-index:-1;"></div>
+            <!-- Carte mobile membre (hors écran) -->
+            <div id="member-card-mobile-print" style="position:fixed; left:-9999px; top:0; width:390px; z-index:-1; display:none;"></div>
             <!-- Fond d'écran membre (hors écran, capturé par html2canvas) -->
             <div id="member-wallpaper-print" style="position:fixed; left:-9999px; top:0; width:390px; z-index:-1;"></div>
             <div id="member-wallpaper-desktop-print" style="position:fixed; left:-9999px; top:0; width:1280px; z-index:-1;"></div>
