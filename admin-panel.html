@@ -536,6 +536,10 @@
             // Révéler le dashboard
             document.getElementById('auth-loading').style.display = 'none';
             document.getElementById('admin-page').style.display = 'block';
+            // Charger les stats dès que l'auth est confirmée
+            setTimeout(function() {
+                if (window.updateAdminStats) window.updateAdminStats();
+            }, 300);
             // Rafraîchir le custom claim Storage si nécessaire
             firebase.functions().httpsCallable('grantAdminClaim')()
                 .then(function() { return user.getIdToken(true); })
