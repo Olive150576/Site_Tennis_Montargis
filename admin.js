@@ -821,6 +821,9 @@ async function updateAdminStats() {
         const memberEl = document.getElementById('stat-members');
         if (memberEl) memberEl.textContent = memberCount;
 
+        // Scans QR accueil
+        loadQrScanStats();
+
     } catch (error) {
         console.error('Erreur lors de la mise à jour des stats:', error);
     }
@@ -828,6 +831,87 @@ async function updateAdminStats() {
 
 // Appeler updateAdminStats au chargement si admin
 window.updateAdminStats = updateAdminStats;
+
+// === STATISTIQUES QR CODE ACCUEIL ===
+async function loadQrScanStats() {
+    try {
+        const snap = await db_ref.ref('qr_scans/accueil').once('value');
+        const data = snap.val() || {};
+        const total = data.total || 0;
+        const parJour = data.par_jour || {};
+
+        // Mise à jour mini-stat dans la grille
+        const statEl = document.getElementById('stat-qr-total');
+        if (statEl) statEl.textContent = total;
+
+        // Mise à jour du panneau détail
+        const totalBig = document.getElementById('qr-total-big');
+        if (totalBig) totalBig.textContent = total;
+
+        // Aujourd'hui
+        const today = new Date().toISOString().slice(0, 10);
+        const todayEl = document.getElementById('qr-today');
+        if (todayEl) todayEl.textContent = parJour[today] || 0;
+
+        // Ce mois
+        const monthPrefix = today.slice(0, 7); // "2026-03"
+        const monthTotal = Object.entries(parJour)
+            .filter(([d]) => d.startsWith(monthPrefix))
+            .reduce((sum, [, v]) => sum + v, 0);
+        const monthEl = document.getElementById('qr-month');
+        if (monthEl) monthEl.textContent = monthTotal;
+
+        // Graphique + liste — 30 derniers jours
+        const days30 = [];
+        for (let i = 29; i >= 0; i--) {
+            const d = new Date();
+            d.setDate(d.getDate() - i);
+            const key = d.toISOString().slice(0, 10);
+            days30.push({ key, count: parJour[key] || 0 });
+        }
+        const maxVal = Math.max(...days30.map(d => d.count), 1);
+
+        const chart = document.getElementById('qr-days-chart');
+        if (chart) {
+            chart.innerHTML = days30.map(({ key, count }) => {
+                const pct = Math.round((count / maxVal) * 100);
+                const isToday = key === today;
+                const label = key.slice(5); // "MM-DD"
+                return `<div title="${key} : ${count} scan${count > 1 ? 's' : ''}"
+                    style="flex:1; min-width:4px; height:${Math.max(pct, count > 0 ? 8 : 2)}%;
+                    background:${isToday ? '#ffd700' : count > 0 ? 'rgba(255,215,0,0.5)' : 'rgba(255,255,255,0.06)'};
+                    border-radius:2px 2px 0 0; transition:opacity 0.2s; cursor:default;"
+                    onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'">
+                </div>`;
+            }).join('');
+        }
+
+        // Liste des jours avec scans
+        const list = document.getElementById('qr-days-list');
+        if (list) {
+            const withScans = days30.filter(d => d.count > 0).reverse();
+            if (withScans.length === 0) {
+                list.innerHTML = '<p style="color:#475569; font-size:12px; margin:0;">Aucun scan enregistré sur les 30 derniers jours.</p>';
+            } else {
+                list.innerHTML = withScans.map(({ key, count }) => {
+                    const d = new Date(key + 'T12:00:00');
+                    const label = d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
+                    const isToday = key === today;
+                    return `<div style="display:flex; justify-content:space-between; align-items:center;
+                        padding:6px 10px; border-radius:6px; margin-bottom:4px;
+                        background:${isToday ? 'rgba(255,215,0,0.08)' : 'rgba(255,255,255,0.03)'};
+                        border:1px solid ${isToday ? 'rgba(255,215,0,0.2)' : 'transparent'};">
+                        <span style="color:${isToday ? '#ffd700' : '#94a3b8'}; font-size:12px;">${label}${isToday ? ' <span style="font-size:10px;opacity:0.6;">aujourd\'hui</span>' : ''}</span>
+                        <span style="color:white; font-weight:600; font-size:13px;">${count} scan${count > 1 ? 's' : ''}</span>
+                    </div>`;
+                }).join('');
+            }
+        }
+    } catch (e) {
+        console.warn('QR stats:', e.message);
+    }
+}
+window.loadQrScanStats = loadQrScanStats;
 
 // === GESTION DES DOCUMENTS PDF ===
 

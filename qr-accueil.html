@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>USM Tennis Montargis</title>
+    <style>
+        body {
+            margin: 0;
+            background: #020617;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            font-family: Arial, sans-serif;
+        }
+        .logo {
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+    </style>
+</head>
+<body>
+    <img src="/logo_usm_new.png" alt="USM" class="logo"
+         style="width:80px;height:80px;border-radius:50%;border:2px solid rgba(255,215,0,0.4);">
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script>
+        firebase.initializeApp({
+            apiKey: "AIzaSyA4GdfEh3M6mEszwRFif049qsmoLq4tn7c",
+            authDomain: "usm-tennis.firebaseapp.com",
+            databaseURL: "https://usm-tennis-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "usm-tennis",
+            storageBucket: "usm-tennis.firebasestorage.app",
+            messagingSenderId: "631286589550",
+            appId: "1:631286589550:web:7e68afcddfbb8e16d79e7f"
+        });
+
+        var db = firebase.database();
+        var now = Date.now();
+
+        // Incrémenter le compteur total
+        db.ref('qr_scans/accueil/total').transaction(function(current) {
+            return (current || 0) + 1;
+        });
+
+        // Enregistrer le scan avec sa date (clé = timestamp)
+        var today = new Date().toISOString().slice(0, 10); // "2026-03-07"
+        db.ref('qr_scans/accueil/par_jour/' + today).transaction(function(current) {
+            return (current || 0) + 1;
+        });
+
+        // Rediriger vers le site après 600ms (le temps que Firebase écrive)
+        setTimeout(function() {
+            window.location.replace('/');
+        }, 600);
+    </script>
+</body>
+</html>
