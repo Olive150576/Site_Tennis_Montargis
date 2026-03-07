@@ -42,19 +42,27 @@
         });
 
         var db = firebase.database();
-        var INC = firebase.database.ServerValue.increment(1);
-
-        // Incrémenter le compteur total (atomique côté serveur, pas de lecture)
-        db.ref('qr_scans/accueil/total').set(INC);
-
-        // Incrémenter le compteur du jour
         var today = new Date().toISOString().slice(0, 10);
-        db.ref('qr_scans/accueil/par_jour/' + today).set(INC);
+        var INC = firebase.database.ServerValue.increment(1);
+        var redirected = false;
 
-        // Rediriger vers le site après 600ms
-        setTimeout(function() {
-            window.location.replace('/');
-        }, 600);
+        function redirect() {
+            if (!redirected) {
+                redirected = true;
+                window.location.replace('/');
+            }
+        }
+
+        // Un seul update atomique — redirige dès que Firebase confirme l'écriture
+        var update = {};
+        update['total'] = INC;
+        update['par_jour/' + today] = INC;
+        db.ref('qr_scans/accueil').update(update)
+            .then(redirect)
+            .catch(redirect);
+
+        // Fallback : si l'écriture prend trop longtemps, on redirige quand même
+        setTimeout(redirect, 3000);
     </script>
 </body>
 </html>
