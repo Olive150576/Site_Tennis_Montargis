@@ -42,20 +42,16 @@
         });
 
         var db = firebase.database();
-        var now = Date.now();
+        var INC = firebase.database.ServerValue.increment(1);
 
-        // Incrémenter le compteur total
-        db.ref('qr_scans/accueil/total').transaction(function(current) {
-            return (current || 0) + 1;
-        });
+        // Incrémenter le compteur total (atomique côté serveur, pas de lecture)
+        db.ref('qr_scans/accueil/total').set(INC);
 
-        // Enregistrer le scan avec sa date (clé = timestamp)
-        var today = new Date().toISOString().slice(0, 10); // "2026-03-07"
-        db.ref('qr_scans/accueil/par_jour/' + today).transaction(function(current) {
-            return (current || 0) + 1;
-        });
+        // Incrémenter le compteur du jour
+        var today = new Date().toISOString().slice(0, 10);
+        db.ref('qr_scans/accueil/par_jour/' + today).set(INC);
 
-        // Rediriger vers le site après 600ms (le temps que Firebase écrive)
+        // Rediriger vers le site après 600ms
         setTimeout(function() {
             window.location.replace('/');
         }, 600);
