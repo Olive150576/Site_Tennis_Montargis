@@ -36,6 +36,10 @@
         "destination": "/espace-membre.html"
       },
       {
+        "source": "/qr-accueil",
+        "destination": "/qr-accueil.html"
+      },
+      {
         "source": "/v/**",
         "destination": "/verify.html"
       },
