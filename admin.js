@@ -821,8 +821,8 @@ async function updateAdminStats() {
         const memberEl = document.getElementById('stat-members');
         if (memberEl) memberEl.textContent = memberCount;
 
-        // Scans QR accueil
-        loadQrScanStats();
+        // Scans QR accueil (appelé séparément — ne doit pas bloquer les autres stats)
+        loadQrScanStats().catch(e => console.warn('QR stats:', e.message));
 
     } catch (error) {
         console.error('Erreur lors de la mise à jour des stats:', error);
@@ -836,6 +836,14 @@ window.updateAdminStats = updateAdminStats;
 async function loadQrScanStats() {
     try {
         const snap = await db_ref.ref('qr_scans/accueil').once('value');
+        // Activer listener temps-réel pour mises à jour auto
+        db_ref.ref('qr_scans/accueil/total').on('value', function(s) {
+            const v = s.val() || 0;
+            const el = document.getElementById('stat-qr-total');
+            if (el) el.textContent = v;
+            const elBig = document.getElementById('qr-total-big');
+            if (elBig) elBig.textContent = v;
+        });
         const data = snap.val() || {};
         const total = data.total || 0;
         const parJour = data.par_jour || {};
