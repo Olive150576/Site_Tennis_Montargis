@@ -913,6 +913,124 @@ async function loadQrScanStats() {
 }
 window.loadQrScanStats = loadQrScanStats;
 
+// === AFFICHE A4 — QR ACCUEIL ===
+function buildAfficheHtml() {
+    const NAVY = '#0d1b2e';
+    const GOLD = '#c9a227';
+    // A4 à 96dpi : 794×1123px — bordure à 1.5cm = 57px
+    const BORDER = 57;
+    const INNER_W = 794 - BORDER * 2;   // 680px
+    const INNER_H = 1123 - BORDER * 2;  // 1009px
+    const FOOTER_H = Math.round(INNER_H * 0.25); // ~252px
+    const CONTENT_H = INNER_H - FOOTER_H;        // ~757px
+
+    return `
+    <div style="width:794px;height:1123px;background:#ffffff;position:relative;box-sizing:border-box;overflow:hidden;font-family:Arial,sans-serif;">
+
+        <!-- Cadre bleu avec retrait 1.5cm -->
+        <div style="position:absolute;top:${BORDER}px;left:${BORDER}px;width:${INNER_W}px;height:${INNER_H}px;
+            border:3px solid ${NAVY};box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden;">
+
+            <!-- Zone contenu (3/4) -->
+            <div style="height:${CONTENT_H}px;flex-shrink:0;display:flex;flex-direction:column;
+                align-items:center;justify-content:space-evenly;padding:28px 36px 16px;box-sizing:border-box;">
+
+                <!-- BIENVENUE -->
+                <div style="font-size:64px;font-weight:900;color:${NAVY};letter-spacing:8px;
+                    font-family:'Orbitron',Arial,sans-serif;text-align:center;line-height:1;">
+                    BIENVENUE
+                </div>
+
+                <!-- Logo USM -->
+                <img src="/logo_usm_new.png" crossorigin="anonymous"
+                    style="width:200px;height:200px;object-fit:contain;display:block;" alt="USM Tennis Montargis">
+
+                <!-- INSCRIPTIONS ET INFOS -->
+                <div style="font-size:44px;font-weight:900;color:${NAVY};letter-spacing:4px;
+                    font-family:'Orbitron',Arial,sans-serif;text-align:center;line-height:1.2;">
+                    INSCRIPTIONS &amp; INFOS
+                </div>
+
+                <!-- Message -->
+                <div style="font-size:20px;color:#111111;text-align:center;font-family:Arial,sans-serif;
+                    font-weight:500;max-width:500px;line-height:1.4;">
+                    Scannez le QR code pour plus de renseignements
+                </div>
+
+                <!-- QR code -->
+                <div id="affiche-qr" style="width:260px;height:260px;background:#ffffff;
+                    border:3px solid ${NAVY};border-radius:6px;padding:6px;box-sizing:border-box;"></div>
+            </div>
+
+            <!-- Footer navy (1/4) -->
+            <div style="height:${FOOTER_H}px;flex-shrink:0;background:${NAVY};display:flex;
+                flex-direction:column;align-items:center;justify-content:center;gap:10px;">
+                <div style="color:${GOLD};font-size:24px;font-weight:900;letter-spacing:4px;
+                    font-family:'Orbitron',Arial,sans-serif;">NOUS CONTACTER</div>
+                <div style="color:${GOLD};font-size:34px;font-weight:700;
+                    font-family:Arial,sans-serif;letter-spacing:2px;">02 38 85 44 30</div>
+                <div style="color:rgba(201,162,39,0.8);font-size:20px;
+                    font-family:Arial,sans-serif;letter-spacing:1px;">usmmtennis@orange.fr</div>
+            </div>
+        </div>
+    </div>`;
+}
+
+window.generateAfficheAccueil = async function() {
+    if (typeof html2canvas === 'undefined' || typeof QRCode === 'undefined') {
+        window.showWarningMessage && window.showWarningMessage('Chargement...', 'Les bibliothèques ne sont pas encore prêtes, réessaie dans 2 secondes.');
+        return;
+    }
+    const el = document.getElementById('affiche-print');
+    if (!el) return;
+
+    el.innerHTML = buildAfficheHtml();
+    el.style.display = 'block';
+
+    // Générer le QR code pointant vers /qr-accueil
+    const qrEl = el.querySelector('#affiche-qr');
+    if (qrEl) {
+        new QRCode(qrEl, {
+            text: 'https://tennismontargis.fr/qr-accueil',
+            width: 248,
+            height: 248,
+            colorDark: '#0d1b2e',
+            colorLight: '#ffffff',
+            correctLevel: QRCode.CorrectLevel.M
+        });
+    }
+
+    // Attendre le rendu du QR + polices
+    await new Promise(r => setTimeout(r, 600));
+
+    try {
+        const canvas = await html2canvas(el, {
+            scale: 3,
+            useCORS: true,
+            allowTaint: false,
+            backgroundColor: '#ffffff',
+            logging: false
+        });
+        el.style.display = 'none';
+        el.innerHTML = '';
+
+        canvas.toBlob(blob => {
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.download = 'affiche-accueil-usm-tennis.png';
+            link.href = url;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            setTimeout(() => URL.revokeObjectURL(url), 3000);
+        }, 'image/png');
+    } catch(e) {
+        el.style.display = 'none';
+        el.innerHTML = '';
+        console.error('Erreur génération affiche:', e);
+    }
+};
+
 // === GESTION DES DOCUMENTS PDF ===
 
 // Upload d'un document PDF

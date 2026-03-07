@@ -178,11 +178,15 @@
                 <div id="qr-days-chart" style="display:flex; align-items:flex-end; gap:3px; height:60px; background:rgba(255,255,255,0.03); border-radius:8px; padding:8px 10px;"></div>
                 <div id="qr-days-list" style="margin-top:12px; max-height:200px; overflow-y:auto;"></div>
             </div>
-            <div style="margin-top:16px; padding-top:14px; border-top:1px solid #1e293b;">
+            <div style="margin-top:16px; padding-top:14px; border-top:1px solid #1e293b; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
                 <div style="color:#64748b; font-size:11px;">
                     <i class="fas fa-info-circle" style="margin-right:5px;"></i>
                     URL QR : <span style="color:#00d2ff; font-family:monospace;">https://tennismontargis.fr/qr-accueil</span>
                 </div>
+                <button onclick="window.generateAfficheAccueil()"
+                    style="background:linear-gradient(135deg,rgba(255,215,0,0.15),rgba(180,150,0,0.08)); border:1px solid rgba(255,215,0,0.4); color:#ffd700; padding:9px 18px; border-radius:8px; cursor:pointer; font-size:13px; font-weight:600; display:inline-flex; align-items:center; gap:7px; white-space:nowrap;">
+                    <i class="fas fa-print"></i> Générer l'affiche A4
+                </button>
             </div>
         </div>
 
@@ -554,10 +558,17 @@
     });
 </script>
 
+<!-- QR code + html2canvas pour l'affiche -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
 <!-- Système de notifications/toasts -->
 <script src="notifications.js"></script>
 <!-- Logique admin -->
 <script src="admin.js"></script>
+
+<!-- Div hors-écran pour génération affiche -->
+<div id="affiche-print" style="position:fixed; left:-9999px; top:0; width:794px; z-index:-1; display:none;"></div>
 
 </body>
 </html>
