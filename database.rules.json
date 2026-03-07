@@ -57,7 +57,12 @@
         "actif":      { ".read": true },
         "classement": { ".read": true },
         "categorie":  { ".read": true },
-        "licence":    { ".read": true }
+        "licence":    { ".read": true },
+        "photoURL": {
+          ".read": true,
+          ".write": "auth != null && auth.uid === $uid",
+          ".validate": "newData.isString() && newData.val().length < 2000"
+        }
       }
     },
     "scans": {

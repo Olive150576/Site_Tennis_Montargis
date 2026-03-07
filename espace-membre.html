@@ -20,6 +20,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css">
 
     <style>
         body {
@@ -136,9 +137,18 @@
                     </a>
                 </div>
                 <div class="member-avatar-wrap">
-                    <div class="member-avatar" id="member-avatar-img">
-                        <i class="fas fa-user"></i>
+                    <div class="member-avatar" id="member-avatar-img"
+                         style="cursor:pointer; position:relative;"
+                         title="Changer ma photo"
+                         onclick="window.openPhotoPicker()"
+                         onmouseenter="document.getElementById('avatar-cam-overlay').style.opacity='1'"
+                         onmouseleave="document.getElementById('avatar-cam-overlay').style.opacity='0'">
+                        <i class="fas fa-user" id="member-avatar-icon"></i>
+                        <div id="avatar-cam-overlay" style="position:absolute;inset:0;background:rgba(0,0,0,0.55);border-radius:50%;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity 0.2s;pointer-events:none;">
+                            <i class="fas fa-camera" style="color:white;font-size:1.1rem;"></i>
+                        </div>
                     </div>
+                    <input type="file" id="member-photo-input" accept="image/*" style="display:none;" onchange="window.initPhotoCropper(this)">
                 </div>
                 <div class="member-header-info">
                     <h2 class="member-greeting" id="member-greeting">Bonjour !</h2>
@@ -426,6 +436,35 @@
         });
     </script>
 
+    <!-- Modal recadrage photo de profil -->
+    <div id="photo-crop-modal" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(2,6,23,0.95);align-items:center;justify-content:center;padding:20px;box-sizing:border-box;">
+        <div style="background:#0f172a;border:1px solid rgba(255,215,0,0.3);border-radius:20px;padding:24px;max-width:460px;width:100%;">
+            <div style="color:rgba(255,215,0,0.9);font-size:0.72rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:16px;text-align:center;">
+                <i class="fas fa-crop-alt"></i> Ajuster la photo
+            </div>
+            <div style="position:relative;width:100%;overflow:hidden;border-radius:12px;background:#020617;max-height:340px;">
+                <img id="photo-crop-img" style="display:block;max-width:100%;">
+            </div>
+            <div style="margin-top:16px;display:flex;align-items:center;gap:10px;">
+                <i class="fas fa-search-minus" style="color:#64748b;font-size:0.85rem;"></i>
+                <input type="range" id="photo-zoom-slider" min="0" max="1" step="0.01" value="0.2"
+                       style="flex:1;accent-color:#ffd700;cursor:pointer;">
+                <i class="fas fa-search-plus" style="color:#ffd700;font-size:0.85rem;"></i>
+            </div>
+            <p style="color:#475569;font-size:0.75rem;text-align:center;margin:10px 0 0;">Glisse l'image pour cadrer · Zoom avec le curseur</p>
+            <div style="display:flex;gap:10px;margin-top:16px;">
+                <button onclick="window.cancelPhotoCrop()" style="flex:1;padding:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.15);color:#94a3b8;border-radius:12px;cursor:pointer;font-family:inherit;font-size:0.9rem;">
+                    Annuler
+                </button>
+                <button id="photo-save-btn" onclick="window.savePhoto()" style="flex:1;padding:12px;background:linear-gradient(135deg,rgba(255,215,0,0.2),rgba(180,150,0,0.1));border:1px solid rgba(255,215,0,0.5);color:#ffd700;border-radius:12px;cursor:pointer;font-family:inherit;font-weight:600;font-size:0.9rem;">
+                    <i class="fas fa-check"></i> Valider
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cropper.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
     <!-- html2canvas pour téléchargement carte/fond d'écran -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <!-- Dashboard membre -->

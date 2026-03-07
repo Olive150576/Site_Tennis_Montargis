@@ -8,8 +8,105 @@ let _cardMemberData = null;
 let _cardSponsors = [];
 
 // Initialisation du dashboard avec les données du membre
+// --- Photo de profil ---
+var _cropper = null;
+var _cropperInitialZoom = 1;
+
+window.setMemberAvatar = function(url) {
+    var avatarDiv = document.getElementById('member-avatar-img');
+    if (!avatarDiv) return;
+    var icon = document.getElementById('member-avatar-icon');
+    if (icon) icon.style.display = 'none';
+    var existing = avatarDiv.querySelector('img.avatar-photo');
+    if (existing) existing.remove();
+    var img = document.createElement('img');
+    img.className = 'avatar-photo';
+    img.src = url;
+    img.style.cssText = 'width:100%;height:100%;object-fit:cover;position:absolute;inset:0;border-radius:50%;';
+    avatarDiv.insertBefore(img, avatarDiv.querySelector('#avatar-cam-overlay'));
+};
+
+window.openPhotoPicker = function() {
+    var input = document.getElementById('member-photo-input');
+    if (input) input.click();
+};
+
+window.initPhotoCropper = function(input) {
+    if (!input.files || !input.files[0]) return;
+    var file = input.files[0];
+    if (!file.type.startsWith('image/')) return;
+    var reader = new FileReader();
+    reader.onload = function(e) {
+        var modal = document.getElementById('photo-crop-modal');
+        var img = document.getElementById('photo-crop-img');
+        modal.style.display = 'flex';
+        img.src = e.target.result;
+        if (_cropper) { _cropper.destroy(); _cropper = null; }
+        img.onload = function() {
+            _cropper = new Cropper(img, {
+                aspectRatio: 1,
+                viewMode: 1,
+                dragMode: 'move',
+                autoCropArea: 0.85,
+                cropBoxMovable: false,
+                cropBoxResizable: false,
+                toggleDragModeOnDblclick: false,
+                ready: function() {
+                    _cropperInitialZoom = _cropper.getImageData().width / _cropper.getImageData().naturalWidth;
+                    document.getElementById('photo-zoom-slider').value = 0.2;
+                }
+            });
+            document.getElementById('photo-zoom-slider').oninput = function() {
+                if (!_cropper) return;
+                var zoom = _cropperInitialZoom * (1 + parseFloat(this.value) * 3);
+                _cropper.zoomTo(zoom);
+            };
+        };
+    };
+    reader.readAsDataURL(file);
+    input.value = '';
+};
+
+window.cancelPhotoCrop = function() {
+    document.getElementById('photo-crop-modal').style.display = 'none';
+    if (_cropper) { _cropper.destroy(); _cropper = null; }
+};
+
+window.savePhoto = function() {
+    if (!_cropper) return;
+    var user = window.auth.currentUser;
+    if (!user) return;
+    var btn = document.getElementById('photo-save-btn');
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Upload...'; }
+    var canvas = _cropper.getCroppedCanvas({ width: 300, height: 300, imageSmoothingQuality: 'high' });
+    canvas.toBlob(function(blob) {
+        var storageRef = window.storage.ref('members/' + user.uid + '/photo.jpg');
+        storageRef.put(blob, { contentType: 'image/jpeg' }).then(function(snapshot) {
+            return snapshot.ref.getDownloadURL();
+        }).then(function(url) {
+            window.db_ref.ref('members/' + user.uid + '/photoURL').set(url);
+            window.setMemberAvatar(url);
+            window.cancelPhotoCrop();
+        }).catch(function(err) {
+            alert('Erreur upload : ' + err.message);
+        }).finally(function() {
+            if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-check"></i> Valider'; }
+        });
+    }, 'image/jpeg', 0.92);
+};
+
 window.initMemberDashboard = function(memberData) {
     _cardMemberData = memberData;
+
+    // Photo de profil sauvegardée
+    if (memberData.photoURL) window.setMemberAvatar(memberData.photoURL);
+    // Désactiver l'upload si admin consulte un autre membre
+    if (memberData._isAdmin) {
+        var avatarDiv = document.getElementById('member-avatar-img');
+        if (avatarDiv) { avatarDiv.style.cursor = 'default'; avatarDiv.onclick = null; avatarDiv.title = ''; }
+        var overlay = document.getElementById('avatar-cam-overlay');
+        if (overlay) { overlay.style.display = 'none'; }
+    }
 
     // --- En-tête ---
     const prenom = memberData.prenom || '';
