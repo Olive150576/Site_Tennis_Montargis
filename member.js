@@ -202,6 +202,17 @@ window.switchMemberTab = function(tab) {
     });
 };
 
+// --- Réinitialisation mot de passe ---
+window.sendPasswordReset = function() {
+    var user = window.auth.currentUser;
+    if (!user || !user.email) return;
+    window.auth.sendPasswordResetEmail(user.email).then(function() {
+        alert('Un email de réinitialisation a été envoyé à ' + user.email + '.\nVérifie tes spams si tu ne le reçois pas.');
+    }).catch(function(err) {
+        alert('Erreur : ' + err.message);
+    });
+};
+
 // --- Déconnexion membre ---
 window.memberLogout = function() {
     window.auth.signOut().then(() => {
