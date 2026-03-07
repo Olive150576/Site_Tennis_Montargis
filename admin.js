@@ -440,6 +440,7 @@ window.switchAdmin = (section) => {
     const contactsAdmin = document.getElementById('contacts-admin');
     const membersAdmin = document.getElementById('members-admin');
     const sponsorsListAdmin = document.getElementById('sponsors-list-admin');
+    const tournamentsListAdmin = document.getElementById('tournaments-list-admin');
 
     // Gérer l'affichage spécial pour les sections documents, contacts et membres
     if (section === 'documents') {
@@ -471,6 +472,14 @@ window.switchAdmin = (section) => {
                 loadSponsorsAdminList();
             } else {
                 sponsorsListAdmin.classList.add('hidden');
+            }
+        }
+        if (tournamentsListAdmin) {
+            if (section === 'tournaments') {
+                tournamentsListAdmin.classList.remove('hidden');
+                loadTournamentsAdminList();
+            } else {
+                tournamentsListAdmin.classList.add('hidden');
             }
         }
     }
@@ -561,6 +570,40 @@ function loadSponsorsAdminList() {
     });
 }
 window.loadSponsorsAdminList = loadSponsorsAdminList;
+
+// === LISTE DES TOURNOIS POUR L'ADMIN ===
+async function loadTournamentsAdminList() {
+    const body = document.getElementById('tournaments-admin-list-body');
+    if (!body) return;
+    body.innerHTML = '<p style="color:#64748b; font-size:13px;">Chargement...</p>';
+
+    const snap = await db_ref.ref('tournaments').once('value');
+    const data = snap.val();
+    if (!data) {
+        body.innerHTML = '<p style="color:#64748b; font-size:13px;">Aucun tournoi enregistré.</p>';
+        return;
+    }
+
+    const items = Array.isArray(data) ? data : Object.values(data);
+    body.innerHTML = items.map((t, i) => {
+        if (!t) return '';
+        const isDraft = t.draft ? ' <span style="background:#fb923c;color:white;padding:2px 8px;border-radius:8px;font-size:10px;margin-left:6px;">BROUILLON</span>' : '';
+        return `
+        <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 14px;
+            background:rgba(255,255,255,0.03); border:1px solid rgba(0,210,255,0.12); border-radius:10px; margin-bottom:8px; gap:12px;">
+            <div style="flex:1; min-width:0;">
+                <div style="color:#e2e8f0; font-size:14px; font-weight:600;">${escapeHtml(t.title || '—')}${isDraft}</div>
+                ${t.date ? `<div style="color:#64748b; font-size:12px; margin-top:3px;"><i class="fas fa-calendar" style="margin-right:4px;"></i>${escapeHtml(t.date)}</div>` : ''}
+                ${t.desc ? `<div style="color:#94a3b8; font-size:12px; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:400px;">${escapeHtml(t.desc.substring(0, 80))}${t.desc.length > 80 ? '…' : ''}</div>` : ''}
+            </div>
+            <button onclick="window.editItem('tournaments', ${i})"
+                style="background:rgba(0,210,255,0.1);border:1px solid rgba(0,210,255,0.4);color:#00d2ff;padding:7px 16px;border-radius:8px;cursor:pointer;font-size:12px;white-space:nowrap;flex-shrink:0;">
+                <i class="fas fa-edit"></i> Modifier
+            </button>
+        </div>`;
+    }).join('');
+}
+window.loadTournamentsAdminList = loadTournamentsAdminList;
 
 window.editItem = async (section, index) => {
     window.switchAdmin(section);
