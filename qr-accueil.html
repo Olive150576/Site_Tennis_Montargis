@@ -25,12 +25,18 @@
     </style>
 </head>
 <body>
-    <img src="/logo_usm_new.png" alt="USM" class="logo"
-         style="width:80px;height:80px;border-radius:50%;border:2px solid rgba(255,215,0,0.4);">
+    <div style="text-align:center;">
+        <img src="/logo_usm_new.png" alt="USM" class="logo"
+             style="width:80px;height:80px;border-radius:50%;border:2px solid rgba(255,215,0,0.4);">
+        <div id="status" style="margin-top:16px;font-size:13px;color:#64748b;">Chargement...</div>
+    </div>
 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script>
+        var statusEl = document.getElementById('status');
+        function setStatus(msg, color) { statusEl.textContent = msg; statusEl.style.color = color || '#64748b'; }
+
         firebase.initializeApp({
             apiKey: "AIzaSyA4GdfEh3M6mEszwRFif049qsmoLq4tn7c",
             authDomain: "usm-tennis.firebaseapp.com",
@@ -43,7 +49,6 @@
 
         var db = firebase.database();
         var today = new Date().toISOString().slice(0, 10);
-        var INC = firebase.database.ServerValue.increment(1);
         var redirected = false;
 
         function redirect() {
@@ -53,16 +58,22 @@
             }
         }
 
-        // Un seul update atomique — redirige dès que Firebase confirme l'écriture
+        setStatus('Connexion Firebase...');
         var update = {};
-        update['total'] = INC;
-        update['par_jour/' + today] = INC;
-        db.ref('qr_scans/accueil').update(update)
-            .then(redirect)
-            .catch(redirect);
+        update['total'] = firebase.database.ServerValue.increment(1);
+        update['par_jour/' + today] = firebase.database.ServerValue.increment(1);
 
-        // Fallback : si l'écriture prend trop longtemps, on redirige quand même
-        setTimeout(redirect, 3000);
+        db.ref('qr_scans/accueil').update(update)
+            .then(function() {
+                setStatus('✓ Scan enregistré', '#22c55e');
+                setTimeout(redirect, 800);
+            })
+            .catch(function(err) {
+                setStatus('Erreur : ' + err.code + ' — ' + err.message, '#ef4444');
+                setTimeout(redirect, 4000);
+            });
+
+        setTimeout(redirect, 5000);
     </script>
 </body>
 </html>
