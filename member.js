@@ -194,7 +194,7 @@ function renderSponsorCard(s) {
 
 // --- Navigation onglets ---
 window.switchMemberTab = function(tab) {
-    ['profil', 'club', 'partenaires'].forEach(t => {
+    ['profil', 'club'].forEach(t => {
         const content = document.getElementById(`mtab-${t}`);
         const btn = document.getElementById(`mtab-btn-${t}`);
         if (content) content.classList.toggle('hidden', t !== tab);
