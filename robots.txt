@@ -3,5 +3,7 @@ Allow: /
 Disallow: /setup-admin.html
 Disallow: /get-uids.html
 Disallow: /add-existing-admins.html
+Disallow: /admin-panel.html
+Disallow: /espace-membre.html
 
 Sitemap: https://tennismontargis.fr/sitemap.xml

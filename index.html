@@ -16,11 +16,16 @@
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
+    <meta property="og:locale" content="fr_FR">
     <meta property="og:url" content="https://tennismontargis.fr/">
     <meta property="og:title" content="USM Tennis Montargis | Club de Tennis à Montargis">
     <meta property="og:description"
         content="Club de tennis affilié FFT à Montargis. Courts couverts et extérieurs, cours pour tous niveaux, ambiance conviviale.">
     <meta property="og:image" content="https://tennismontargis.fr/logo_usm_new.png">
+    <meta property="og:image:width" content="512">
+    <meta property="og:image:height" content="512">
+    <meta property="og:image:alt" content="Logo USM Tennis Montargis">
+    <meta property="og:site_name" content="USM Tennis Montargis">
 
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image">
@@ -29,6 +34,7 @@
     <meta property="twitter:description"
         content="Club de tennis affilié FFT à Montargis. Rejoignez-nous pour pratiquer le tennis toute l'année !">
     <meta property="twitter:image" content="https://tennismontargis.fr/logo_usm_new.png">
+    <meta property="twitter:image:alt" content="Logo USM Tennis Montargis">
 
     <!-- Canonical URL -->
     <link rel="canonical" href="https://tennismontargis.fr/">
@@ -56,44 +62,17 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
-    <!-- Structured Data (SEO Local) -->
+    <!-- Structured Data – Club de tennis (SportsClub) -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "SportsOrganization",
+      "@type": ["SportsClub", "SportsOrganization"],
       "name": "USM Tennis Montargis",
+      "description": "Club de tennis affilié FFT à Montargis (Loiret). Courts couverts et extérieurs, cours pour tous niveaux, compétitions adultes et jeunes.",
+      "sport": "Tennis",
       "url": "https://tennismontargis.fr/",
       "logo": "https://tennismontargis.fr/logo_usm_new.png",
-      "contactPoint": {
-        "@type": "ContactPoint",
-        "telephone": "+33-238854430",
-        "contactType": "customer service",
-        "email": "usmmtennis@orange.fr"
-      },
-      "address": {
-        "@type": "PostalAddress",
-        "streetAddress": "43 Avenue Louis Maurice Chautemps",
-        "addressLocality": "Montargis",
-        "postalCode": "45200",
-        "addressRegion": "Centre-Val de Loire",
-        "addressCountry": "FR"
-      },
-      "amenityFeature": [
-        { "@type": "LocationFeatureSpecification", "name": "Courts couverts", "value": true },
-        { "@type": "LocationFeatureSpecification", "name": "Terre battue", "value": true },
-        { "@type": "LocationFeatureSpecification", "name": "Béton poreux", "value": true }
-      ]
-    }
-    </script>
-
-    <!-- Structured Data - Local Business -->
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "LocalBusiness",
-      "name": "USM Tennis Montargis",
       "image": "https://tennismontargis.fr/logo_usm_new.png",
-      "url": "https://tennismontargis.fr/",
       "telephone": "+33238854430",
       "email": "usmmtennis@orange.fr",
       "address": {
@@ -108,6 +87,37 @@
         "@type": "GeoCoordinates",
         "latitude": 48.0093981,
         "longitude": 2.7498615
+      },
+      "openingHoursSpecification": [
+        {
+          "@type": "OpeningHoursSpecification",
+          "dayOfWeek": ["Monday","Tuesday","Wednesday","Thursday","Friday"],
+          "opens": "09:00",
+          "closes": "21:00"
+        },
+        {
+          "@type": "OpeningHoursSpecification",
+          "dayOfWeek": ["Saturday","Sunday"],
+          "opens": "09:00",
+          "closes": "18:00"
+        }
+      ],
+      "amenityFeature": [
+        { "@type": "LocationFeatureSpecification", "name": "Courts couverts", "value": true },
+        { "@type": "LocationFeatureSpecification", "name": "Terre battue", "value": true },
+        { "@type": "LocationFeatureSpecification", "name": "Béton poreux", "value": true }
+      ],
+      "memberOf": {
+        "@type": "SportsOrganization",
+        "name": "Fédération Française de Tennis",
+        "url": "https://www.fft.fr"
+      },
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "telephone": "+33238854430",
+        "contactType": "customer service",
+        "email": "usmmtennis@orange.fr",
+        "availableLanguage": "French"
       },
       "sameAs": [
         "https://www.facebook.com/TennisClubUSMMontargis"
@@ -542,10 +552,10 @@
                 <div class="footer-affiliations">
                     <span>Club affilié</span>
                     <a href="https://www.fft.fr" target="_blank" rel="noopener noreferrer" title="FFT">
-                        <img src="Logo_Fédération_Française_de_Tennis.png" alt="FFT" style="height:30px; width:auto; opacity:0.8;">
+                        <img src="Logo_Fédération_Française_de_Tennis.png" alt="Logo Fédération Française de Tennis (FFT)" style="height:30px; width:auto; opacity:0.8;">
                     </a>
-                    <a href="https://www.lfrm-tennis.fr/ligue/centre-val-de-loire" target="_blank" rel="noopener noreferrer" title="Ligue Centre Val de Loire">
-                        <img src="FFT_LOGO_LIGUE_CENTRE-VAL-DE-LOIRE.png" alt="Ligue CVL" style="height:28px; width:auto; opacity:0.8;">
+                    <a href="https://www.lfrm-tennis.fr/ligue/centre-val-de-Loire" target="_blank" rel="noopener noreferrer" title="Ligue de Tennis Centre-Val de Loire">
+                        <img src="FFT_LOGO_LIGUE_CENTRE-VAL-DE-LOIRE.png" alt="Logo Ligue de Tennis Centre-Val de Loire" style="height:28px; width:auto; opacity:0.8;">
                     </a>
                 </div>
                 <div class="footer-legal">
