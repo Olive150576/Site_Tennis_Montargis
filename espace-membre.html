@@ -201,10 +201,10 @@
                 </div>
 
                 <!-- ── TÉLÉCHARGEMENTS + PARTENAIRES côte à côte ── -->
-                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(290px, 1fr)); gap:16px; margin-top:28px; align-items:start;">
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(290px, 1fr)); gap:16px; margin-top:28px; align-items:stretch;">
 
                     <!-- GAUCHE : Téléchargements -->
-                    <div style="background:rgba(10,22,40,0.7); border:1px solid rgba(255,215,0,0.22); border-radius:16px; padding:18px;">
+                    <div style="background:rgba(10,22,40,0.7); border:1px solid rgba(255,215,0,0.22); border-radius:16px; padding:18px; display:flex; flex-direction:column;">
                         <div style="display:flex; align-items:center; gap:8px; margin-bottom:14px; color:rgba(255,215,0,0.8); font-size:0.72rem; font-weight:700; letter-spacing:2px; text-transform:uppercase;">
                             <i class="fas fa-download"></i> Téléchargements
                         </div>
@@ -266,11 +266,11 @@
                     </div>
 
                     <!-- DROITE : Partenaires -->
-                    <div style="background:rgba(10,22,40,0.7); border:1px solid rgba(255,215,0,0.22); border-radius:16px; padding:18px;">
+                    <div style="background:rgba(10,22,40,0.7); border:1px solid rgba(255,215,0,0.22); border-radius:16px; padding:18px; display:flex; flex-direction:column;">
                         <div style="display:flex; align-items:center; gap:8px; margin-bottom:14px; color:rgba(255,215,0,0.8); font-size:0.72rem; font-weight:700; letter-spacing:2px; text-transform:uppercase;">
                             <i class="fas fa-handshake"></i> Nos partenaires &amp; vos avantages
                         </div>
-                        <div id="member-sponsors-grid" class="member-sponsors-grid">
+                        <div id="member-sponsors-grid" class="member-sponsors-grid" style="flex:1;">
                             <div class="member-empty-state">
                                 <i class="fas fa-handshake"></i>
                                 <p>Chargement des partenaires...</p>
