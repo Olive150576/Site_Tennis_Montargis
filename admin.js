@@ -151,7 +151,7 @@ function autoSaveForm() {
     }
 }
 
-function restoreAutoSave() {
+async function restoreAutoSave() {
     const saved = localStorage.getItem(AUTO_SAVE_KEY);
     if (!saved) return false;
 
@@ -165,7 +165,12 @@ function restoreAutoSave() {
         }
 
         // Demander si on veut restaurer
-        const restore = confirm('Un brouillon non sauvegardé a été trouvé. Voulez-vous le restaurer ?');
+        const restore = await window.confirmDialog.show({
+            title: 'Brouillon trouvé',
+            message: 'Un brouillon non sauvegardé a été trouvé. Voulez-vous le restaurer ?',
+            confirmText: 'Restaurer',
+            cancelText: 'Ignorer'
+        });
         if (!restore) {
             localStorage.removeItem(AUTO_SAVE_KEY);
             return false;
@@ -1345,7 +1350,7 @@ window.deleteContact = async function(key) {
 
 window.exportContacts = function() {
     if (!allContacts.length) {
-        alert('Aucun contact à exporter.');
+        window.toast && window.toast.info('Export', 'Aucun contact à exporter.');
         return;
     }
 
@@ -1653,13 +1658,13 @@ window.loadClubMessagesAdmin = function() {
                 '</div>' +
                 '<p style="color:#94a3b8; font-size:0.83rem; margin:0 0 12px; line-height:1.5; white-space:pre-wrap;">' + escHtml(m.contenu) + '</p>' +
                 '<div style="display:flex; gap:8px; flex-wrap:wrap;">' +
-                    '<button onclick="window.editClubMessage(' + JSON.stringify(m._id) + ')" style="padding:5px 14px; background:rgba(59,130,246,0.12); border:1px solid rgba(59,130,246,0.3); border-radius:8px; color:#60a5fa; font-family:inherit; font-size:0.8rem; cursor:pointer;">' +
+                    '<button onclick="window.editClubMessage(\'' + m._id + '\')" style="padding:5px 14px; background:rgba(59,130,246,0.12); border:1px solid rgba(59,130,246,0.3); border-radius:8px; color:#60a5fa; font-family:inherit; font-size:0.8rem; cursor:pointer;">' +
                         '<i class="fas fa-edit"></i> Modifier' +
                     '</button>' +
-                    '<button onclick="window.toggleClubMessage(' + JSON.stringify(m._id) + ',' + (m.actif !== false) + ')" style="padding:5px 14px; background:rgba(245,158,11,0.1); border:1px solid rgba(245,158,11,0.25); border-radius:8px; color:#fbbf24; font-family:inherit; font-size:0.8rem; cursor:pointer;">' +
+                    '<button onclick="window.toggleClubMessage(\'' + m._id + '\',' + (m.actif !== false) + ')" style="padding:5px 14px; background:rgba(245,158,11,0.1); border:1px solid rgba(245,158,11,0.25); border-radius:8px; color:#fbbf24; font-family:inherit; font-size:0.8rem; cursor:pointer;">' +
                         '<i class="fas fa-' + (m.actif === false ? 'eye' : 'eye-slash') + '"></i> ' + (m.actif === false ? 'Activer' : 'Désactiver') +
                     '</button>' +
-                    '<button onclick="window.deleteClubMessage(' + JSON.stringify(m._id) + ')" style="padding:5px 14px; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.25); border-radius:8px; color:#f87171; font-family:inherit; font-size:0.8rem; cursor:pointer;">' +
+                    '<button onclick="window.deleteClubMessage(\'' + m._id + '\')" style="padding:5px 14px; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.25); border-radius:8px; color:#f87171; font-family:inherit; font-size:0.8rem; cursor:pointer;">' +
                         '<i class="fas fa-trash"></i> Supprimer' +
                     '</button>' +
                 '</div>' +
@@ -1676,7 +1681,7 @@ window.saveClubMessage = function() {
     var editId = document.getElementById('msg-edit-id')?.value || '';
 
     if (!titre || !contenu) {
-        alert('Le titre et le contenu sont obligatoires.');
+        window.toast && window.toast.warning('Champs manquants', 'Le titre et le contenu sont obligatoires.');
         return;
     }
 
@@ -1737,8 +1742,15 @@ window.toggleClubMessage = function(id, currentActif) {
     });
 };
 
-window.deleteClubMessage = function(id) {
-    if (!confirm('Supprimer définitivement ce message ?')) return;
+window.deleteClubMessage = async function(id) {
+    const ok = await window.confirmDialog.show({
+        title: 'Supprimer le message',
+        message: 'Supprimer définitivement ce message ?',
+        type: 'danger',
+        confirmText: 'Supprimer',
+        cancelText: 'Annuler'
+    });
+    if (!ok) return;
     db_ref.ref('club_messages/' + id).remove().then(function() {
         window.showSuccessMessage && window.showSuccessMessage('Message supprimé.', '');
         window.loadClubMessagesAdmin();

@@ -755,7 +755,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 ` : '';
 
                 return `
-                <article class="news-card ${cardClass} ${isFeatured ? 'featured-card' : ''} ${isDraft ? 'draft-card' : ''}" onclick="${clickHandler}" style="${isClickable ? 'cursor:pointer;' : ''}${isDraft ? 'opacity:0.7; border:2px dashed #fb923c;' : ''}">
+                <article class="news-card ${cardClass} ${isFeatured ? 'featured-card' : ''} ${isDraft ? 'draft-card' : ''}" onclick="${clickHandler}" ${isClickable ? 'tabindex="0" role="button"' : ''} style="${isClickable ? 'cursor:pointer;' : ''}${isDraft ? 'opacity:0.7; border:2px dashed #fb923c;' : ''}">
                     ${isDraft && window.isCurrentUserAdmin ? `<div class="draft-badge" style="position:absolute; top:10px; right:10px; background:#fb923c; color:white; padding:4px 10px; border-radius:10px; font-size:0.75rem; z-index:5; font-weight:bold;"><i class="fas fa-eye-slash"></i> BROUILLON</div>` : ''}
                     ${!isDraft ? shareBtn : ''}
                     ${isFeatured ? `<div class="featured-badge">${section === 'news' ? 'À la une' : 'L\'offre première'}</div>` : ''}
@@ -1519,7 +1519,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const formattedDate = dateObj ? dateObj.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : (item.date || '');
 
             return `
-            <article class="news-card card-standard ${isFeatured ? 'featured-card' : ''} ${isDraft ? 'draft-card' : ''}" onclick="openGalleryFromArchives('${item._key}')" style="cursor:pointer;${isDraft ? 'opacity:0.7; border:2px dashed #fb923c;' : ''}">
+            <article class="news-card card-standard ${isFeatured ? 'featured-card' : ''} ${isDraft ? 'draft-card' : ''}" onclick="openGalleryFromArchives('${item._key}')" tabindex="0" role="button" style="cursor:pointer;${isDraft ? 'opacity:0.7; border:2px dashed #fb923c;' : ''}">
                 ${isDraft && window.isCurrentUserAdmin ? `<div class="draft-badge" style="position:absolute; top:10px; right:10px; background:#fb923c; color:white; padding:4px 10px; border-radius:10px; font-size:0.75rem; z-index:5; font-weight:bold;"><i class="fas fa-eye-slash"></i> BROUILLON</div>` : ''}
                 ${isFeatured ? `<div class="featured-badge">À la une</div>` : ''}
                 <div class="news-card-inner">
@@ -1673,7 +1673,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const isDraft = !!item.draft;
 
             return `
-            <article class="news-card card-long ${isFeatured ? 'featured-card' : ''} ${isDraft ? 'draft-card' : ''}" onclick="openRateViewer(${i})" style="cursor:pointer;${isDraft ? 'opacity:0.7; border:2px dashed #fb923c;' : ''}">
+            <article class="news-card card-long ${isFeatured ? 'featured-card' : ''} ${isDraft ? 'draft-card' : ''}" onclick="openRateViewer(${i})" tabindex="0" role="button" style="cursor:pointer;${isDraft ? 'opacity:0.7; border:2px dashed #fb923c;' : ''}">
                 ${isDraft && window.isCurrentUserAdmin ? `<div class="draft-badge" style="position:absolute; top:10px; right:10px; background:#fb923c; color:white; padding:4px 10px; border-radius:10px; font-size:0.75rem; z-index:5; font-weight:bold;"><i class="fas fa-eye-slash"></i> BROUILLON</div>` : ''}
                 ${isFeatured ? `<div class="featured-badge">L'offre première</div>` : ''}
                 <div class="news-card-inner">
@@ -1782,4 +1782,14 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }, { passive: true });
     })();
+
+    // Accessibilité clavier : Enter/Space déclenchent le click sur les cartes focusables
+    document.addEventListener('keydown', function(e) {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        const el = e.target;
+        if (el.matches('article[tabindex="0"]') && el.hasAttribute('onclick')) {
+            e.preventDefault();
+            el.click();
+        }
+    });
 });

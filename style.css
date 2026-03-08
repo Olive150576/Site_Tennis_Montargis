@@ -1026,6 +1026,33 @@ body.clubhouse-mode .theme-toggle i.fa-sun {
     }
 }
 
+/* --- SKELETON MEMBER CARDS --- */
+.member-skeleton-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+    padding: 16px;
+    overflow: hidden;
+}
+.skeleton-avatar {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.07);
+    animation: pulse 1.5s infinite ease-in-out;
+    margin-bottom: 12px;
+}
+.skeleton-line {
+    height: 12px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.06);
+    animation: pulse 1.5s infinite ease-in-out;
+    margin-bottom: 8px;
+}
+.skeleton-line.short { width: 50%; }
+.skeleton-line.medium { width: 70%; }
+.skeleton-line.full { width: 100%; }
+
 /* --- SPONSORS SECTION (BANDEAU) --- */
 .sponsors-grid {
     overflow: hidden;

@@ -90,7 +90,7 @@ window.savePhoto = function() {
             window.setMemberAvatar(url);
             window.cancelPhotoCrop();
         }).catch(function(err) {
-            alert('Erreur upload : ' + err.message);
+            window.showErrorMessage && window.showErrorMessage(err, 'photo');
         }).finally(function() {
             if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-check"></i> Valider'; }
         });
@@ -259,7 +259,7 @@ function loadMemberTournaments() {
     const grid = document.getElementById('member-tournaments-grid');
     if (!grid) return;
 
-    grid.innerHTML = '<div class="member-empty-state"><i class="fas fa-spinner fa-spin"></i><p>Chargement...</p></div>';
+    grid.innerHTML = Array(3).fill('<div class="member-skeleton-card"><div class="skeleton-img" style="height:140px; border-radius:8px; margin-bottom:12px;"></div><div class="skeleton-line medium"></div><div class="skeleton-line full"></div><div class="skeleton-line short"></div></div>').join('');
 
     window.db_ref.ref('tournaments').once('value', snap => {
         const data = snap.val();
@@ -305,7 +305,7 @@ function loadMemberSponsors() {
     const grid = document.getElementById('member-sponsors-grid');
     if (!grid) return;
 
-    grid.innerHTML = '<div class="member-empty-state"><i class="fas fa-spinner fa-spin"></i><p>Chargement...</p></div>';
+    grid.innerHTML = Array(3).fill('<div class="member-skeleton-card"><div class="skeleton-line full" style="height:60px; border-radius:6px; margin-bottom:12px;"></div><div class="skeleton-line medium"></div><div class="skeleton-line short"></div></div>').join('');
 
     window.db_ref.ref('sponsors').once('value', snap => {
         const data = snap.val();
@@ -523,7 +523,7 @@ var _partenaireFilters = { matin: false, midi: false, soir: false };
 function loadAnnuairePartenaires() {
     var grid = document.getElementById('partenaire-results');
     if (!grid) return;
-    grid.innerHTML = '<div class="member-empty-state"><i class="fas fa-spinner fa-spin"></i><p>Chargement...</p></div>';
+    grid.innerHTML = Array(4).fill('<div class="member-skeleton-card" style="display:flex; gap:12px; align-items:flex-start;"><div class="skeleton-avatar"></div><div style="flex:1;"><div class="skeleton-line medium"></div><div class="skeleton-line short"></div><div class="skeleton-line full"></div></div></div>').join('');
 
     window.db_ref.ref('partenaire_index').once('value', function(snap) {
         var data = snap.val();
@@ -532,15 +532,32 @@ function loadAnnuairePartenaires() {
             return;
         }
         var myUid = _cardMemberData ? _cardMemberData._uid : null;
-        _partenaireAllData = Object.entries(data)
-            .filter(function(e) { return e[0] !== myUid && e[1]; })
-            .map(function(e) { return Object.assign({ _uid: e[0] }, e[1]); });
+        var entries = Object.entries(data)
+            .filter(function(e) { return e[0] !== myUid && e[1]; });
 
-        if (_partenaireAllData.length === 0) {
+        if (entries.length === 0) {
             grid.innerHTML = '<div class="member-empty-state"><i class="fas fa-users"></i><p>Aucun autre membre disponible pour l\'instant.</p></div>';
             return;
         }
-        applyAndRenderPartenaires();
+
+        // Charger les photos depuis /members/{uid}/photoURL pour ceux qui n'en ont pas dans l'index
+        var photoFetches = entries.map(function(e) {
+            var uid = e[0];
+            var p = e[1];
+            if (p.photoURL) return Promise.resolve({ uid: uid, photo: p.photoURL });
+            return window.db_ref.ref('members/' + uid + '/photoURL').once('value').then(function(s) {
+                return { uid: uid, photo: s.val() || '' };
+            });
+        });
+
+        Promise.all(photoFetches).then(function(photos) {
+            var photoMap = {};
+            photos.forEach(function(r) { photoMap[r.uid] = r.photo; });
+            _partenaireAllData = entries.map(function(e) {
+                return Object.assign({}, e[1], { _uid: e[0], photoURL: photoMap[e[0]] || '' });
+            });
+            applyAndRenderPartenaires();
+        });
     });
 }
 
@@ -674,9 +691,9 @@ window.sendPasswordReset = function() {
     var user = window.auth.currentUser;
     if (!user || !user.email) return;
     window.auth.sendPasswordResetEmail(user.email).then(function() {
-        alert('Un email de réinitialisation a été envoyé à ' + user.email + '.\nVérifie tes spams si tu ne le reçois pas.');
+        window.showSuccessMessage && window.showSuccessMessage('Email envoyé', 'Un email de réinitialisation a été envoyé à ' + user.email + '. Vérifie tes spams si tu ne le reçois pas.');
     }).catch(function(err) {
-        alert('Erreur : ' + err.message);
+        window.showErrorMessage && window.showErrorMessage(err, 'password');
     });
 };
 
@@ -1409,7 +1426,7 @@ function escMember(str) {
 function loadClubMessages() {
     var list = document.getElementById('member-messages-list');
     if (!list) return;
-    list.innerHTML = '<div class="member-empty-state"><i class="fas fa-spinner fa-spin"></i><p>Chargement...</p></div>';
+    list.innerHTML = Array(3).fill('<div class="member-skeleton-card" style="margin-bottom:10px;"><div class="skeleton-line medium" style="margin-bottom:10px;"></div><div class="skeleton-line full"></div><div class="skeleton-line full"></div></div>').join('');
 
     window.db_ref.ref('club_messages').orderByChild('createdAt').once('value', function(snap) {
         var val = snap.val();
