@@ -7,6 +7,15 @@
     <title>Espace Membre — USM Tennis Montargis</title>
     <meta name="robots" content="noindex, nofollow">
 
+    <!-- Microsoft Clarity - Analyse comportementale -->
+    <script type="text/javascript">
+        (function(c,l,a,r,i,t,y){
+            c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+            t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+            y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+        })(window, document, "clarity", "script", "vfrevzz9j6");
+    </script>
+
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png">
@@ -241,6 +250,18 @@
         .club-message-date { font-size: 0.75rem; color: #64748b; }
         .club-message-body { color: #94a3b8; font-size: 0.88rem; line-height: 1.6; white-space: pre-wrap; }
     </style>
+
+    <!-- Firebase SDKs — defer : téléchargement parallèle, exécution après parsing HTML -->
+    <script defer src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script defer src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script defer src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script defer src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
+    <script defer src="firebase-init.min.js"></script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script defer src="member.min.js"></script>
+    <script defer src="member-auth.min.js"></script>
 </head>
 
 <body>
@@ -279,7 +300,7 @@
                     <input type="file" id="member-photo-input" accept="image/*" style="display:none;" onchange="window.initPhotoCropper(this)">
                 </div>
                 <div class="member-header-info">
-                    <h2 class="member-greeting" id="member-greeting">Bonjour !</h2>
+                    <h2 class="member-greeting" id="member-greeting" data-clarity-mask="true">Bonjour !</h2>
                 </div>
                 <div id="club-contact-btns" style="display:none; gap:8px; align-items:center; flex-wrap:wrap;"></div>
                 <a href="/" class="member-back-btn">
@@ -325,7 +346,7 @@
                     </div>
                     <div class="vip-card-body">
                         <div class="vip-card-info">
-                            <div class="vip-card-name" id="vip-card-name">—</div>
+                            <div class="vip-card-name" id="vip-card-name" data-clarity-mask="true">—</div>
                             <div id="vip-card-statut-wrap" style="display:none; margin-bottom:10px;">
                                 <span id="vip-card-statut" style="display:inline-flex; align-items:center; gap:5px; background:rgba(255,215,0,0.12); border:1px solid rgba(255,215,0,0.45); color:#ffd700; padding:3px 12px; border-radius:20px; font-size:0.72rem; letter-spacing:0.5px; font-family:'Orbitron',sans-serif;"></span>
                             </div>
@@ -545,23 +566,23 @@
                 <div class="member-profil-grid">
                     <div class="member-info-card">
                         <div class="mic-label"><i class="fas fa-user"></i> Prénom</div>
-                        <div class="mic-value" id="mp-prenom">—</div>
+                        <div class="mic-value" id="mp-prenom" data-clarity-mask="true">—</div>
                     </div>
                     <div class="member-info-card">
                         <div class="mic-label"><i class="fas fa-user"></i> Nom</div>
-                        <div class="mic-value" id="mp-nom">—</div>
+                        <div class="mic-value" id="mp-nom" data-clarity-mask="true">—</div>
                     </div>
                     <div class="member-info-card">
                         <div class="mic-label"><i class="fas fa-envelope"></i> Email</div>
-                        <div class="mic-value" id="mp-email">—</div>
+                        <div class="mic-value" id="mp-email" data-clarity-mask="true">—</div>
                     </div>
                     <div class="member-info-card">
                         <div class="mic-label"><i class="fas fa-phone"></i> Téléphone</div>
-                        <div class="mic-value" id="mp-telephone">—</div>
+                        <div class="mic-value" id="mp-telephone" data-clarity-mask="true">—</div>
                     </div>
                     <div class="member-info-card">
                         <div class="mic-label"><i class="fas fa-id-card"></i> N° Licence FFT</div>
-                        <div class="mic-value" id="mp-licence">—</div>
+                        <div class="mic-value" id="mp-licence" data-clarity-mask="true">—</div>
                     </div>
                     <div class="member-info-card">
                         <div class="mic-label"><i class="fas fa-trophy"></i> Classement</div>
@@ -685,71 +706,6 @@
         <p style="color:#64748b; font-size:0.8rem; margin:0; text-align:center;">Appuyez en dehors pour fermer</p>
     </div>
 
-    <!-- QR Code — chargé tôt pour être disponible dès initMemberDashboard -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <!-- Firebase SDKs -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
-
-    <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyA4GdfEh3M6mEszwRFif049qsmoLq4tn7c",
-            authDomain: "usm-tennis.firebaseapp.com",
-            databaseURL: "https://usm-tennis-default-rtdb.europe-west1.firebasedatabase.app",
-            projectId: "usm-tennis",
-            storageBucket: "usm-tennis.firebasestorage.app",
-            messagingSenderId: "631286589550",
-            appId: "1:631286589550:web:7e68afcddfbb8e16d79e7f"
-        };
-        firebase.initializeApp(firebaseConfig);
-        window.db_ref = firebase.database();
-        window.auth = firebase.auth();
-        window.storage = firebase.storage();
-
-        // Auth guard : vérifie que l'utilisateur est un membre actif
-        firebase.auth().onAuthStateChanged(function(user) {
-            if (!user) {
-                // Non connecté → retour au site
-                window.location.href = '/';
-                return;
-            }
-            // Vérifier si admin ou membre actif
-            window.db_ref.ref('admins/' + user.uid).once('value', function(adminSnap) {
-                var isAdmin = adminSnap.exists();
-                // UID cible : paramètre ?uid=xxx (admin uniquement) ou uid courant
-                var params = new URLSearchParams(window.location.search);
-                var targetUid = (isAdmin && params.get('uid')) ? params.get('uid') : user.uid;
-
-                window.db_ref.ref('members/' + targetUid).once('value', function(memberSnap) {
-                    if (memberSnap.exists() && memberSnap.val().actif) {
-                        document.getElementById('auth-loading').style.display = 'none';
-                        document.getElementById('member-page').style.display = 'block';
-                        if (window.initMemberDashboard) {
-                            const memberData = memberSnap.val();
-                            memberData._uid = targetUid;
-                            memberData._isAdmin = isAdmin;
-                            window.initMemberDashboard(memberData);
-                        }
-                    } else if (isAdmin) {
-                        // Admin sans profil membre correspondant → prévisualisation vide
-                        document.getElementById('auth-loading').style.display = 'none';
-                        document.getElementById('member-page').style.display = 'block';
-                        if (window.initMemberDashboard) {
-                            window.initMemberDashboard({ prenom: 'Admin', nom: '', _uid: targetUid, _isAdmin: true });
-                        }
-                    } else {
-                        // Compte non autorisé → déconnexion et retour
-                        firebase.auth().signOut().then(function() {
-                            window.location.href = '/';
-                        });
-                    }
-                });
-            });
-        });
-    </script>
-
     <!-- Modal recadrage photo de profil -->
     <div id="photo-crop-modal" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(2,6,23,0.95);align-items:center;justify-content:center;padding:20px;box-sizing:border-box;">
         <div style="background:#0f172a;border:1px solid rgba(255,215,0,0.3);border-radius:20px;padding:24px;max-width:460px;width:100%;">
@@ -777,12 +733,6 @@
         </div>
     </div>
 
-    <!-- Cropper.js -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
-    <!-- html2canvas pour téléchargement carte/fond d'écran -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <!-- Dashboard membre -->
-    <script src="member.js"></script>
 
 </body>
 </html>

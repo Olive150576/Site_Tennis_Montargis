@@ -132,6 +132,18 @@
             y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
         })(window, document, "clarity", "script", "vfrevzz9j6");
     </script>
+
+    <!-- Firebase SDKs — defer : téléchargement parallèle, exécution après parsing HTML -->
+    <script defer src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script defer src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script defer src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script defer src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
+    <script defer src="https://www.gstatic.com/firebasejs/8.10.1/firebase-functions.js"></script>
+    <script defer src="https://www.gstatic.com/firebasejs/8.10.1/firebase-messaging.js"></script>
+    <script defer src="https://www.gstatic.com/firebasejs/8.10.1/firebase-analytics.js"></script>
+    <script defer src="firebase-init.min.js"></script>
+    <script defer src="notifications.min.js"></script>
+    <script defer src="script.min.js"></script>
 </head>
 
 <body class="clubhouse-mode">
@@ -551,10 +563,10 @@
                 <div class="footer-affiliations">
                     <span>Club affilié</span>
                     <a href="https://www.fft.fr" target="_blank" rel="noopener noreferrer" title="FFT">
-                        <img src="Logo_Fédération_Française_de_Tennis.png" alt="Logo Fédération Française de Tennis (FFT)" style="height:30px; width:auto; opacity:0.8;">
+                        <img src="Logo_Fédération_Française_de_Tennis.png" alt="Logo Fédération Française de Tennis (FFT)" loading="lazy" style="height:30px; width:auto; opacity:0.8;">
                     </a>
                     <a href="https://www.lfrm-tennis.fr/ligue/centre-val-de-Loire" target="_blank" rel="noopener noreferrer" title="Ligue de Tennis Centre-Val de Loire">
-                        <img src="FFT_LOGO_LIGUE_CENTRE-VAL-DE-LOIRE.png" alt="Logo Ligue de Tennis Centre-Val de Loire" style="height:28px; width:auto; opacity:0.8;">
+                        <img src="FFT_LOGO_LIGUE_CENTRE-VAL-DE-LOIRE.png" alt="Logo Ligue de Tennis Centre-Val de Loire" loading="lazy" style="height:28px; width:auto; opacity:0.8;">
                     </a>
                 </div>
                 <div class="footer-legal">
@@ -684,40 +696,8 @@
         </div>
     </div>
 
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-functions.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-messaging.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-analytics.js"></script>
-
-    <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyA4GdfEh3M6mEszwRFif049qsmoLq4tn7c",
-            authDomain: "usm-tennis.firebaseapp.com",
-            databaseURL: "https://usm-tennis-default-rtdb.europe-west1.firebasedatabase.app",
-            projectId: "usm-tennis",
-            storageBucket: "usm-tennis.firebasestorage.app",
-            messagingSenderId: "631286589550",
-            appId: "1:631286589550:web:7e68afcddfbb8e16d79e7f",
-            measurementId: "G-8KG396XEQH"
-        };
-
-        firebase.initializeApp(firebaseConfig);
-        firebase.analytics(); // Initialiser Google Analytics
-        window.db_ref = firebase.database();
-        window.auth = firebase.auth();
-        window.storage = firebase.storage();
-    </script>
-
-    <!-- Système de notifications -->
-    <script src="notifications.js"></script>
-
-    <script src="script.js"></script>
-
     <!-- html2canvas pour génération carte membre téléchargeable -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <!-- LOGIN MODAL ADMIN -->
     <div id="login-modal" class="hidden"
         style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:2000; display:flex; justify-content:center; align-items:center;">

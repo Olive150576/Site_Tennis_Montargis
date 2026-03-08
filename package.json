@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Site web USM Tennis Montargis",
   "scripts": {
+    "build": "npx terser script.js -o script.min.js --compress --mangle && npx terser admin.js -o admin.min.js --compress --mangle && npx terser member.js -o member.min.js --compress --mangle && npx terser firebase-init.js -o firebase-init.min.js --compress --mangle && npx terser admin-auth.js -o admin-auth.min.js --compress --mangle && npx terser member-auth.js -o member-auth.min.js --compress --mangle && npx terser notifications.js -o notifications.min.js --compress --mangle && echo Build OK",
     "git:start": "echo === RAPPEL : Avez-vous fait 'git pull' ? === && git fetch origin && git status",
     "git:end": "echo === RAPPEL : N'oubliez pas de commit et push ! === && git status",
     "git:sync": "git add . && git status",
@@ -12,7 +13,14 @@
     "firebase:deploy": "firebase deploy",
     "firebase:serve": "firebase serve"
   },
-  "keywords": ["tennis", "montargis", "usm"],
+  "keywords": [
+    "tennis",
+    "montargis",
+    "usm"
+  ],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "devDependencies": {
+    "terser": "^5.46.0"
+  }
 }

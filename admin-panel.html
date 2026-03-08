@@ -62,6 +62,19 @@
             margin: 0 auto;
         }
     </style>
+
+    <!-- Firebase SDKs — defer : téléchargement parallèle, exécution après parsing HTML -->
+    <script defer src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script defer src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script defer src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script defer src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
+    <script defer src="https://www.gstatic.com/firebasejs/8.10.1/firebase-functions.js"></script>
+    <script defer src="firebase-init.min.js"></script>
+    <script defer src="admin-auth.min.js"></script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script defer src="notifications.min.js"></script>
+    <script defer src="admin.min.js"></script>
 </head>
 <body>
 
@@ -559,89 +572,7 @@
 </div><!-- /#admin-page -->
 
 <!-- ── Firebase SDKs ── -->
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-functions.js"></script>
 
-<script>
-    const firebaseConfig = {
-        apiKey: "AIzaSyA4GdfEh3M6mEszwRFif049qsmoLq4tn7c",
-        authDomain: "usm-tennis.firebaseapp.com",
-        databaseURL: "https://usm-tennis-default-rtdb.europe-west1.firebasedatabase.app",
-        projectId: "usm-tennis",
-        storageBucket: "usm-tennis.firebasestorage.app",
-        messagingSenderId: "631286589550",
-        appId: "1:631286589550:web:7e68afcddfbb8e16d79e7f"
-    };
-    firebase.initializeApp(firebaseConfig);
-    window.db_ref  = firebase.database();
-    window.auth    = firebase.auth();
-    window.storage = firebase.storage();
-    window.isCurrentUserAdmin = false;
-
-    // Déconnexion
-    function logout() {
-        window.auth.signOut().then(function() {
-            window.location.href = '/';
-        });
-    }
-
-    // Auth guard : admins uniquement
-    firebase.auth().onAuthStateChanged(function(user) {
-        if (!user) {
-            window.location.href = '/';
-            return;
-        }
-        window.db_ref.ref('admins/' + user.uid).once('value', function(snap) {
-            if (!snap.exists()) {
-                window.auth.signOut().then(function() {
-                    window.location.href = '/';
-                });
-                return;
-            }
-            window.isCurrentUserAdmin = true;
-            // Afficher l'email dans la topbar
-            var emailEl = document.getElementById('admin-user-email');
-            if (emailEl) emailEl.textContent = user.email || '';
-            // Révéler le dashboard
-            document.getElementById('auth-loading').style.display = 'none';
-            document.getElementById('admin-page').style.display = 'block';
-            // Charger les stats dès que l'auth est confirmée
-            setTimeout(function() {
-                if (window.updateAdminStats) window.updateAdminStats();
-            }, 300);
-            // Rafraîchir le custom claim Storage si nécessaire
-            firebase.functions().httpsCallable('grantAdminClaim')()
-                .then(function() { return user.getIdToken(true); })
-                .catch(function(e) { console.warn('Custom claim:', e.message); });
-            // Params URL : ?section=news&edit=3 → ouvrir directement l'édition
-            var params = new URLSearchParams(window.location.search);
-            var pSection = params.get('section');
-            var pEdit = params.get('edit');
-            var pDel = params.get('del');
-            if (pSection && window.switchAdmin) {
-                window.switchAdmin(pSection);
-                if (pEdit !== null && window.editItem) {
-                    setTimeout(function() { window.editItem(pSection, parseInt(pEdit)); }, 400);
-                }
-                if (pDel !== null && window.deleteItem) {
-                    setTimeout(function() { window.deleteItem(pSection, parseInt(pDel)); }, 400);
-                }
-            }
-        });
-    });
-</script>
-
-<!-- QR code + html2canvas pour l'affiche -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-
-<!-- Système de notifications/toasts -->
-<script src="notifications.js"></script>
-<!-- Logique admin -->
-<script src="admin.js"></script>
 
 <!-- Div hors-écran pour génération affiche -->
 <div id="affiche-print" style="position:fixed; left:-9999px; top:0; width:794px; z-index:-1; display:none;"></div>
