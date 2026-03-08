@@ -212,6 +212,9 @@
             <button class="tab-btn" onclick="switchAdmin('tournaments')" style="background:linear-gradient(135deg, #00d2ff, #0099bb); color:white;">
                 <i class="fas fa-trophy"></i> Tournois TMC
             </button>
+            <button class="tab-btn" onclick="switchAdmin('club_messages')" style="background:linear-gradient(135deg, #f59e0b, #b45309); color:white;">
+                <i class="fas fa-bullhorn"></i> Messages Club
+            </button>
         </div>
 
         <!-- SECTION LISTE TOURNOIS -->
@@ -325,6 +328,64 @@
             </h4>
             <div id="scan-stats-list" style="display:grid; gap:8px;">
                 <p style="color:#64748b; font-size:13px; text-align:center;">Cliquez sur Actualiser pour charger les statistiques.</p>
+            </div>
+        </div>
+
+        <!-- SECTION MESSAGES CLUB -->
+        <div id="club-messages-admin" class="hidden" style="background:rgba(2,6,23,0.8); padding:25px; border-radius:15px; border:1px solid rgba(245,158,11,0.4); margin-bottom:30px;">
+            <h3 style="color:#f59e0b; font-family:'Orbitron'; font-size:1.1rem; margin-bottom:20px; border-bottom:2px solid #334155; padding-bottom:15px;">
+                <i class="fas fa-bullhorn" style="margin-right:10px;"></i>Messages du Bureau
+            </h3>
+
+            <!-- Formulaire ajout/édition -->
+            <div id="msg-form-container" style="background:rgba(245,158,11,0.05); border:1px solid rgba(245,158,11,0.2); border-radius:12px; padding:20px; margin-bottom:24px;">
+                <h4 id="msg-form-title" style="color:#fbbf24; margin:0 0 16px; font-size:0.95rem;">
+                    <i class="fas fa-plus-circle"></i> Nouveau message
+                </h4>
+                <input type="hidden" id="msg-edit-id" value="">
+
+                <div style="display:grid; grid-template-columns:1fr auto; gap:12px; margin-bottom:12px;">
+                    <div>
+                        <label style="color:#94a3b8; font-size:0.75rem; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; display:block; margin-bottom:6px;">Titre *</label>
+                        <input type="text" id="msg-titre" placeholder="Ex: Terrain 3 fermé ce samedi" maxlength="100"
+                            style="width:100%; padding:10px 14px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.15); border-radius:10px; color:#e2e8f0; font-family:inherit; font-size:0.9rem; box-sizing:border-box;">
+                    </div>
+                    <div>
+                        <label style="color:#94a3b8; font-size:0.75rem; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; display:block; margin-bottom:6px;">Type</label>
+                        <select id="msg-type" style="padding:10px 14px; background:#1e293b; border:1px solid rgba(255,255,255,0.15); border-radius:10px; color:#e2e8f0; font-family:inherit; font-size:0.9rem; cursor:pointer; height:42px;">
+                            <option value="info">🔵 Information</option>
+                            <option value="warning">🟡 Avertissement</option>
+                            <option value="urgent">🔴 Urgent</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div style="margin-bottom:12px;">
+                    <label style="color:#94a3b8; font-size:0.75rem; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; display:block; margin-bottom:6px;">Date d'affichage</label>
+                    <input type="text" id="msg-date" placeholder="Ex: 08/03/2026" maxlength="20"
+                        style="width:220px; padding:10px 14px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.15); border-radius:10px; color:#e2e8f0; font-family:inherit; font-size:0.9rem; box-sizing:border-box;">
+                </div>
+
+                <div style="margin-bottom:16px;">
+                    <label style="color:#94a3b8; font-size:0.75rem; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; display:block; margin-bottom:6px;">Contenu *</label>
+                    <textarea id="msg-contenu" rows="4" placeholder="Décrivez la situation en détail..." maxlength="1000"
+                        style="width:100%; padding:10px 14px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.15); border-radius:10px; color:#e2e8f0; font-family:inherit; font-size:0.88rem; resize:vertical; box-sizing:border-box;"></textarea>
+                </div>
+
+                <div style="display:flex; gap:10px;">
+                    <button onclick="window.saveClubMessage()" style="padding:10px 22px; background:linear-gradient(135deg, #f59e0b, #b45309); border:none; border-radius:10px; color:white; font-family:inherit; font-weight:600; font-size:0.9rem; cursor:pointer;">
+                        <i class="fas fa-paper-plane"></i> Publier
+                    </button>
+                    <button onclick="window.cancelEditMessage()" id="msg-cancel-btn" style="display:none; padding:10px 18px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.15); border-radius:10px; color:#94a3b8; font-family:inherit; font-size:0.9rem; cursor:pointer;">
+                        Annuler
+                    </button>
+                </div>
+            </div>
+
+            <!-- Liste des messages -->
+            <h4 style="color:#e2e8f0; margin-bottom:15px; border-left:4px solid #f59e0b; padding-left:15px;">Messages publiés</h4>
+            <div id="club-messages-admin-list" style="display:grid; gap:12px;">
+                <p style="color:#64748b; text-align:center;">Chargement...</p>
             </div>
         </div>
 

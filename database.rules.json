@@ -62,6 +62,11 @@
           ".read": true,
           ".write": "auth != null && auth.uid === $uid",
           ".validate": "newData.isString() && newData.val().length < 2000"
+        },
+        "partenaire": {
+          ".read": "auth != null && root.child('members').child(auth.uid).child('actif').val() === true",
+          ".write": "auth != null && auth.uid === $uid",
+          ".validate": "newData.hasChildren(['public_profile', 'updatedAt'])"
         }
       }
     },
@@ -85,6 +90,18 @@
       "$tokenId": {
         ".write": "!data.exists() || data.child('token').val() === newData.child('token').val()",
         ".validate": "newData.hasChildren(['token', 'subscribedAt']) && newData.child('token').isString() && newData.child('token').val().length > 50 && newData.child('token').val().length < 500 && newData.child('subscribedAt').isString() && newData.child('subscribedAt').val().length < 30 && !newData.hasChild('script') && !newData.hasChild('html')"
+      }
+    },
+    "club_messages": {
+      ".read": "auth != null && (root.child('admins').child(auth.uid).exists() || root.child('members').child(auth.uid).child('actif').val() === true)",
+      ".write": "auth != null && root.child('admins').child(auth.uid).exists()",
+      ".indexOn": ["createdAt", "actif"]
+    },
+    "partenaire_index": {
+      ".read": "auth != null && (root.child('admins').child(auth.uid).exists() || root.child('members').child(auth.uid).child('actif').val() === true)",
+      "$uid": {
+        ".write": "auth != null && (auth.uid === $uid || root.child('admins').child(auth.uid).exists())",
+        ".validate": "!newData.exists() || newData.hasChildren(['prenom', 'nom'])"
       }
     },
     "qr_scans": {

@@ -6,6 +6,7 @@
 // Données mémorisées pour la génération de carte
 let _cardMemberData = null;
 let _cardSponsors = [];
+let _clubInfo = {}; // Téléphone + email du club (chargés depuis /info/)
 
 // Initialisation du dashboard avec les données du membre
 // --- Photo de profil ---
@@ -74,17 +75,18 @@ window.cancelPhotoCrop = function() {
 
 window.savePhoto = function() {
     if (!_cropper) return;
-    var user = window.auth.currentUser;
-    if (!user) return;
+    if (!window.auth.currentUser) return;
+    // En mode admin, sauvegarder sur le membre cible (pas sur l'admin)
+    var targetUid = (_cardMemberData && _cardMemberData._uid) ? _cardMemberData._uid : window.auth.currentUser.uid;
     var btn = document.getElementById('photo-save-btn');
     if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Upload...'; }
     var canvas = _cropper.getCroppedCanvas({ width: 300, height: 300, imageSmoothingQuality: 'high' });
     canvas.toBlob(function(blob) {
-        var storageRef = window.storage.ref('members/' + user.uid + '/photo.jpg');
+        var storageRef = window.storage.ref('members/' + targetUid + '/photo.jpg');
         storageRef.put(blob, { contentType: 'image/jpeg' }).then(function(snapshot) {
             return snapshot.ref.getDownloadURL();
         }).then(function(url) {
-            window.db_ref.ref('members/' + user.uid + '/photoURL').set(url);
+            window.db_ref.ref('members/' + targetUid + '/photoURL').set(url);
             window.setMemberAvatar(url);
             window.cancelPhotoCrop();
         }).catch(function(err) {
@@ -100,12 +102,43 @@ window.initMemberDashboard = function(memberData) {
 
     // Photo de profil sauvegardée
     if (memberData.photoURL) window.setMemberAvatar(memberData.photoURL);
-    // Désactiver l'upload si admin consulte un autre membre
+    // Mode admin : bandeau + photo modifiable pour le membre cible
     if (memberData._isAdmin) {
         var avatarDiv = document.getElementById('member-avatar-img');
-        if (avatarDiv) { avatarDiv.style.cursor = 'default'; avatarDiv.onclick = null; avatarDiv.title = ''; }
-        var overlay = document.getElementById('avatar-cam-overlay');
-        if (overlay) { overlay.style.display = 'none'; }
+        if (avatarDiv) {
+            avatarDiv.style.cursor = 'pointer';
+            avatarDiv.title = 'Modifier la photo du membre';
+            avatarDiv.onclick = window.openPhotoPicker;
+        }
+
+        // Bandeau admin visible en haut du dashboard
+        var zone = document.getElementById('member-zone');
+        if (zone && !document.getElementById('admin-edit-banner')) {
+            var banner = document.createElement('div');
+            banner.id = 'admin-edit-banner';
+            banner.style.cssText = [
+                'background:linear-gradient(90deg,rgba(255,215,0,0.12),rgba(255,165,0,0.08));',
+                'border:1px solid rgba(255,215,0,0.4);',
+                'border-radius:12px;',
+                'padding:12px 18px;',
+                'margin-bottom:20px;',
+                'display:flex;',
+                'align-items:center;',
+                'gap:12px;',
+                'flex-wrap:wrap;'
+            ].join('');
+            banner.innerHTML = '<i class="fas fa-user-shield" style="color:#ffd700;font-size:1.1rem;flex-shrink:0;"></i>' +
+                '<div style="flex:1;">' +
+                '<div style="color:#ffd700;font-weight:700;font-size:0.88rem;">Mode administrateur</div>' +
+                '<div style="color:rgba(255,215,0,0.65);font-size:0.78rem;margin-top:1px;">Vous éditez le profil de <strong style="color:rgba(255,215,0,0.9);">' +
+                (memberData.prenom || '') + ' ' + (memberData.nom || '') +
+                '</strong>. Toutes les modifications sont enregistrées directement.</div>' +
+                '</div>' +
+                '<a href="/admin-panel.html" style="background:rgba(255,215,0,0.12);border:1px solid rgba(255,215,0,0.35);color:#ffd700;padding:7px 14px;border-radius:8px;font-size:0.8rem;text-decoration:none;white-space:nowrap;display:flex;align-items:center;gap:6px;">' +
+                '<i class="fas fa-arrow-left"></i> Panel admin' +
+                '</a>';
+            zone.insertBefore(banner, zone.firstChild);
+        }
     }
 
     // --- En-tête ---
@@ -157,7 +190,7 @@ window.initMemberDashboard = function(memberData) {
     if (vipYearEl) vipYearEl.textContent = `Saison ${new Date().getFullYear()}`;
 
     // QR Code (URL vers page de vérification membre)
-    // Retry car qrcode.min.js (CDN) peut ne pas encore être chargé sur mobile lent
+    // Généré dans un div hors-écran pour éviter les problèmes de canvas masqué
     const qrEl = document.getElementById('vip-qrcode');
     if (qrEl) {
         const memberUid = memberData._uid || (window.auth && window.auth.currentUser ? window.auth.currentUser.uid : '');
@@ -166,19 +199,33 @@ window.initMemberDashboard = function(memberData) {
             : `USM Tennis Montargis | ${prenom} ${nom}`;
         let qrRetries = 0;
         function renderVipQR() {
-            if (typeof QRCode !== 'undefined') {
-                qrEl.innerHTML = '';
-                new QRCode(qrEl, {
-                    text: qrContent,
-                    width: 100,
-                    height: 100,
-                    colorDark: '#0d1b2e',
-                    colorLight: '#ffffff',
-                    correctLevel: QRCode.CorrectLevel.L
-                });
-            } else if (qrRetries < 20) {
-                qrRetries++;
-                setTimeout(renderVipQR, 300);
+            if (typeof QRCode === 'undefined') {
+                if (qrRetries < 20) { qrRetries++; setTimeout(renderVipQR, 300); }
+                return;
+            }
+            // Générer dans un div temporaire visible hors écran
+            var tmpDiv = document.createElement('div');
+            tmpDiv.style.cssText = 'position:fixed;left:-9999px;top:0;';
+            document.body.appendChild(tmpDiv);
+            new QRCode(tmpDiv, {
+                text: qrContent,
+                width: 100,
+                height: 100,
+                colorDark: '#0d1b2e',
+                colorLight: '#ffffff',
+                correctLevel: QRCode.CorrectLevel.L
+            });
+            // Récupérer le canvas généré et en extraire une image
+            var canvas = tmpDiv.querySelector('canvas');
+            var dataUrl = canvas ? canvas.toDataURL('image/png') : '';
+            document.body.removeChild(tmpDiv);
+            qrEl.innerHTML = '';
+            if (dataUrl) {
+                var img = document.createElement('img');
+                img.src = dataUrl;
+                img.style.cssText = 'width:100px;height:100px;display:block;border-radius:4px;';
+                img.title = 'Afficher en plein écran';
+                qrEl.appendChild(img);
             }
         }
         renderVipQR();
@@ -188,9 +235,23 @@ window.initMemberDashboard = function(memberData) {
     const yearEl = document.getElementById('member-tournaments-year');
     if (yearEl) yearEl.textContent = new Date().getFullYear();
 
-    // --- Charger les tournois et les sponsors ---
+    // --- Charger infos club (tel/email) et afficher boutons de contact dans le header ---
+    window.db_ref.ref('info').once('value', snap => {
+        if (snap.exists()) {
+            _clubInfo = snap.val() || {};
+            var wrap = document.getElementById('club-contact-btns');
+            if (wrap) {
+                var html = '';
+                if (_clubInfo.phone) html += `<a href="tel:${_clubInfo.phone}" style="display:inline-flex; align-items:center; gap:6px; background:rgba(34,197,94,0.12); border:1px solid rgba(34,197,94,0.35); color:#4ade80; padding:7px 13px; border-radius:10px; font-size:0.8rem; font-family:inherit; text-decoration:none; white-space:nowrap;"><i class="fas fa-phone"></i> Téléphone</a>`;
+                if (_clubInfo.email) html += `<a href="mailto:${_clubInfo.email}" style="display:inline-flex; align-items:center; gap:6px; background:rgba(34,197,94,0.12); border:1px solid rgba(34,197,94,0.35); color:#4ade80; padding:7px 13px; border-radius:10px; font-size:0.8rem; font-family:inherit; text-decoration:none; white-space:nowrap;"><i class="fas fa-envelope"></i> Email</a>`;
+                if (html) { wrap.innerHTML = `<span style="color:#94a3b8; font-size:0.72rem; font-weight:600; letter-spacing:0.5px; text-transform:uppercase; white-space:nowrap;">Contacter le club</span>${html}`; wrap.style.display = 'flex'; }
+            }
+        }
+    });
     loadMemberTournaments();
     loadMemberSponsors();
+    loadPartenaireProfile();
+    checkClubMessagesBadge();
 };
 
 // --- Chargement des tournois depuis /tournaments/ ---
@@ -289,14 +350,323 @@ function renderSponsorCard(s) {
     </div>`;
 }
 
+// --- Annuaire partenaires : toggle opt-in ---
+window.togglePartenaireForm = function() {
+    var checked = document.getElementById('partenaire-optin').checked;
+    var details = document.getElementById('partenaire-details');
+    var track   = document.getElementById('partenaire-optin-track');
+    var thumb   = document.getElementById('partenaire-optin-thumb');
+    if (details) details.style.display = checked ? 'block' : 'none';
+    if (track) {
+        track.style.background   = checked ? 'rgba(255,215,0,0.25)' : 'rgba(255,255,255,0.1)';
+        track.style.borderColor  = checked ? 'rgba(255,215,0,0.5)'  : 'rgba(255,255,255,0.2)';
+    }
+    if (thumb) {
+        thumb.style.transform = checked ? 'translateX(20px)' : 'translateX(0)';
+        thumb.style.background = checked ? '#ffd700' : '#64748b';
+    }
+    // Désactivation immédiate : supprimer de l'annuaire sans attendre le bouton sauvegarder
+    if (!checked) {
+        window.savePartenaireProfile();
+    }
+};
+
+// --- Annuaire partenaires : chargement depuis Firebase ---
+function loadPartenaireProfile() {
+    if (!_cardMemberData || !_cardMemberData._uid) return;
+    var uid = _cardMemberData._uid;
+    window.db_ref.ref('members/' + uid + '/partenaire').once('value', function(snap) {
+        var p = snap.val() || {};
+        var optin = document.getElementById('partenaire-optin');
+        if (optin) {
+            optin.checked = !!p.public_profile;
+            window.togglePartenaireForm();
+        }
+        var styleEl = document.getElementById('partenaire-style');
+        if (styleEl && p.style_jeu) styleEl.value = p.style_jeu;
+        // Disponibilités par jour/créneau
+        var _jours = ['lundi','mardi','mercredi','jeudi','vendredi','samedi','dimanche'];
+        var _creneaux = ['matin','midi','soir'];
+        if (p.dispo) {
+            var hasAnyDispo = false;
+            _jours.forEach(function(j) {
+                _creneaux.forEach(function(c) {
+                    var el = document.getElementById('dispo-' + j + '-' + c);
+                    if (el && p.dispo[j]) {
+                        el.checked = !!p.dispo[j][c];
+                        if (p.dispo[j][c]) hasAnyDispo = true;
+                    }
+                });
+            });
+            // Ouvrir l'accordéon si des dispos sont déjà cochées
+            if (hasAnyDispo && window.toggleDispoForm) window.toggleDispoForm(true);
+        }
+        // Coordonnées
+        var coordFields = { 'partenaire-share-tel': 'partager_telephone', 'partenaire-share-email': 'partager_email' };
+        Object.keys(coordFields).forEach(function(id) {
+            var el = document.getElementById(id);
+            if (el && p[coordFields[id]] !== undefined) el.checked = !!p[coordFields[id]];
+        });
+        var msgEl = document.getElementById('partenaire-message');
+        if (msgEl && p.message) { msgEl.value = p.message; updatePartenaireCount(); }
+    });
+    var msgEl = document.getElementById('partenaire-message');
+    if (msgEl) msgEl.addEventListener('input', updatePartenaireCount);
+}
+
+function updatePartenaireCount() {
+    var msg = document.getElementById('partenaire-message');
+    var cnt = document.getElementById('partenaire-msg-count');
+    if (msg && cnt) cnt.textContent = msg.value.length;
+}
+
+// --- Annuaire partenaires : sauvegarde ---
+window.savePartenaireProfile = function() {
+    if (!_cardMemberData || !_cardMemberData._uid) return;
+    var uid = _cardMemberData._uid;
+    var btn    = document.getElementById('partenaire-save-btn');
+    var status = document.getElementById('partenaire-save-status');
+    var optin  = document.getElementById('partenaire-optin');
+    var checked = optin ? optin.checked : false;
+
+    var data = { public_profile: checked, updatedAt: Date.now() };
+    if (checked) {
+        var styleEl = document.getElementById('partenaire-style');
+        data.style_jeu          = styleEl ? styleEl.value : 'loisir';
+        var _jours    = ['lundi','mardi','mercredi','jeudi','vendredi','samedi','dimanche'];
+        var _creneaux = ['matin','midi','soir'];
+        data.dispo = {};
+        _jours.forEach(function(j) {
+            data.dispo[j] = {};
+            _creneaux.forEach(function(c) {
+                data.dispo[j][c] = !!(document.getElementById('dispo-' + j + '-' + c) || {}).checked;
+            });
+        });
+        data.partager_telephone = !!(document.getElementById('partenaire-share-tel')  || {}).checked;
+        data.partager_email     = !!(document.getElementById('partenaire-share-email') || {}).checked;
+        var msgEl = document.getElementById('partenaire-message');
+        data.message = msgEl ? msgEl.value.trim().substring(0, 100) : '';
+    }
+
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enregistrement…'; }
+    if (status) status.innerHTML = '';
+
+    // Index public pour l'annuaire
+    var indexData = null;
+    if (checked && _cardMemberData) {
+        indexData = {
+            prenom:   _cardMemberData.prenom  || '',
+            nom:      _cardMemberData.nom     || '',
+            classement: _cardMemberData.classement || '',
+            categorie:  _cardMemberData.categorie  || '',
+            photoURL:   _cardMemberData.photoURL   || '',
+            style_jeu:          data.style_jeu          || 'loisir',
+            dispo:              data.dispo              || {},
+            partager_telephone: data.partager_telephone || false,
+            partager_email:     data.partager_email     || false,
+            telephone: (data.partager_telephone && _cardMemberData.telephone) ? _cardMemberData.telephone : '',
+            email:     (data.partager_email     && _cardMemberData.email)     ? _cardMemberData.email     : '',
+            message:   data.message || ''
+        };
+    }
+
+    var writes = [window.db_ref.ref('members/' + uid + '/partenaire').set(data)];
+    if (checked && indexData) {
+        writes.push(window.db_ref.ref('partenaire_index/' + uid).set(indexData));
+    } else {
+        writes.push(window.db_ref.ref('partenaire_index/' + uid).remove());
+    }
+
+    Promise.all(writes).then(function() {
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-save"></i> Enregistrer mes préférences'; }
+        if (status) status.innerHTML = '<span style="color:#22c55e;"><i class="fas fa-check"></i> Préférences enregistrées</span>';
+        setTimeout(function() { if (status) status.innerHTML = ''; }, 3000);
+        // Rafraîchir l'annuaire immédiatement si déjà ouvert, sinon reset le flag
+        if (_annuaireLoaded) {
+            _annuaireLoaded = false;
+            loadAnnuairePartenaires();
+        }
+    }).catch(function(err) {
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-save"></i> Enregistrer mes préférences'; }
+        if (status) status.innerHTML = '<span style="color:#ef4444;">Erreur : ' + err.message + '</span>';
+    });
+};
+
 // --- Navigation onglets ---
+var _annuaireLoaded = false;
+var _messagesLoaded = false;
 window.switchMemberTab = function(tab) {
-    ['profil', 'club'].forEach(t => {
+    ['profil', 'partenaires', 'club', 'infos'].forEach(t => {
         const content = document.getElementById(`mtab-${t}`);
         const btn = document.getElementById(`mtab-btn-${t}`);
         if (content) content.classList.toggle('hidden', t !== tab);
         if (btn) btn.classList.toggle('active', t === tab);
     });
+    if (tab === 'partenaires' && !_annuaireLoaded) {
+        _annuaireLoaded = true;
+        loadAnnuairePartenaires();
+    }
+    if (tab === 'infos' && !_messagesLoaded) {
+        _messagesLoaded = true;
+        loadClubMessages();
+        // Mémoriser la date de lecture dans localStorage
+        localStorage.setItem('usm_infos_seen_at', String(Date.now()));
+        var badge = document.getElementById('infos-badge');
+        if (badge) badge.style.display = 'none';
+    }
+};
+
+// --- Annuaire partenaires : chargement et affichage ---
+var _partenaireAllData = [];
+var _partenaireFilters = { matin: false, midi: false, soir: false };
+
+function loadAnnuairePartenaires() {
+    var grid = document.getElementById('partenaire-results');
+    if (!grid) return;
+    grid.innerHTML = '<div class="member-empty-state"><i class="fas fa-spinner fa-spin"></i><p>Chargement...</p></div>';
+
+    window.db_ref.ref('partenaire_index').once('value', function(snap) {
+        var data = snap.val();
+        if (!data) {
+            grid.innerHTML = '<div class="member-empty-state"><i class="fas fa-users-slash"></i><p>Aucun membre disponible pour l\'instant.<br><small style="color:#475569;">Soyez le premier à vous inscrire dans l\'onglet Mon Profil !</small></p></div>';
+            return;
+        }
+        var myUid = _cardMemberData ? _cardMemberData._uid : null;
+        _partenaireAllData = Object.entries(data)
+            .filter(function(e) { return e[0] !== myUid && e[1]; })
+            .map(function(e) { return Object.assign({ _uid: e[0] }, e[1]); });
+
+        if (_partenaireAllData.length === 0) {
+            grid.innerHTML = '<div class="member-empty-state"><i class="fas fa-users"></i><p>Aucun autre membre disponible pour l\'instant.</p></div>';
+            return;
+        }
+        applyAndRenderPartenaires();
+    });
+}
+
+function applyAndRenderPartenaires() {
+    var grid = document.getElementById('partenaire-results');
+    var countEl = document.getElementById('partenaire-count');
+    if (!grid) return;
+
+    var styleFilter = (document.getElementById('filter-style') || {}).value || '';
+    var searchRaw   = ((document.getElementById('partenaire-search') || {}).value || '').trim().toLowerCase();
+    var filtered = _partenaireAllData.filter(function(p) {
+        if (styleFilter && p.style_jeu !== styleFilter) return false;
+        if (searchRaw) {
+            var fullName = ((p.prenom || '') + ' ' + (p.nom || '')).toLowerCase();
+            if (fullName.indexOf(searchRaw) === -1) return false;
+        }
+        var creneaux = ['matin', 'midi', 'soir'];
+        for (var i = 0; i < creneaux.length; i++) {
+            var c = creneaux[i];
+            if (_partenaireFilters[c]) {
+                var hasSlot = p.dispo && Object.keys(p.dispo).some(function(j) {
+                    return p.dispo[j] && p.dispo[j][c];
+                });
+                if (!hasSlot) return false;
+            }
+        }
+        return true;
+    });
+
+    if (countEl) countEl.textContent = filtered.length + ' membre' + (filtered.length !== 1 ? 's' : '');
+
+    if (filtered.length === 0) {
+        grid.innerHTML = '<div class="member-empty-state"><i class="fas fa-search"></i><p>Aucun membre ne correspond à ces filtres.</p></div>';
+        return;
+    }
+    grid.innerHTML = filtered.map(renderPartenaireCard).join('');
+}
+
+function renderPartenaireCard(p) {
+    var initiales = ((p.prenom || '').charAt(0) + (p.nom || '').charAt(0)).toUpperCase() || '?';
+    var avatarHtml = p.photoURL
+        ? `<img src="${escMember(p.photoURL)}" alt="${escMember(p.prenom)}">`
+        : initiales;
+
+    var styleLabels = { loisir: 'Loisir', competitif: 'Compétitif', double: 'Double', mixte: 'Mixte', padel: 'Padel' };
+    var styleHtml = p.style_jeu
+        ? `<span style="font-size:0.75rem; color:#94a3b8; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); border-radius:6px; padding:2px 8px;">${escMember(styleLabels[p.style_jeu] || p.style_jeu)}</span>`
+        : '';
+
+    var joursShort = { lundi:'Lun', mardi:'Mar', mercredi:'Mer', jeudi:'Jeu', vendredi:'Ven', samedi:'Sam', dimanche:'Dim' };
+    var joursOrder = ['lundi','mardi','mercredi','jeudi','vendredi','samedi','dimanche'];
+    var creneauxLabel = { matin:'Matin', midi:'Midi', soir:'Soir' };
+    var dispoLines = [];
+    if (p.dispo && typeof p.dispo === 'object') {
+        // Nouveau format : dispo.lundi.matin etc.
+        ['matin','midi','soir'].forEach(function(c) {
+            var jList = joursOrder.filter(function(j) { return p.dispo[j] && p.dispo[j][c]; });
+            if (jList.length) dispoLines.push(creneauxLabel[c] + ': ' + jList.map(function(j){ return joursShort[j]; }).join(' · '));
+        });
+    } else {
+        // Ancien format plat (rétrocompatibilité)
+        if (p.dispo_matin)   dispoLines.push('Matin: disponible');
+        if (p.dispo_soir)    dispoLines.push('Soir: disponible');
+        if (p.dispo_weekend) dispoLines.push('Week-end: disponible');
+    }
+    var dispoHtml = dispoLines.length
+        ? `<div style="display:flex; flex-wrap:wrap; gap:5px; margin-top:8px;">${dispoLines.map(function(d){ return `<span class="partenaire-dispo-tag"><i class="fas fa-clock" style="font-size:0.6rem;"></i> ${escMember(d)}</span>`; }).join('')}</div>`
+        : '';
+
+    var msgHtml = p.message
+        ? `<div style="color:#94a3b8; font-size:0.8rem; font-style:italic; border-top:1px solid rgba(255,255,255,0.06); padding-top:8px;">"${escMember(p.message)}"</div>`
+        : '';
+
+    var contactBtns = '';
+    if (p.partager_telephone && p.telephone) {
+        contactBtns += `<a href="sms:${escMember(p.telephone)}" class="partenaire-contact-btn sms"><i class="fas fa-comment-sms"></i> SMS</a>`;
+        contactBtns += `<a href="tel:${escMember(p.telephone)}" class="partenaire-contact-btn tel"><i class="fas fa-phone"></i> Appeler</a>`;
+    }
+    if (p.partager_email && p.email) {
+        contactBtns += `<a href="mailto:${escMember(p.email)}" class="partenaire-contact-btn email"><i class="fas fa-envelope"></i> Email</a>`;
+    }
+    var contactHtml = contactBtns
+        ? `<div style="display:flex; gap:8px; margin-top:4px; flex-wrap:wrap;">${contactBtns}</div>`
+        : '';
+
+    var badges = '';
+    if (p.classement) badges += `<span style="background:rgba(255,215,0,0.1);border:1px solid rgba(255,215,0,0.3);color:rgba(255,215,0,0.85);padding:2px 8px;border-radius:6px;font-size:0.72rem;">${escMember(p.classement)}</span>`;
+    if (p.categorie)  badges += `<span style="background:rgba(0,210,255,0.07);border:1px solid rgba(0,210,255,0.2);color:rgba(0,210,255,0.75);padding:2px 8px;border-radius:6px;font-size:0.72rem;">${escMember(p.categorie)}</span>`;
+
+    return `<div class="partenaire-card">
+        <div style="display:flex; align-items:center; gap:12px;">
+            <div class="partenaire-avatar-circle">${avatarHtml}</div>
+            <div style="flex:1; min-width:0;">
+                <div style="color:white; font-weight:600; font-size:0.92rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escMember(p.prenom + ' ' + p.nom)}</div>
+                <div style="display:flex; flex-wrap:wrap; gap:4px; margin-top:4px;">${badges}</div>
+            </div>
+            ${styleHtml}
+        </div>
+        ${dispoHtml}
+        ${msgHtml}
+        ${contactHtml}
+    </div>`;
+}
+
+window.togglePartenaireFilter = function(key) {
+    _partenaireFilters[key] = !_partenaireFilters[key];
+    var btn = document.getElementById('filter-' + key);
+    if (btn) btn.classList.toggle('active', _partenaireFilters[key]);
+    applyAndRenderPartenaires();
+};
+
+window.applyPartenaireFilters = function() {
+    applyAndRenderPartenaires();
+};
+
+window.resetPartenaireFilters = function() {
+    ['matin', 'midi', 'soir'].forEach(function(k) {
+        _partenaireFilters[k] = false;
+        var btn = document.getElementById('filter-' + k);
+        if (btn) btn.classList.remove('active');
+    });
+    var styleEl = document.getElementById('filter-style');
+    if (styleEl) styleEl.value = '';
+    var searchEl = document.getElementById('partenaire-search');
+    if (searchEl) searchEl.value = '';
+    applyAndRenderPartenaires();
 };
 
 // --- Réinitialisation mot de passe ---
@@ -1032,4 +1402,74 @@ function escMember(str) {
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;');
+}
+
+// ===== MESSAGES CLUB =====
+
+function loadClubMessages() {
+    var list = document.getElementById('member-messages-list');
+    if (!list) return;
+    list.innerHTML = '<div class="member-empty-state"><i class="fas fa-spinner fa-spin"></i><p>Chargement...</p></div>';
+
+    window.db_ref.ref('club_messages').orderByChild('createdAt').once('value', function(snap) {
+        var val = snap.val();
+        if (!val) {
+            list.innerHTML = '<div class="member-empty-state"><i class="fas fa-comment-slash"></i><p>Aucun message pour l\'instant.</p></div>';
+            return;
+        }
+        // Trier: urgents d'abord, puis par date décroissante
+        var msgs = Object.entries(val)
+            .map(function(e) { return Object.assign({ _id: e[0] }, e[1]); })
+            .filter(function(m) { return m.actif !== false; })
+            .sort(function(a, b) {
+                if (a.type === 'urgent' && b.type !== 'urgent') return -1;
+                if (a.type !== 'urgent' && b.type === 'urgent') return 1;
+                return (b.createdAt || 0) - (a.createdAt || 0);
+            });
+
+        if (!msgs.length) {
+            list.innerHTML = '<div class="member-empty-state"><i class="fas fa-comment-slash"></i><p>Aucun message pour l\'instant.</p></div>';
+            return;
+        }
+
+        var typeLabels = { info: 'Information', warning: 'Avertissement', urgent: 'Urgent' };
+        var typeIcons  = { info: 'fa-info-circle', warning: 'fa-exclamation-triangle', urgent: 'fa-exclamation-circle' };
+
+        list.innerHTML = msgs.map(function(m) {
+            var type = m.type || 'info';
+            var badgeClass = type === 'info' ? '' : type;
+            return '<div class="club-message-card ' + (type !== 'info' ? type : '') + '">' +
+                '<div class="club-message-card-header">' +
+                    '<span class="club-message-badge ' + badgeClass + '">' +
+                        '<i class="fas ' + (typeIcons[type] || 'fa-info-circle') + '"></i> ' +
+                        (typeLabels[type] || 'Info') +
+                    '</span>' +
+                    '<span class="club-message-title">' + escMember(m.titre) + '</span>' +
+                    '<span class="club-message-date">' + escMember(m.date || '') + '</span>' +
+                '</div>' +
+                '<div class="club-message-body">' + escMember(m.contenu) + '</div>' +
+            '</div>';
+        }).join('');
+    });
+}
+
+// Affiche le badge rouge si des messages existent (appelé au chargement)
+function checkClubMessagesBadge() {
+    var seenAt = parseInt(localStorage.getItem('usm_infos_seen_at') || '0', 10);
+    window.db_ref.ref('club_messages').orderByChild('createdAt').limitToLast(1).once('value', function(snap) {
+        if (!snap.exists()) return;
+        // Récupérer le createdAt du message le plus récent
+        var latestCreatedAt = 0;
+        snap.forEach(function(child) {
+            var m = child.val();
+            if (m.actif !== false && m.createdAt > latestCreatedAt) {
+                latestCreatedAt = m.createdAt;
+            }
+        });
+        // Afficher le badge seulement si le dernier message est plus récent que la dernière lecture
+        if (latestCreatedAt > seenAt) {
+            var badge = document.getElementById('infos-badge');
+            if (badge) badge.style.display = 'block';
+        }
+    });
 }

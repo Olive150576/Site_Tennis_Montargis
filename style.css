@@ -2275,6 +2275,33 @@ section#contact-section.animate-in { transition-delay: 0.1s; }
     box-shadow: 0 2px 12px rgba(255,215,0,0.3);
 }
 
+/* Mobile : grille 2×2 visuelle immédiate */
+@media (max-width: 640px) {
+    .member-tabs-bar {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        overflow-x: unset;
+        gap: 8px;
+        padding: 8px;
+    }
+    .mtab {
+        flex-direction: column;
+        gap: 6px;
+        padding: 14px 8px;
+        white-space: normal;
+        text-align: center;
+        font-size: 0.78rem;
+        border-radius: 10px;
+        border: 1px solid rgba(255,255,255,0.06);
+    }
+    .mtab i {
+        font-size: 1.3rem;
+    }
+    .mtab.active {
+        border-color: transparent;
+    }
+}
+
 .member-tab-content { animation: fadeInUp 0.3s ease; }
 
 @keyframes fadeInUp {
@@ -2623,18 +2650,25 @@ section#contact-section.animate-in { transition-delay: 0.1s; }
 .vip-card-body {
     display: flex;
     justify-content: space-between;
-    align-items: flex-end;
+    align-items: center;
     gap: 20px;
 }
 
 .vip-card-info { flex: 1; }
+
+.vip-card-badges {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 4px;
+}
 
 .vip-card-name {
     font-family: 'Orbitron', sans-serif;
     font-size: 1.15rem;
     color: white;
     letter-spacing: 0.04em;
-    margin-bottom: 14px;
+    margin-bottom: 10px;
     text-shadow: 0 0 20px rgba(255,215,0,0.15);
 }
 
@@ -2663,12 +2697,7 @@ section#contact-section.animate-in { transition-delay: 0.1s; }
     justify-content: center;
 }
 
-.vip-card-qr canvas { display: none !important; }
-.vip-card-qr img {
-    display: block !important;
-    width: 100px !important;
-    height: 100px !important;
-}
+/* QR code rendu via JS en img — canvas non utilisé dans le DOM visible */
 
 @media (max-width: 768px) {
     .member-header { padding: 18px 20px; gap: 14px; overflow: visible; }
@@ -2690,6 +2719,6 @@ section#contact-section.animate-in { transition-delay: 0.1s; }
 
 @media (max-width: 480px) {
     .member-profil-grid { grid-template-columns: 1fr; }
-    .vip-card-body { flex-direction: column; align-items: flex-start; gap: 16px; }
-    .vip-card-qr { align-self: flex-end; }
+    .vip-card-body { flex-direction: column; align-items: flex-start; gap: 14px; }
+    .vip-card-qr { align-self: center; }
 }

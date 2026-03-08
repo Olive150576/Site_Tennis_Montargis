@@ -441,31 +441,36 @@ window.switchAdmin = (section) => {
     const membersAdmin = document.getElementById('members-admin');
     const sponsorsListAdmin = document.getElementById('sponsors-list-admin');
     const tournamentsListAdmin = document.getElementById('tournaments-list-admin');
+    const clubMessagesAdmin = document.getElementById('club-messages-admin');
 
-    // Gérer l'affichage spécial pour les sections documents, contacts et membres
+    // Gérer l'affichage spécial pour les sections documents, contacts, membres et messages
+    const hideSpecialSections = () => {
+        if (documentsAdmin) documentsAdmin.classList.add('hidden');
+        if (contactsAdmin) contactsAdmin.classList.add('hidden');
+        if (membersAdmin) membersAdmin.classList.add('hidden');
+        if (clubMessagesAdmin) clubMessagesAdmin.classList.add('hidden');
+        if (sponsorsListAdmin) sponsorsListAdmin.classList.add('hidden');
+    };
+
     if (section === 'documents') {
         if (universalForm) universalForm.style.display = 'none';
+        hideSpecialSections();
         if (documentsAdmin) { documentsAdmin.classList.remove('hidden'); if (window.loadDocumentsAdmin) window.loadDocumentsAdmin(); }
-        if (contactsAdmin) contactsAdmin.classList.add('hidden');
-        if (membersAdmin) membersAdmin.classList.add('hidden');
-        if (sponsorsListAdmin) sponsorsListAdmin.classList.add('hidden');
     } else if (section === 'contacts') {
         if (universalForm) universalForm.style.display = 'none';
-        if (documentsAdmin) documentsAdmin.classList.add('hidden');
+        hideSpecialSections();
         if (contactsAdmin) { contactsAdmin.classList.remove('hidden'); window.loadContactsAdmin(); }
-        if (membersAdmin) membersAdmin.classList.add('hidden');
-        if (sponsorsListAdmin) sponsorsListAdmin.classList.add('hidden');
     } else if (section === 'members') {
         if (universalForm) universalForm.style.display = 'none';
-        if (documentsAdmin) documentsAdmin.classList.add('hidden');
-        if (contactsAdmin) contactsAdmin.classList.add('hidden');
+        hideSpecialSections();
         if (membersAdmin) { membersAdmin.classList.remove('hidden'); window.loadMembersAdmin && window.loadMembersAdmin(); }
-        if (sponsorsListAdmin) sponsorsListAdmin.classList.add('hidden');
+    } else if (section === 'club_messages') {
+        if (universalForm) universalForm.style.display = 'none';
+        hideSpecialSections();
+        if (clubMessagesAdmin) { clubMessagesAdmin.classList.remove('hidden'); window.loadClubMessagesAdmin(); }
     } else {
         if (universalForm) universalForm.style.display = 'block';
-        if (documentsAdmin) documentsAdmin.classList.add('hidden');
-        if (contactsAdmin) contactsAdmin.classList.add('hidden');
-        if (membersAdmin) membersAdmin.classList.add('hidden');
+        hideSpecialSections();
         if (sponsorsListAdmin) {
             if (section === 'sponsors') {
                 sponsorsListAdmin.classList.remove('hidden');
@@ -1613,3 +1618,138 @@ setTimeout(() => {
         updateAdminStats();
     }
 }, 1000);
+
+// ===== MESSAGES CLUB — CRUD =====
+
+window.loadClubMessagesAdmin = function() {
+    var list = document.getElementById('club-messages-admin-list');
+    if (!list) return;
+    list.innerHTML = '<p style="color:#64748b; text-align:center;">Chargement...</p>';
+
+    db_ref.ref('club_messages').orderByChild('createdAt').once('value', function(snap) {
+        var val = snap.val();
+        if (!val) {
+            list.innerHTML = '<p style="color:#64748b; text-align:center;">Aucun message publié.</p>';
+            return;
+        }
+        var msgs = Object.entries(val)
+            .map(function(e) { return Object.assign({ _id: e[0] }, e[1]); })
+            .sort(function(a, b) { return (b.createdAt || 0) - (a.createdAt || 0); });
+
+        var typeLabels = { info: '🔵 Info', warning: '🟡 Avertissement', urgent: '🔴 Urgent' };
+        var borderColors = { info: '#3b82f6', warning: '#f59e0b', urgent: '#ef4444' };
+
+        list.innerHTML = msgs.map(function(m) {
+            var color = borderColors[m.type] || '#3b82f6';
+            var actifLabel = m.actif === false
+                ? '<span style="color:#ef4444; font-size:0.72rem; font-weight:600;">● Désactivé</span>'
+                : '<span style="color:#22c55e; font-size:0.72rem; font-weight:600;">● Actif</span>';
+            return '<div style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-left:4px solid ' + color + '; border-radius:10px; padding:14px 16px;">' +
+                '<div style="display:flex; align-items:center; gap:10px; margin-bottom:8px; flex-wrap:wrap;">' +
+                    '<span style="font-weight:600; color:#e2e8f0; flex:1; min-width:0;">' + escHtml(m.titre) + '</span>' +
+                    '<span style="color:#94a3b8; font-size:0.78rem;">' + (typeLabels[m.type] || 'Info') + '</span>' +
+                    '<span style="color:#64748b; font-size:0.75rem;">' + (m.date || '') + '</span>' +
+                    actifLabel +
+                '</div>' +
+                '<p style="color:#94a3b8; font-size:0.83rem; margin:0 0 12px; line-height:1.5; white-space:pre-wrap;">' + escHtml(m.contenu) + '</p>' +
+                '<div style="display:flex; gap:8px; flex-wrap:wrap;">' +
+                    '<button onclick="window.editClubMessage(' + JSON.stringify(m._id) + ')" style="padding:5px 14px; background:rgba(59,130,246,0.12); border:1px solid rgba(59,130,246,0.3); border-radius:8px; color:#60a5fa; font-family:inherit; font-size:0.8rem; cursor:pointer;">' +
+                        '<i class="fas fa-edit"></i> Modifier' +
+                    '</button>' +
+                    '<button onclick="window.toggleClubMessage(' + JSON.stringify(m._id) + ',' + (m.actif !== false) + ')" style="padding:5px 14px; background:rgba(245,158,11,0.1); border:1px solid rgba(245,158,11,0.25); border-radius:8px; color:#fbbf24; font-family:inherit; font-size:0.8rem; cursor:pointer;">' +
+                        '<i class="fas fa-' + (m.actif === false ? 'eye' : 'eye-slash') + '"></i> ' + (m.actif === false ? 'Activer' : 'Désactiver') +
+                    '</button>' +
+                    '<button onclick="window.deleteClubMessage(' + JSON.stringify(m._id) + ')" style="padding:5px 14px; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.25); border-radius:8px; color:#f87171; font-family:inherit; font-size:0.8rem; cursor:pointer;">' +
+                        '<i class="fas fa-trash"></i> Supprimer' +
+                    '</button>' +
+                '</div>' +
+            '</div>';
+        }).join('');
+    });
+};
+
+window.saveClubMessage = function() {
+    var titre = (document.getElementById('msg-titre')?.value || '').trim();
+    var contenu = (document.getElementById('msg-contenu')?.value || '').trim();
+    var type = document.getElementById('msg-type')?.value || 'info';
+    var date = (document.getElementById('msg-date')?.value || '').trim();
+    var editId = document.getElementById('msg-edit-id')?.value || '';
+
+    if (!titre || !contenu) {
+        alert('Le titre et le contenu sont obligatoires.');
+        return;
+    }
+
+    var data = { titre: titre, contenu: contenu, type: type, date: date, actif: true };
+
+    var ref;
+    if (editId) {
+        ref = db_ref.ref('club_messages/' + editId);
+        // Conserver le createdAt d'origine
+        ref.update(data).then(function() {
+            window.showSuccessMessage && window.showSuccessMessage('Message mis à jour !', '');
+            window.cancelEditMessage();
+            window.loadClubMessagesAdmin();
+        });
+    } else {
+        data.createdAt = Date.now();
+        ref = db_ref.ref('club_messages').push();
+        ref.set(data).then(function() {
+            window.showSuccessMessage && window.showSuccessMessage('Message publié !', '');
+            window.cancelEditMessage();
+            window.loadClubMessagesAdmin();
+        });
+    }
+};
+
+window.editClubMessage = function(id) {
+    db_ref.ref('club_messages/' + id).once('value', function(snap) {
+        var m = snap.val();
+        if (!m) return;
+        document.getElementById('msg-edit-id').value = id;
+        document.getElementById('msg-titre').value = m.titre || '';
+        document.getElementById('msg-contenu').value = m.contenu || '';
+        document.getElementById('msg-type').value = m.type || 'info';
+        document.getElementById('msg-date').value = m.date || '';
+        var title = document.getElementById('msg-form-title');
+        if (title) title.innerHTML = '<i class="fas fa-edit"></i> Modifier le message';
+        var cancelBtn = document.getElementById('msg-cancel-btn');
+        if (cancelBtn) cancelBtn.style.display = 'inline-flex';
+        document.getElementById('msg-titre')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+};
+
+window.cancelEditMessage = function() {
+    document.getElementById('msg-edit-id').value = '';
+    document.getElementById('msg-titre').value = '';
+    document.getElementById('msg-contenu').value = '';
+    document.getElementById('msg-type').value = 'info';
+    document.getElementById('msg-date').value = '';
+    var title = document.getElementById('msg-form-title');
+    if (title) title.innerHTML = '<i class="fas fa-plus-circle"></i> Nouveau message';
+    var cancelBtn = document.getElementById('msg-cancel-btn');
+    if (cancelBtn) cancelBtn.style.display = 'none';
+};
+
+window.toggleClubMessage = function(id, currentActif) {
+    db_ref.ref('club_messages/' + id).update({ actif: !currentActif }).then(function() {
+        window.loadClubMessagesAdmin();
+    });
+};
+
+window.deleteClubMessage = function(id) {
+    if (!confirm('Supprimer définitivement ce message ?')) return;
+    db_ref.ref('club_messages/' + id).remove().then(function() {
+        window.showSuccessMessage && window.showSuccessMessage('Message supprimé.', '');
+        window.loadClubMessagesAdmin();
+    });
+};
+
+function escHtml(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
