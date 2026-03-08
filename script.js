@@ -33,6 +33,12 @@ document.addEventListener('DOMContentLoaded', () => {
     window.isCurrentUserMember = false;
 
     auth.onAuthStateChanged(user => {
+        // Nettoyer tous les listeners existants pour éviter l'accumulation
+        if (window.firebaseListeners && window.firebaseListeners.length) {
+            window.firebaseListeners.forEach(({ ref, callback, event }) => ref.off(event, callback));
+            window.firebaseListeners = [];
+        }
+
         if (user) {
             // Vérifier admin en priorité
             db_ref.ref('admins/' + user.uid).once('value', snapshot => {
@@ -764,7 +770,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div class="news-content" style="padding:20px; flex-grow:1; display:flex; flex-direction:column;">
                             <h3 style="font-family:'Orbitron'; font-size:1.1rem; margin-bottom:10px; color:white; line-height:1.4;">${escapeHtml(item.title || '')}</h3>
                             <p style="font-size:0.9rem; color:#94a3b8; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; margin-bottom:15px; flex-grow:1;">${formatText(item.desc || '')}</p>
-                            ${section === 'rates' ? `<div style="margin-top:auto;"><div style="color:var(--tennis-yellow); font-weight:bold; font-size:1.2rem;">${escapeHtml(item.price || '')}</div><button onclick="event.stopPropagation(); contactForOffer('${escapeHtml(item.title || '').replace(/'/g, "\\'")}')" style="margin-top:12px; background:linear-gradient(135deg, #00d2ff, #00a8cc); color:#020617; border:none; padding:10px 20px; border-radius:25px; font-weight:bold; cursor:pointer; font-size:0.85rem; display:inline-flex; align-items:center; gap:8px; transition:all 0.3s;"><i class="fas fa-envelope"></i> Nous contacter</button></div>` : ''}
+                            ${section === 'rates' ? `<div style="margin-top:auto;"><div style="color:var(--tennis-yellow); font-weight:bold; font-size:1.2rem;">${escapeHtml(item.price || '')}</div><button class="js-contact-offer-btn" data-offer="${escapeHtml(item.title || '')}" style="margin-top:12px; background:linear-gradient(135deg, #00d2ff, #00a8cc); color:#020617; border:none; padding:10px 20px; border-radius:25px; font-weight:bold; cursor:pointer; font-size:0.85rem; display:inline-flex; align-items:center; gap:8px; transition:all 0.3s;"><i class="fas fa-envelope"></i> Nous contacter</button></div>` : ''}
                             ${item.url && section === 'sponsors' ? `<a href="${escapeHtml(item.url)}" target="_blank" rel="noopener noreferrer" class="btn-cta" style="margin-top:auto; text-align:center; padding:8px;">Visiter</a>` : ''}
                         </div>
 
@@ -895,10 +901,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 const safePrice = escapeHtml(item.price);
                 galleryRateInfo.innerHTML = `
                     <div style="color:var(--tennis-yellow); font-weight:bold; font-size:1.8rem; font-family:'Orbitron'; margin-bottom:20px;">${safePrice}</div>
-                    <button onclick="contactForOffer('${safeTitle.replace(/'/g, "\\'")}')"
-                        style="background:linear-gradient(135deg, #00d2ff, #00a8cc); color:#020617; border:none; padding:15px 35px; border-radius:50px; font-weight:bold; cursor:pointer; font-size:1rem; display:inline-flex; align-items:center; gap:10px; transition:all 0.3s; box-shadow:0 4px 15px rgba(0,210,255,0.3);"
-                        onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(0,210,255,0.4)';"
-                        onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(0,210,255,0.3)';">
+                    <button class="js-contact-offer-btn" data-offer="${safeTitle}"
+                        style="background:linear-gradient(135deg, #00d2ff, #00a8cc); color:#020617; border:none; padding:15px 35px; border-radius:50px; font-weight:bold; cursor:pointer; font-size:1rem; display:inline-flex; align-items:center; gap:10px; transition:all 0.3s; box-shadow:0 4px 15px rgba(0,210,255,0.3);">
                         <i class="fas fa-envelope"></i> Nous contacter pour cette offre
                     </button>
                 `;
@@ -953,10 +957,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 const safePrice = escapeHtml(item.price);
                 galleryRateInfo.innerHTML = `
                     <div style="color:var(--tennis-yellow); font-weight:bold; font-size:1.8rem; font-family:'Orbitron'; margin-bottom:20px;">${safePrice}</div>
-                    <button onclick="contactForOffer('${safeTitle.replace(/'/g, "\\'")}')"
-                        style="background:linear-gradient(135deg, #00d2ff, #00a8cc); color:#020617; border:none; padding:15px 35px; border-radius:50px; font-weight:bold; cursor:pointer; font-size:1rem; display:inline-flex; align-items:center; gap:10px; transition:all 0.3s; box-shadow:0 4px 15px rgba(0,210,255,0.3);"
-                        onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(0,210,255,0.4)';"
-                        onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(0,210,255,0.3)';">
+                    <button class="js-contact-offer-btn" data-offer="${safeTitle}"
+                        style="background:linear-gradient(135deg, #00d2ff, #00a8cc); color:#020617; border:none; padding:15px 35px; border-radius:50px; font-weight:bold; cursor:pointer; font-size:1rem; display:inline-flex; align-items:center; gap:10px; transition:all 0.3s; box-shadow:0 4px 15px rgba(0,210,255,0.3);">
                         <i class="fas fa-envelope"></i> Nous contacter pour cette offre
                     </button>
                 `;
@@ -987,6 +989,16 @@ document.addEventListener('DOMContentLoaded', () => {
         window.openModalWithHistory('gallery-modal');
         clarityEvent('modal_gallery_key', { gallery_section: section });
     };
+
+    // Listener délégué pour les boutons "Contacter pour cette offre"
+    // Remplace les onclick inline pour éviter l'injection via les données Firebase
+    document.addEventListener('click', (e) => {
+        const btn = e.target.closest('.js-contact-offer-btn');
+        if (!btn) return;
+        e.stopPropagation();
+        if (btn.classList.contains('js-close-rate-viewer')) window.closeRateViewer?.();
+        window.contactForOffer(btn.dataset.offer || '');
+    });
 
     // Contacter le club pour une offre tarif
     window.contactForOffer = (offerTitle) => {
@@ -1123,33 +1135,22 @@ document.addEventListener('DOMContentLoaded', () => {
     })();
 
     // --- CONTACT FORM ---
-    emailjs.init("s6g88S5JA8ppy1GKg");
+    // L'envoi email est délégué à la Cloud Function sendContactEmail (clé API côté serveur)
     document.getElementById('contact-form')?.addEventListener('submit', async (e) => {
         e.preventDefault();
         const btn = document.getElementById('contact-submit-btn');
         btn.disabled = true;
         try {
-            const name = document.getElementById('contact-name').value.trim();
-            const email = document.getElementById('contact-email').value.trim();
+            const name    = document.getElementById('contact-name').value.trim();
+            const email   = document.getElementById('contact-email').value.trim();
             const message = document.getElementById('contact-message').value.trim();
 
-            // Envoi email via EmailJS
-            await emailjs.sendForm('service_79xjawi', 'template_fcd7xgn', e.target);
+            // Validation basique côté client avant envoi
+            if (!name || !email || !message) throw new Error('Veuillez remplir tous les champs.');
 
-            // Sauvegarde dans Firebase Database
-            try {
-                const db = firebase.database();
-                await db.ref('contacts').push({
-                    name,
-                    email,
-                    message,
-                    date: new Date().toISOString(),
-                    timestamp: Date.now(),
-                    source: window.location.href
-                });
-            } catch (dbErr) {
-                console.warn('Contact sauvegardé par email uniquement:', dbErr);
-            }
+            // Appel Cloud Function (valide + envoie email + sauvegarde DB côté serveur)
+            const sendContact = firebase.functions().httpsCallable('sendContactEmail');
+            await sendContact({ name, email, message });
 
             window.showSuccessMessage(
                 'Message envoyé !',
@@ -1679,7 +1680,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="news-content" style="padding:20px; flex-grow:1; display:flex; flex-direction:column;">
                         <h3 style="font-family:'Orbitron'; font-size:1.1rem; margin-bottom:10px; color:white; line-height:1.4;">${escapeHtml(item.title || '')}</h3>
                         <p style="font-size:0.9rem; color:#94a3b8; display:-webkit-box; -webkit-line-clamp:10; -webkit-box-orient:vertical; overflow:hidden; margin-bottom:15px; flex-grow:1;">${formatText(item.desc || '')}</p>
-                        ${item.price ? `<div style="margin-top:auto;"><div style="color:var(--tennis-yellow); font-weight:bold; font-size:1.2rem;">${escapeHtml(item.price)}</div><button onclick="event.stopPropagation(); contactForOffer('${escapeHtml(item.title || '').replace(/'/g, "\\'")}')" style="margin-top:12px; background:linear-gradient(135deg, #00d2ff, #00a8cc); color:#020617; border:none; padding:10px 20px; border-radius:25px; font-weight:bold; cursor:pointer; font-size:0.85rem; display:inline-flex; align-items:center; gap:8px; transition:all 0.3s;"><i class="fas fa-envelope"></i> Nous contacter pour cette offre</button></div>` : ''}
+                        ${item.price ? `<div style="margin-top:auto;"><div style="color:var(--tennis-yellow); font-weight:bold; font-size:1.2rem;">${escapeHtml(item.price)}</div><button class="js-contact-offer-btn" data-offer="${escapeHtml(item.title || '')}" style="margin-top:12px; background:linear-gradient(135deg, #00d2ff, #00a8cc); color:#020617; border:none; padding:10px 20px; border-radius:25px; font-weight:bold; cursor:pointer; font-size:0.85rem; display:inline-flex; align-items:center; gap:8px; transition:all 0.3s;"><i class="fas fa-envelope"></i> Nous contacter pour cette offre</button></div>` : ''}
                     </div>
                 </div>
             </article>
@@ -1743,10 +1744,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div style="font-size:1rem; color:#cbd5e1; line-height:1.8; margin-bottom:25px;">${formatText(item.desc || '')}</div>
                 ${safePrice ? `<div style="text-align:center; color:var(--tennis-yellow); font-weight:bold; font-size:2rem; font-family:'Orbitron'; margin-bottom:25px;">${safePrice}</div>` : ''}
                 <div style="text-align:center;">
-                    <button onclick="event.stopPropagation(); closeRateViewer(); contactForOffer('${safeTitle.replace(/'/g, "\\'")}')"
-                        style="background:linear-gradient(135deg, #00d2ff, #00a8cc); color:#020617; border:none; padding:15px 35px; border-radius:50px; font-weight:bold; cursor:pointer; font-size:1rem; display:inline-flex; align-items:center; gap:10px; transition:all 0.3s; box-shadow:0 4px 15px rgba(0,210,255,0.3);"
-                        onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(0,210,255,0.4)';"
-                        onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(0,210,255,0.3)';">
+                    <button class="js-contact-offer-btn js-close-rate-viewer" data-offer="${safeTitle}"
+                        style="background:linear-gradient(135deg, #00d2ff, #00a8cc); color:#020617; border:none; padding:15px 35px; border-radius:50px; font-weight:bold; cursor:pointer; font-size:1rem; display:inline-flex; align-items:center; gap:10px; transition:all 0.3s; box-shadow:0 4px 15px rgba(0,210,255,0.3);">
                         <i class="fas fa-envelope"></i> Nous contacter pour cette offre
                     </button>
                 </div>

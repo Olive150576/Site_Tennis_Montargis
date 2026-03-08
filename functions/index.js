@@ -191,6 +191,65 @@ exports.deleteMember = functions.https.onCall(async (data, context) => {
 // avec Firebase Scheduled Functions si nécessaire
 
 /**
+ * Cloud Function pour envoyer le formulaire de contact via EmailJS (côté serveur)
+ * La clé API n'est plus exposée dans le code client
+ */
+exports.sendContactEmail = functions.https.onCall(async (data, context) => {
+    const { name, email, message } = data || {};
+
+    // Validation serveur
+    if (!name || typeof name !== 'string' || name.trim().length < 2 || name.trim().length > 200) {
+        throw new functions.https.HttpsError('invalid-argument', 'Nom invalide.');
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email || !emailRegex.test(email) || email.length > 200) {
+        throw new functions.https.HttpsError('invalid-argument', 'Email invalide.');
+    }
+    if (!message || typeof message !== 'string' || message.trim().length < 5 || message.trim().length > 5000) {
+        throw new functions.https.HttpsError('invalid-argument', 'Message invalide.');
+    }
+
+    const EMAILJS_SERVICE_ID  = 'service_79xjawi';
+    const EMAILJS_TEMPLATE_ID = 'template_fcd7xgn';
+    const EMAILJS_USER_ID     = functions.config().emailjs?.user_id || process.env.EMAILJS_USER_ID || 's6g88S5JA8ppy1GKg';
+
+    const payload = JSON.stringify({
+        service_id:      EMAILJS_SERVICE_ID,
+        template_id:     EMAILJS_TEMPLATE_ID,
+        user_id:         EMAILJS_USER_ID,
+        template_params: {
+            from_name:    name.trim(),
+            from_email:   email.trim(),
+            message:      message.trim(),
+            reply_to:     email.trim()
+        }
+    });
+
+    const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    payload
+    });
+
+    if (!response.ok) {
+        const errText = await response.text();
+        console.error('EmailJS error:', response.status, errText);
+        throw new functions.https.HttpsError('internal', 'Échec envoi email.');
+    }
+
+    // Sauvegarder dans Firebase DB
+    await admin.database().ref('contacts').push({
+        name:      name.trim(),
+        email:     email.trim(),
+        message:   message.trim(),
+        date:      new Date().toISOString(),
+        timestamp: Date.now()
+    });
+
+    return { success: true };
+});
+
+/**
  * Cloud Function pour créer un compte membre
  * Appelée par l'admin depuis le panel d'administration
  */
