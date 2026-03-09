@@ -39,6 +39,42 @@ document.addEventListener('DOMContentLoaded', () => {
             window.firebaseListeners = [];
         }
 
+        // Ré-enregistrer les listeners de sections après chaque changement d'état auth
+        const sections = ['news', 'inst', 'event', 'coach', 'rates', 'sponsors'];
+        sections.forEach(sec => {
+            const ref = db_ref.ref(sec);
+            const callback = (snap) => {
+                db[sec] = snap.val();
+                if (sec === 'news') {
+                    window.allNews = snap.val() || {};
+                    cleanupOldNews();
+                    if (window.isCurrentUserAdmin) {
+                        renderGrid(`${sec}-grid`, getAllItemsWithKeys(db[sec]), sec);
+                    } else {
+                        renderGrid(`${sec}-grid`, getLatestItemsWithKeys(db[sec], 6), sec);
+                    }
+                    handleUrlParams();
+                } else if (sec === 'rates') {
+                    window.allRates = snap.val() || {};
+                    if (window.isCurrentUserAdmin) {
+                        renderGrid(`${sec}-grid`, getAllItemsWithKeys(db[sec]), sec);
+                    } else {
+                        renderGrid(`${sec}-grid`, getFirstItemsWithKeys(db[sec], 3), sec);
+                    }
+                } else if (sec === 'event') {
+                    if (window.isCurrentUserAdmin) {
+                        renderGrid(`${sec}-grid`, getAllItemsWithKeys(db[sec]), sec);
+                    } else {
+                        renderGrid(`${sec}-grid`, db[sec], sec);
+                    }
+                } else {
+                    renderGrid(`${sec}-grid`, db[sec], sec);
+                }
+            };
+            ref.on('value', callback);
+            window.firebaseListeners.push({ ref, callback, event: 'value' });
+        });
+
         if (user) {
             // Vérifier admin en priorité
             db_ref.ref('admins/' + user.uid).once('value', snapshot => {
@@ -203,55 +239,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     }
-
-    const sections = ['news', 'inst', 'event', 'coach', 'rates', 'sponsors'];
-    sections.forEach(sec => {
-        // Pour les news, on charge TOUT pour les archives, mais on affiche que 6 sur l'accueil
-        const ref = db_ref.ref(sec);
-        const callback = (snap) => {
-            db[sec] = snap.val();
-
-            // Pour les actualités : stocker tout
-            // Admin voit tout, visiteur voit seulement 6
-            if (sec === 'news') {
-                window.allNews = snap.val() || {};
-                // Nettoyer les actualités de plus de 13 mois (en arrière-plan)
-                cleanupOldNews();
-                // Admin : afficher tout pour réorganisation / Visiteur : 6 dernières
-                if (window.isCurrentUserAdmin) {
-                    renderGrid(`${sec}-grid`, getAllItemsWithKeys(db[sec]), sec);
-                } else {
-                    renderGrid(`${sec}-grid`, getLatestItemsWithKeys(db[sec], 6), sec);
-                }
-                // Vérifier si un lien direct vers une actualité a été partagé
-                handleUrlParams();
-            }
-            // Pour les tarifs : stocker tout
-            // Admin voit tout, visiteur voit seulement 3
-            else if (sec === 'rates') {
-                window.allRates = snap.val() || {};
-                // Admin : afficher tout pour réorganisation / Visiteur : 3 premiers
-                if (window.isCurrentUserAdmin) {
-                    renderGrid(`${sec}-grid`, getAllItemsWithKeys(db[sec]), sec);
-                } else {
-                    renderGrid(`${sec}-grid`, getFirstItemsWithKeys(db[sec], 3), sec);
-                }
-            }
-            // Pour les événements : Admin voit tout, visiteur voit tout (pas de limite actuellement)
-            else if (sec === 'event') {
-                if (window.isCurrentUserAdmin) {
-                    renderGrid(`${sec}-grid`, getAllItemsWithKeys(db[sec]), sec);
-                } else {
-                    renderGrid(`${sec}-grid`, db[sec], sec);
-                }
-            } else {
-                renderGrid(`${sec}-grid`, db[sec], sec);
-            }
-        };
-        ref.on('value', callback);
-        // Stocker pour cleanup
-        window.firebaseListeners.push({ ref, callback, event: 'value' });
-    });
 
     // Fonction pour récupérer les N derniers éléments (conserve les clés Firebase)
     function getLatestItemsWithKeys(data, count) {
