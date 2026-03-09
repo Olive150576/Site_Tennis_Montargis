@@ -1278,7 +1278,7 @@ function buildVersoHtml(m, sponsors) {
 }
 
 // ── CARTE MOBILE : portrait 390×844 — toutes infos + QR ────
-function buildMobileCardHtml(m) {
+function buildMobileCardHtml(m, sponsors) {
     const prenom = m.prenom || '';
     const nom    = m.nom    || '';
     const annee  = new Date().getFullYear();
@@ -1291,9 +1291,27 @@ function buildMobileCardHtml(m) {
         <line x1="0" y1="390" x2="390" y2="390" stroke="rgba(255,215,0,0.03)" stroke-width="1"/>
     </svg>`;
 
-    const QR_SIZE = 148;
-    const LOGO_SIZE = 36;
+    const QR_SIZE = 110;
+    const LOGO_SIZE = 26;
     const LOGO_OFFSET = Math.round((QR_SIZE - LOGO_SIZE) / 2);
+
+    // Sponsors : logos en grille jusqu'à 8
+    const sponsorList = (sponsors || []).filter(s => s && (s._logoBase64 || s.title));
+    const sponsorLogosHtml = sponsorList.map(s => {
+        if (s._logoBase64) {
+            return `<img src="${s._logoBase64}" style="width:40px;height:40px;object-fit:contain;border-radius:6px;background:#fff;padding:2px;border:1px solid rgba(255,215,0,0.2);" alt="${escMember(s.title || '')}">`;
+        }
+        return `<div style="width:40px;height:40px;background:rgba(255,215,0,0.1);border:1px solid rgba(255,215,0,0.3);border-radius:6px;display:flex;align-items:center;justify-content:center;color:#ffd700;font-size:15px;font-weight:900;font-family:Arial,sans-serif;">${(s.title||'?').charAt(0).toUpperCase()}</div>`;
+    }).join('');
+    const sponsorsSection = sponsorLogosHtml ? `
+        <div style="position:relative;z-index:2;width:100%;margin-top:auto;padding-bottom:42px;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+                <div style="flex:1;height:1px;background:linear-gradient(90deg,transparent,rgba(255,215,0,0.2));"></div>
+                <div style="color:rgba(255,215,0,0.35);font-size:7px;letter-spacing:3px;font-family:Arial,sans-serif;">PARTENAIRES</div>
+                <div style="flex:1;height:1px;background:linear-gradient(90deg,rgba(255,215,0,0.2),transparent);"></div>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:7px;">${sponsorLogosHtml}</div>
+        </div>` : '';
 
     return `
     <div style="
@@ -1366,16 +1384,19 @@ function buildMobileCardHtml(m) {
         <!-- QR CODE avec logo USM intégré -->
         <div style="position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;">
             <div style="position:relative;width:${QR_SIZE}px;height:${QR_SIZE}px;">
-                <div id="card-mobile-qr" style="width:${QR_SIZE}px;height:${QR_SIZE}px;background:#f5e88a;border-radius:12px;border:2px solid rgba(255,215,0,0.5);overflow:hidden;"></div>
+                <div id="card-mobile-qr" style="width:${QR_SIZE}px;height:${QR_SIZE}px;background:#f5e88a;border-radius:10px;border:2px solid rgba(255,215,0,0.5);overflow:hidden;"></div>
                 <div style="position:absolute;top:${LOGO_OFFSET}px;left:${LOGO_OFFSET}px;width:${LOGO_SIZE}px;height:${LOGO_SIZE}px;background:#f5e88a;border-radius:50%;padding:2px;box-sizing:border-box;">
                     <img src="/logo_usm_new.png" style="width:100%;height:100%;object-fit:contain;display:block;" crossorigin="anonymous" alt="USM">
                 </div>
             </div>
-            <div style="color:rgba(255,215,0,0.35);font-size:8px;margin-top:7px;letter-spacing:1.5px;font-family:Arial,sans-serif;text-align:center;">SCANNER POUR VÉRIFIER</div>
+            <div style="color:rgba(255,215,0,0.35);font-size:8px;margin-top:6px;letter-spacing:1.5px;font-family:Arial,sans-serif;text-align:center;">SCANNER POUR VÉRIFIER</div>
         </div>
 
-        <!-- BAS : site + saison -->
-        <div style="position:absolute;bottom:26px;left:0;right:0;text-align:center;z-index:2;">
+        <!-- SPONSORS -->
+        ${sponsorsSection}
+
+        <!-- BAS : site -->
+        <div style="position:absolute;bottom:16px;left:0;right:0;text-align:center;z-index:2;">
             <div style="color:rgba(255,215,0,0.2);font-size:8px;letter-spacing:1.5px;font-family:Arial,sans-serif;">tennismontargis.fr</div>
         </div>
     </div>`;
@@ -1386,7 +1407,21 @@ window.downloadMemberCardMobile = async function() {
     const el = document.getElementById('member-card-mobile-print');
     if (!el) return;
 
-    el.innerHTML = buildMobileCardHtml(_cardMemberData);
+    // Charger + pré-charger les sponsors (logos en base64 pour html2canvas)
+    if (window.db_ref) {
+        await new Promise(resolve => {
+            window.db_ref.ref('sponsors').once('value', snap => {
+                const data = snap.val();
+                _cardSponsors = data
+                    ? (Array.isArray(data) ? data : Object.values(data)).filter(s => s && !s.draft)
+                    : [];
+                resolve();
+            });
+        });
+    }
+    const sponsorsPreloaded = await preloadSponsorLogos(_cardSponsors);
+
+    el.innerHTML = buildMobileCardHtml(_cardMemberData, sponsorsPreloaded);
     el.style.display = 'block';
 
     // QR code avec logo USM intégré
@@ -1399,8 +1434,8 @@ window.downloadMemberCardMobile = async function() {
             : `USM Tennis Montargis | ${_cardMemberData.prenom || ''} ${_cardMemberData.nom || ''}`;
         new QRCode(qrContainer, {
             text: qrContent,
-            width: 148,
-            height: 148,
+            width: 110,
+            height: 110,
             colorDark: '#0d1b2e',
             colorLight: '#f5e88a',
             correctLevel: QRCode.CorrectLevel.H
