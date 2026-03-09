@@ -779,20 +779,161 @@ window.downloadMemberWallpaper = function() {
     }, 200);
 };
 
+// ── Court de tennis filaire — Portrait (mobile 390×844) ──────
+function _buildCourtSvgPortrait(W, H) {
+    var op = 0.5, sw = 1.5;
+    var scale = W / 10.97;
+    var cH    = 23.77 * scale;
+    var offY  = (H - cH) / 2;
+    var L = 0, R = W, T = offY, B = offY + cH;
+    var netY  = (T + B) / 2;
+    var svcT  = T + 6.4 * scale;
+    var svcB  = B - 6.4 * scale;
+    var singL = 1.37 * scale;
+    var singR = W - 1.37 * scale;
+    var midX  = W / 2;
+    var f  = function(n) { return n.toFixed(1); };
+    var gold = function(a) { return 'rgba(255,215,0,' + Math.min(1, op * a).toFixed(3) + ')'; };
+    var cyan = function(a) { return 'rgba(0,210,255,' + Math.min(1, op * a).toFixed(3) + ')'; };
+    var rs = 20, arcR = 38, mk = 7;
+
+    var s = '<svg xmlns="http://www.w3.org/2000/svg" width="' + W + '" height="' + H + '" style="position:absolute;top:0;left:0;pointer-events:none;">'
+        + '<defs>'
+        + '<radialGradient id="pg-net" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#00d2ff" stop-opacity="0.08"/><stop offset="100%" stop-color="#00d2ff" stop-opacity="0"/></radialGradient>'
+        + '<radialGradient id="pg-top" cx="50%" cy="0%" r="70%"><stop offset="0%" stop-color="#ffd700" stop-opacity="0.06"/><stop offset="100%" stop-color="#ffd700" stop-opacity="0"/></radialGradient>'
+        + '<radialGradient id="pg-bot" cx="50%" cy="100%" r="70%"><stop offset="0%" stop-color="#ffd700" stop-opacity="0.06"/><stop offset="100%" stop-color="#ffd700" stop-opacity="0"/></radialGradient>'
+        + '</defs>'
+        + '<ellipse cx="' + midX + '" cy="' + f(netY) + '" rx="210" ry="210" fill="url(#pg-net)"/>'
+        + '<rect width="' + W + '" height="220" fill="url(#pg-top)"/>'
+        + '<rect y="' + (H - 220) + '" width="' + W + '" height="220" fill="url(#pg-bot)"/>'
+        // Cadre extérieur (doubles)
+        + '<rect x="' + L + '" y="' + f(T) + '" width="' + W + '" height="' + f(cH) + '" fill="none" stroke="' + gold(1) + '" stroke-width="' + sw + '"/>'
+        // Sidelines simples
+        + '<line x1="' + f(singL) + '" y1="' + f(T) + '" x2="' + f(singL) + '" y2="' + f(B) + '" stroke="' + cyan(0.8) + '" stroke-width="' + sw + '"/>'
+        + '<line x1="' + f(singR) + '" y1="' + f(T) + '" x2="' + f(singR) + '" y2="' + f(B) + '" stroke="' + cyan(0.8) + '" stroke-width="' + sw + '"/>'
+        // Filet
+        + '<line x1="' + L + '" y1="' + f(netY) + '" x2="' + R + '" y2="' + f(netY) + '" stroke="' + gold(1.5) + '" stroke-width="' + (sw * 1.5).toFixed(2) + '"/>'
+        // Lignes de service
+        + '<line x1="' + f(singL) + '" y1="' + f(svcT) + '" x2="' + f(singR) + '" y2="' + f(svcT) + '" stroke="' + cyan(0.85) + '" stroke-width="' + sw + '"/>'
+        + '<line x1="' + f(singL) + '" y1="' + f(svcB) + '" x2="' + f(singR) + '" y2="' + f(svcB) + '" stroke="' + cyan(0.85) + '" stroke-width="' + sw + '"/>'
+        // Ligne centrale service
+        + '<line x1="' + midX + '" y1="' + f(svcT) + '" x2="' + midX + '" y2="' + f(svcB) + '" stroke="' + cyan(0.65) + '" stroke-width="' + sw + '"/>'
+        // Marques centrales baselines + filet
+        + '<line x1="' + (midX - mk) + '" y1="' + f(T) + '" x2="' + (midX + mk) + '" y2="' + f(T) + '" stroke="' + gold(0.9) + '" stroke-width="' + (sw * 1.1).toFixed(2) + '"/>'
+        + '<line x1="' + (midX - mk) + '" y1="' + f(B) + '" x2="' + (midX + mk) + '" y2="' + f(B) + '" stroke="' + gold(0.9) + '" stroke-width="' + (sw * 1.1).toFixed(2) + '"/>'
+        + '<line x1="' + (midX - mk) + '" y1="' + f(netY) + '" x2="' + (midX + mk) + '" y2="' + f(netY) + '" stroke="' + gold(0.7) + '" stroke-width="' + sw + '"/>'
+        // Poteaux filet
+        + '<circle cx="' + L + '" cy="' + f(netY) + '" r="4" fill="none" stroke="' + gold(1.3) + '" stroke-width="' + (sw * 1.3).toFixed(2) + '"/>'
+        + '<circle cx="' + R + '" cy="' + f(netY) + '" r="4" fill="none" stroke="' + gold(1.3) + '" stroke-width="' + (sw * 1.3).toFixed(2) + '"/>'
+        // Cercles concentriques autour du filet
+        + '<circle cx="' + midX + '" cy="' + f(netY) + '" r="75"  fill="none" stroke="' + cyan(0.35) + '" stroke-width="' + (sw * 0.7).toFixed(2) + '"/>'
+        + '<circle cx="' + midX + '" cy="' + f(netY) + '" r="135" fill="none" stroke="' + cyan(0.35) + '" stroke-width="' + (sw * 0.7).toFixed(2) + '"/>'
+        + '<circle cx="' + midX + '" cy="' + f(netY) + '" r="195" fill="none" stroke="' + cyan(0.35) + '" stroke-width="' + (sw * 0.7).toFixed(2) + '"/>'
+        // Réticules aux 4 coins
+        + '<line x1="' + L + '" y1="' + f(T + 5) + '" x2="' + L + '" y2="' + f(T + rs) + '" stroke="' + gold(1.1) + '" stroke-width="' + sw + '"/>'
+        + '<line x1="' + f(L + 5) + '" y1="' + f(T) + '" x2="' + f(L + rs) + '" y2="' + f(T) + '" stroke="' + gold(1.1) + '" stroke-width="' + sw + '"/>'
+        + '<circle cx="' + L + '" cy="' + f(T) + '" r="9" fill="none" stroke="' + gold(0.8) + '" stroke-width="' + (sw * 0.7).toFixed(2) + '"/>'
+        + '<line x1="' + R + '" y1="' + f(T + 5) + '" x2="' + R + '" y2="' + f(T + rs) + '" stroke="' + gold(1.1) + '" stroke-width="' + sw + '"/>'
+        + '<line x1="' + f(R - 5) + '" y1="' + f(T) + '" x2="' + f(R - rs) + '" y2="' + f(T) + '" stroke="' + gold(1.1) + '" stroke-width="' + sw + '"/>'
+        + '<circle cx="' + R + '" cy="' + f(T) + '" r="9" fill="none" stroke="' + gold(0.8) + '" stroke-width="' + (sw * 0.7).toFixed(2) + '"/>'
+        + '<line x1="' + L + '" y1="' + f(B - 5) + '" x2="' + L + '" y2="' + f(B - rs) + '" stroke="' + gold(1.1) + '" stroke-width="' + sw + '"/>'
+        + '<line x1="' + f(L + 5) + '" y1="' + f(B) + '" x2="' + f(L + rs) + '" y2="' + f(B) + '" stroke="' + gold(1.1) + '" stroke-width="' + sw + '"/>'
+        + '<circle cx="' + L + '" cy="' + f(B) + '" r="9" fill="none" stroke="' + gold(0.8) + '" stroke-width="' + (sw * 0.7).toFixed(2) + '"/>'
+        + '<line x1="' + R + '" y1="' + f(B - 5) + '" x2="' + R + '" y2="' + f(B - rs) + '" stroke="' + gold(1.1) + '" stroke-width="' + sw + '"/>'
+        + '<line x1="' + f(R - 5) + '" y1="' + f(B) + '" x2="' + f(R - rs) + '" y2="' + f(B) + '" stroke="' + gold(1.1) + '" stroke-width="' + sw + '"/>'
+        + '<circle cx="' + R + '" cy="' + f(B) + '" r="9" fill="none" stroke="' + gold(0.8) + '" stroke-width="' + (sw * 0.7).toFixed(2) + '"/>'
+        // Arcs aux coins du terrain
+        + '<path d="M ' + L + ' ' + f(T + arcR) + ' A ' + arcR + ' ' + arcR + ' 0 0 1 ' + arcR + ' ' + f(T) + '" fill="none" stroke="' + gold(0.5) + '" stroke-width="' + (sw * 0.8).toFixed(2) + '"/>'
+        + '<path d="M ' + f(R - arcR) + ' ' + f(T) + ' A ' + arcR + ' ' + arcR + ' 0 0 1 ' + R + ' ' + f(T + arcR) + '" fill="none" stroke="' + gold(0.5) + '" stroke-width="' + (sw * 0.8).toFixed(2) + '"/>'
+        + '<path d="M ' + L + ' ' + f(B - arcR) + ' A ' + arcR + ' ' + arcR + ' 0 0 0 ' + arcR + ' ' + f(B) + '" fill="none" stroke="' + gold(0.5) + '" stroke-width="' + (sw * 0.8).toFixed(2) + '"/>'
+        + '<path d="M ' + f(R - arcR) + ' ' + f(B) + ' A ' + arcR + ' ' + arcR + ' 0 0 0 ' + R + ' ' + f(B - arcR) + '" fill="none" stroke="' + gold(0.5) + '" stroke-width="' + (sw * 0.8).toFixed(2) + '"/>'
+        + '</svg>';
+    return s;
+}
+
+// ── Court de tennis filaire — Paysage (bureau 1280×720) ───────
+function _buildCourtSvgLandscape(W, H) {
+    var op = 0.5, sw = 1.5;
+    var scale = (H * 0.86) / 10.97;
+    var cW = 23.77 * scale, cH = 10.97 * scale;
+    var offX = (W - cW) / 2, offY = (H - cH) / 2;
+    var L = offX, R = offX + cW, T = offY, B = offY + cH;
+    var netX  = (L + R) / 2;
+    var svcL  = L + 6.4 * scale;
+    var svcR  = R - 6.4 * scale;
+    var singT = T + 1.37 * scale;
+    var singB = B - 1.37 * scale;
+    var midY  = (T + B) / 2;
+    var f  = function(n) { return n.toFixed(1); };
+    var gold = function(a) { return 'rgba(255,215,0,' + Math.min(1, op * a).toFixed(3) + ')'; };
+    var cyan = function(a) { return 'rgba(0,210,255,' + Math.min(1, op * a).toFixed(3) + ')'; };
+    var rs = 22, arcR = 45, mk = 8, cf = 55;
+
+    var s = '<svg xmlns="http://www.w3.org/2000/svg" width="' + W + '" height="' + H + '" style="position:absolute;top:0;left:0;pointer-events:none;">'
+        + '<defs>'
+        + '<radialGradient id="dg-net" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#00d2ff" stop-opacity="0.08"/><stop offset="100%" stop-color="#00d2ff" stop-opacity="0"/></radialGradient>'
+        + '<radialGradient id="dg-tl" cx="0%" cy="0%" r="50%"><stop offset="0%" stop-color="#ffd700" stop-opacity="0.06"/><stop offset="100%" stop-color="#ffd700" stop-opacity="0"/></radialGradient>'
+        + '<radialGradient id="dg-br" cx="100%" cy="100%" r="50%"><stop offset="0%" stop-color="#ffd700" stop-opacity="0.06"/><stop offset="100%" stop-color="#ffd700" stop-opacity="0"/></radialGradient>'
+        + '</defs>'
+        + '<ellipse cx="' + f(netX) + '" cy="' + f(midY) + '" rx="300" ry="300" fill="url(#dg-net)"/>'
+        + '<rect width="' + W + '" height="' + H + '" fill="url(#dg-tl)"/>'
+        + '<rect width="' + W + '" height="' + H + '" fill="url(#dg-br)"/>'
+        // Cadre extérieur
+        + '<rect x="' + f(L) + '" y="' + f(T) + '" width="' + f(cW) + '" height="' + f(cH) + '" fill="none" stroke="' + gold(1) + '" stroke-width="' + sw + '"/>'
+        // Singles sidelines
+        + '<line x1="' + f(L) + '" y1="' + f(singT) + '" x2="' + f(R) + '" y2="' + f(singT) + '" stroke="' + cyan(0.8) + '" stroke-width="' + sw + '"/>'
+        + '<line x1="' + f(L) + '" y1="' + f(singB) + '" x2="' + f(R) + '" y2="' + f(singB) + '" stroke="' + cyan(0.8) + '" stroke-width="' + sw + '"/>'
+        // Filet
+        + '<line x1="' + f(netX) + '" y1="' + f(T) + '" x2="' + f(netX) + '" y2="' + f(B) + '" stroke="' + gold(1.5) + '" stroke-width="' + (sw * 1.5).toFixed(2) + '"/>'
+        // Lignes de service
+        + '<line x1="' + f(svcL) + '" y1="' + f(singT) + '" x2="' + f(svcL) + '" y2="' + f(singB) + '" stroke="' + cyan(0.85) + '" stroke-width="' + sw + '"/>'
+        + '<line x1="' + f(svcR) + '" y1="' + f(singT) + '" x2="' + f(svcR) + '" y2="' + f(singB) + '" stroke="' + cyan(0.85) + '" stroke-width="' + sw + '"/>'
+        // Ligne centrale service
+        + '<line x1="' + f(svcL) + '" y1="' + f(midY) + '" x2="' + f(svcR) + '" y2="' + f(midY) + '" stroke="' + cyan(0.65) + '" stroke-width="' + sw + '"/>'
+        // Marques centrales
+        + '<line x1="' + f(L) + '" y1="' + f(midY - mk) + '" x2="' + f(L) + '" y2="' + f(midY + mk) + '" stroke="' + gold(0.9) + '" stroke-width="' + (sw * 1.1).toFixed(2) + '"/>'
+        + '<line x1="' + f(R) + '" y1="' + f(midY - mk) + '" x2="' + f(R) + '" y2="' + f(midY + mk) + '" stroke="' + gold(0.9) + '" stroke-width="' + (sw * 1.1).toFixed(2) + '"/>'
+        + '<line x1="' + f(netX - mk) + '" y1="' + f(midY) + '" x2="' + f(netX + mk) + '" y2="' + f(midY) + '" stroke="' + gold(0.7) + '" stroke-width="' + sw + '"/>'
+        // Poteaux filet
+        + '<circle cx="' + f(netX) + '" cy="' + f(T) + '" r="5" fill="none" stroke="' + gold(1.2) + '" stroke-width="' + (sw * 1.3).toFixed(2) + '"/>'
+        + '<circle cx="' + f(netX) + '" cy="' + f(B) + '" r="5" fill="none" stroke="' + gold(1.2) + '" stroke-width="' + (sw * 1.3).toFixed(2) + '"/>'
+        // Cercles concentriques
+        + '<circle cx="' + f(netX) + '" cy="' + f(midY) + '" r="90"  fill="none" stroke="' + cyan(0.35) + '" stroke-width="' + (sw * 0.7).toFixed(2) + '"/>'
+        + '<circle cx="' + f(netX) + '" cy="' + f(midY) + '" r="160" fill="none" stroke="' + cyan(0.35) + '" stroke-width="' + (sw * 0.7).toFixed(2) + '"/>'
+        + '<circle cx="' + f(netX) + '" cy="' + f(midY) + '" r="235" fill="none" stroke="' + cyan(0.35) + '" stroke-width="' + (sw * 0.7).toFixed(2) + '"/>'
+        // Réticules aux 4 coins du terrain
+        + '<line x1="' + f(L) + '" y1="' + f(T + 5) + '" x2="' + f(L) + '" y2="' + f(T + rs) + '" stroke="' + gold(1.1) + '" stroke-width="' + sw + '"/>'
+        + '<line x1="' + f(L + 5) + '" y1="' + f(T) + '" x2="' + f(L + rs) + '" y2="' + f(T) + '" stroke="' + gold(1.1) + '" stroke-width="' + sw + '"/>'
+        + '<circle cx="' + f(L) + '" cy="' + f(T) + '" r="10" fill="none" stroke="' + gold(0.7) + '" stroke-width="' + (sw * 0.7).toFixed(2) + '"/>'
+        + '<line x1="' + f(R) + '" y1="' + f(T + 5) + '" x2="' + f(R) + '" y2="' + f(T + rs) + '" stroke="' + gold(1.1) + '" stroke-width="' + sw + '"/>'
+        + '<line x1="' + f(R - 5) + '" y1="' + f(T) + '" x2="' + f(R - rs) + '" y2="' + f(T) + '" stroke="' + gold(1.1) + '" stroke-width="' + sw + '"/>'
+        + '<circle cx="' + f(R) + '" cy="' + f(T) + '" r="10" fill="none" stroke="' + gold(0.7) + '" stroke-width="' + (sw * 0.7).toFixed(2) + '"/>'
+        + '<line x1="' + f(L) + '" y1="' + f(B - 5) + '" x2="' + f(L) + '" y2="' + f(B - rs) + '" stroke="' + gold(1.1) + '" stroke-width="' + sw + '"/>'
+        + '<line x1="' + f(L + 5) + '" y1="' + f(B) + '" x2="' + f(L + rs) + '" y2="' + f(B) + '" stroke="' + gold(1.1) + '" stroke-width="' + sw + '"/>'
+        + '<circle cx="' + f(L) + '" cy="' + f(B) + '" r="10" fill="none" stroke="' + gold(0.7) + '" stroke-width="' + (sw * 0.7).toFixed(2) + '"/>'
+        + '<line x1="' + f(R) + '" y1="' + f(B - 5) + '" x2="' + f(R) + '" y2="' + f(B - rs) + '" stroke="' + gold(1.1) + '" stroke-width="' + sw + '"/>'
+        + '<line x1="' + f(R - 5) + '" y1="' + f(B) + '" x2="' + f(R - rs) + '" y2="' + f(B) + '" stroke="' + gold(1.1) + '" stroke-width="' + sw + '"/>'
+        + '<circle cx="' + f(R) + '" cy="' + f(B) + '" r="10" fill="none" stroke="' + gold(0.7) + '" stroke-width="' + (sw * 0.7).toFixed(2) + '"/>'
+        // Cadres d'angle aux coins du canvas
+        + '<polyline points="' + cf + ',0 0,0 0,' + cf + '" fill="none" stroke="' + gold(1.2) + '" stroke-width="' + (sw * 1.3).toFixed(2) + '"/>'
+        + '<polyline points="' + (W - cf) + ',0 ' + W + ',0 ' + W + ',' + cf + '" fill="none" stroke="' + gold(1.2) + '" stroke-width="' + (sw * 1.3).toFixed(2) + '"/>'
+        + '<polyline points="' + cf + ',' + H + ' 0,' + H + ' 0,' + (H - cf) + '" fill="none" stroke="' + gold(1.2) + '" stroke-width="' + (sw * 1.3).toFixed(2) + '"/>'
+        + '<polyline points="' + (W - cf) + ',' + H + ' ' + W + ',' + H + ' ' + W + ',' + (H - cf) + '" fill="none" stroke="' + gold(1.2) + '" stroke-width="' + (sw * 1.3).toFixed(2) + '"/>'
+        // Arcs aux coins du terrain
+        + '<path d="M ' + f(L) + ' ' + f(T + arcR) + ' A ' + arcR + ' ' + arcR + ' 0 0 1 ' + f(L + arcR) + ' ' + f(T) + '" fill="none" stroke="' + gold(0.45) + '" stroke-width="' + (sw * 0.8).toFixed(2) + '"/>'
+        + '<path d="M ' + f(R - arcR) + ' ' + f(T) + ' A ' + arcR + ' ' + arcR + ' 0 0 1 ' + f(R) + ' ' + f(T + arcR) + '" fill="none" stroke="' + gold(0.45) + '" stroke-width="' + (sw * 0.8).toFixed(2) + '"/>'
+        + '<path d="M ' + f(L) + ' ' + f(B - arcR) + ' A ' + arcR + ' ' + arcR + ' 0 0 0 ' + f(L + arcR) + ' ' + f(B) + '" fill="none" stroke="' + gold(0.45) + '" stroke-width="' + (sw * 0.8).toFixed(2) + '"/>'
+        + '<path d="M ' + f(R - arcR) + ' ' + f(B) + ' A ' + arcR + ' ' + arcR + ' 0 0 0 ' + f(R) + ' ' + f(B - arcR) + '" fill="none" stroke="' + gold(0.45) + '" stroke-width="' + (sw * 0.8).toFixed(2) + '"/>'
+        + '</svg>';
+    return s;
+}
+
 function buildWallpaperHtml(m) {
     const prenom = m.prenom || '';
     const nom = m.nom || '';
     const annee = new Date().getFullYear();
 
-    // Lignes décoratives dorées en SVG (motif tennis / raquette stylisé)
-    const decorSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="390" height="844" style="position:absolute;top:0;left:0;pointer-events:none;">
-        <line x1="0" y1="200" x2="390" y2="200" stroke="rgba(255,215,0,0.07)" stroke-width="1"/>
-        <line x1="0" y1="644" x2="390" y2="644" stroke="rgba(255,215,0,0.07)" stroke-width="1"/>
-        <circle cx="195" cy="422" r="180" stroke="rgba(255,215,0,0.05)" stroke-width="1" fill="none"/>
-        <circle cx="195" cy="422" r="140" stroke="rgba(255,215,0,0.04)" stroke-width="1" fill="none"/>
-        <line x1="0" y1="422" x2="390" y2="422" stroke="rgba(255,215,0,0.05)" stroke-width="1"/>
-        <line x1="195" y1="242" x2="195" y2="602" stroke="rgba(255,215,0,0.05)" stroke-width="1"/>
-    </svg>`;
+    const decorSvg = _buildCourtSvgPortrait(390, 844);
 
     return `
     <div style="
@@ -918,26 +1059,7 @@ function buildDesktopWallpaperHtml(m) {
     const W = 1280, H = 720;
     const cx = W / 2, cy = H / 2;
 
-    const decorSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" style="position:absolute;top:0;left:0;pointer-events:none;">
-        <!-- Lignes horizontales de cadre -->
-        <line x1="0" y1="80"  x2="${W}" y2="80"  stroke="rgba(255,215,0,0.06)" stroke-width="1"/>
-        <line x1="0" y1="${H-80}" x2="${W}" y2="${H-80}" stroke="rgba(255,215,0,0.06)" stroke-width="1"/>
-        <!-- Cercles concentriques centraux -->
-        <circle cx="${cx}" cy="${cy}" r="310" stroke="rgba(255,215,0,0.05)" stroke-width="1" fill="none"/>
-        <circle cx="${cx}" cy="${cy}" r="240" stroke="rgba(255,215,0,0.04)" stroke-width="1" fill="none"/>
-        <circle cx="${cx}" cy="${cy}" r="170" stroke="rgba(255,215,0,0.03)" stroke-width="1" fill="none"/>
-        <!-- Croix centrale -->
-        <line x1="0" y1="${cy}" x2="${W}" y2="${cy}" stroke="rgba(255,215,0,0.04)" stroke-width="1"/>
-        <line x1="${cx}" y1="0" x2="${cx}" y2="${H}" stroke="rgba(255,215,0,0.04)" stroke-width="1"/>
-        <!-- Coins dorés -->
-        <path d="M40,40 L40,90 M40,40 L90,40"   stroke="rgba(255,215,0,0.18)" stroke-width="1.5" fill="none"/>
-        <path d="M${W-40},40 L${W-40},90 M${W-40},40 L${W-90},40" stroke="rgba(255,215,0,0.18)" stroke-width="1.5" fill="none"/>
-        <path d="M40,${H-40} L40,${H-90} M40,${H-40} L90,${H-40}" stroke="rgba(255,215,0,0.18)" stroke-width="1.5" fill="none"/>
-        <path d="M${W-40},${H-40} L${W-40},${H-90} M${W-40},${H-40} L${W-90},${H-40}" stroke="rgba(255,215,0,0.18)" stroke-width="1.5" fill="none"/>
-        <!-- Lignes diagonales légères -->
-        <line x1="0" y1="0" x2="200" y2="${H}" stroke="rgba(255,215,0,0.02)" stroke-width="1"/>
-        <line x1="${W}" y1="0" x2="${W-200}" y2="${H}" stroke="rgba(255,215,0,0.02)" stroke-width="1"/>
-    </svg>`;
+    const decorSvg = _buildCourtSvgLandscape(W, H);
 
     const separatorHtml = `
         <div style="display:flex;align-items:center;gap:12px;width:280px;margin:20px auto;">

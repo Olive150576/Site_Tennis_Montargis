@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Preview — Fonds d'écran géométriques USM</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#111; font-family:Arial,sans-serif; color:#e2e8f0; }
+
+.topbar {
+    position:sticky; top:0; z-index:100;
+    background:rgba(5,10,20,0.97);
+    border-bottom:1px solid rgba(0,210,255,0.25);
+    padding:12px 24px;
+    display:flex; align-items:center; gap:24px; flex-wrap:wrap;
+}
+.topbar h1 { font-size:13px; color:#00d2ff; letter-spacing:2px; flex:1; min-width:200px; }
+.ctrl { display:flex; align-items:center; gap:10px; }
+.ctrl label { font-size:12px; color:#94a3b8; }
+input[type=range] { width:130px; accent-color:#ffd700; cursor:pointer; }
+.val { font-size:13px; font-weight:700; color:#ffd700; min-width:38px; }
+.note { font-size:11px; color:rgba(255,255,255,0.25); font-style:italic; }
+
+.area {
+    padding:32px 20px 60px;
+    display:flex; gap:40px; justify-content:center;
+    align-items:flex-start; flex-wrap:wrap;
+}
+.block { text-align:center; }
+.lbl { font-size:11px; letter-spacing:3px; color:#475569; text-transform:uppercase; margin-bottom:12px; }
+.sublbl { font-size:10px; color:rgba(255,255,255,0.2); margin-top:10px; }
+.frame {
+    display:inline-block;
+    border:1px solid rgba(255,255,255,0.12);
+    border-radius:6px; overflow:hidden;
+    box-shadow:0 16px 50px rgba(0,0,0,0.7);
+}
+/* Desktop affiché à 55% */
+.frame-desktop {
+    transform:scale(0.55); transform-origin:top left;
+    display:inline-block;
+    border:1px solid rgba(255,255,255,0.12);
+    border-radius:6px; overflow:hidden;
+    box-shadow:0 16px 50px rgba(0,0,0,0.7);
+}
+.desktop-wrapper {
+    /* compense le scale pour que le wrapper reprenne la bonne taille */
+    width: calc(1280px * 0.55);
+    height: calc(720px * 0.55);
+    display:block;
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+    <h1>Preview — Court tennis filaire · Fonds d'écran membres</h1>
+    <div class="ctrl">
+        <label>Intensité :</label>
+        <input type="range" id="sl" min="5" max="55" value="22" oninput="update()">
+        <span class="val" id="vl">22%</span>
+    </div>
+    <div class="ctrl">
+        <label>Épaisseur :</label>
+        <input type="range" id="sk" min="4" max="25" value="10" oninput="update()">
+        <span class="val" id="vk">1.0px</span>
+    </div>
+    <span class="note">Ajuste les curseurs — dis-moi ce qui te convient</span>
+</div>
+
+<div class="area">
+
+    <!-- MOBILE 390×844 -->
+    <div class="block">
+        <div class="lbl">📱 Mobile — 390 × 844 px</div>
+        <div class="frame">
+            <svg id="sv-mobile" xmlns="http://www.w3.org/2000/svg"
+                 width="390" height="844" style="display:block;">
+                <!-- fond -->
+                <defs>
+                    <linearGradient id="bg-m" x1="0" y1="0" x2="0.3" y2="1">
+                        <stop offset="0%"   stop-color="#0a1220"/>
+                        <stop offset="30%"  stop-color="#0d1b2e"/>
+                        <stop offset="65%"  stop-color="#112240"/>
+                        <stop offset="100%" stop-color="#0a1628"/>
+                    </linearGradient>
+                    <radialGradient id="hl-m" cx="50%" cy="50%" r="60%">
+                        <stop offset="0%"   stop-color="#00d2ff" stop-opacity="0.07"/>
+                        <stop offset="100%" stop-color="#00d2ff" stop-opacity="0"/>
+                    </radialGradient>
+                    <radialGradient id="ht-m" cx="50%" cy="10%" r="45%">
+                        <stop offset="0%"   stop-color="#ffd700" stop-opacity="0.06"/>
+                        <stop offset="100%" stop-color="#ffd700" stop-opacity="0"/>
+                    </radialGradient>
+                    <radialGradient id="hb-m" cx="50%" cy="90%" r="45%">
+                        <stop offset="0%"   stop-color="#ffd700" stop-opacity="0.05"/>
+                        <stop offset="100%" stop-color="#ffd700" stop-opacity="0"/>
+                    </radialGradient>
+                </defs>
+                <rect width="390" height="844" fill="url(#bg-m)"/>
+                <rect width="390" height="844" fill="url(#hl-m)"/>
+                <rect width="390" height="844" fill="url(#ht-m)"/>
+                <rect width="390" height="844" fill="url(#hb-m)"/>
+                <!-- court + contenu injectés par JS -->
+                <g id="court-m"></g>
+                <g id="content-m"></g>
+            </svg>
+        </div>
+        <div class="sublbl">Fond d'écran téléphone</div>
+    </div>
+
+    <!-- DESKTOP 1280×720 -->
+    <div class="block">
+        <div class="lbl">🖥️ Bureau — 1280 × 720 px (affiché à 55%)</div>
+        <div class="desktop-wrapper">
+            <div class="frame-desktop">
+                <svg id="sv-desktop" xmlns="http://www.w3.org/2000/svg"
+                     width="1280" height="720" style="display:block;">
+                    <defs>
+                        <linearGradient id="bg-d" x1="0" y1="0" x2="0.3" y2="1">
+                            <stop offset="0%"   stop-color="#070e1a"/>
+                            <stop offset="35%"  stop-color="#0d1b2e"/>
+                            <stop offset="65%"  stop-color="#112240"/>
+                            <stop offset="100%" stop-color="#080f1c"/>
+                        </linearGradient>
+                        <radialGradient id="hl-d" cx="50%" cy="50%" r="60%">
+                            <stop offset="0%"   stop-color="#00d2ff" stop-opacity="0.07"/>
+                            <stop offset="100%" stop-color="#00d2ff" stop-opacity="0"/>
+                        </radialGradient>
+                        <radialGradient id="hlt-d" cx="15%" cy="20%" r="40%">
+                            <stop offset="0%"   stop-color="#ffd700" stop-opacity="0.06"/>
+                            <stop offset="100%" stop-color="#ffd700" stop-opacity="0"/>
+                        </radialGradient>
+                        <radialGradient id="hlb-d" cx="85%" cy="80%" r="40%">
+                            <stop offset="0%"   stop-color="#ffd700" stop-opacity="0.05"/>
+                            <stop offset="100%" stop-color="#ffd700" stop-opacity="0"/>
+                        </radialGradient>
+                    </defs>
+                    <rect width="1280" height="720" fill="url(#bg-d)"/>
+                    <rect width="1280" height="720" fill="url(#hl-d)"/>
+                    <rect width="1280" height="720" fill="url(#hlt-d)"/>
+                    <rect width="1280" height="720" fill="url(#hlb-d)"/>
+                    <g id="court-d"></g>
+                    <g id="content-d"></g>
+                </svg>
+            </div>
+        </div>
+        <div class="sublbl" style="margin-top:8px;">Fond d'écran ordinateur</div>
+    </div>
+
+</div>
+
+<script>
+// ─── Génère le SVG du court portrait (mobile 390×844) ─────────
+function courtPortrait(W, H, op, sw) {
+    // Proportions ITF doubles : 23.77m × 10.97m
+    const scale  = W / 10.97;
+    const cH     = 23.77 * scale;
+    const offY   = (H - cH) / 2;
+
+    const L = 0, R = W;
+    const T = offY, B = offY + cH;
+    const netY  = (T + B) / 2;
+    const svcT  = T + 6.4 * scale;
+    const svcB  = B - 6.4 * scale;
+    const singL = 1.37 * scale;
+    const singR = W - 1.37 * scale;
+    const midX  = W / 2;
+
+    const g = (c, a) => `${c.replace('X', (op * a).toFixed(3))}`;
+    const gold = a  => `rgba(255,215,0,${(op*a).toFixed(3)})`;
+    const cyan = a  => `rgba(0,210,255,${(op*a).toFixed(3)})`;
+
+    let s = '';
+
+    // Cadre extérieur (doubles)
+    s += `<rect x="${L}" y="${T.toFixed(1)}" width="${W}" height="${cH.toFixed(1)}"
+        fill="none" stroke="${gold(1)}" stroke-width="${sw}"/>`;
+
+    // Sidelines simples
+    s += `<line x1="${singL.toFixed(1)}" y1="${T.toFixed(1)}" x2="${singL.toFixed(1)}" y2="${B.toFixed(1)}"
+        stroke="${cyan(0.8)}" stroke-width="${sw}"/>`;
+    s += `<line x1="${singR.toFixed(1)}" y1="${T.toFixed(1)}" x2="${singR.toFixed(1)}" y2="${B.toFixed(1)}"
+        stroke="${cyan(0.8)}" stroke-width="${sw}"/>`;
+
+    // Filet
+    s += `<line x1="${L}" y1="${netY.toFixed(1)}" x2="${R}" y2="${netY.toFixed(1)}"
+        stroke="${gold(1.5)}" stroke-width="${(sw*1.5).toFixed(2)}"/>`;
+
+    // Lignes de service
+    s += `<line x1="${singL.toFixed(1)}" y1="${svcT.toFixed(1)}" x2="${singR.toFixed(1)}" y2="${svcT.toFixed(1)}"
+        stroke="${cyan(0.85)}" stroke-width="${sw}"/>`;
+    s += `<line x1="${singL.toFixed(1)}" y1="${svcB.toFixed(1)}" x2="${singR.toFixed(1)}" y2="${svcB.toFixed(1)}"
+        stroke="${cyan(0.85)}" stroke-width="${sw}"/>`;
+
+    // Ligne centrale service
+    s += `<line x1="${midX}" y1="${svcT.toFixed(1)}" x2="${midX}" y2="${svcB.toFixed(1)}"
+        stroke="${cyan(0.65)}" stroke-width="${sw}"/>`;
+
+    // Marques centrales baselines
+    const mk = 7;
+    s += `<line x1="${midX-mk}" y1="${T.toFixed(1)}" x2="${midX+mk}" y2="${T.toFixed(1)}" stroke="${gold(0.9)}" stroke-width="${(sw*1.1).toFixed(2)}"/>`;
+    s += `<line x1="${midX-mk}" y1="${B.toFixed(1)}" x2="${midX+mk}" y2="${B.toFixed(1)}" stroke="${gold(0.9)}" stroke-width="${(sw*1.1).toFixed(2)}"/>`;
+    s += `<line x1="${midX-mk}" y1="${netY.toFixed(1)}" x2="${midX+mk}" y2="${netY.toFixed(1)}" stroke="${gold(0.7)}" stroke-width="${sw}"/>`;
+
+    // Poteaux de filet
+    s += `<circle cx="${L}" cy="${netY.toFixed(1)}" r="4" fill="none" stroke="${gold(1.3)}" stroke-width="${(sw*1.3).toFixed(2)}"/>`;
+    s += `<circle cx="${R}" cy="${netY.toFixed(1)}" r="4" fill="none" stroke="${gold(1.3)}" stroke-width="${(sw*1.3).toFixed(2)}"/>`;
+
+    // Cercles concentriques autour du filet
+    [75, 135, 195].forEach(r => {
+        s += `<circle cx="${midX}" cy="${netY.toFixed(1)}" r="${r}" fill="none" stroke="${cyan(0.35)}" stroke-width="${(sw*0.7).toFixed(2)}"/>`;
+    });
+
+    // Réticules aux 4 coins
+    const corners = [[L, T], [R, T], [L, B], [R, B]];
+    const rs = 20;
+    corners.forEach(([cx, cy]) => {
+        const sx = cx === L ? 1 : -1, sy = cy === T ? 1 : -1;
+        s += `<line x1="${cx}" y1="${(cy + sy*5).toFixed(1)}" x2="${cx}" y2="${(cy + sy*rs).toFixed(1)}" stroke="${gold(1.1)}" stroke-width="${sw}"/>`;
+        s += `<line x1="${(cx + sx*5).toFixed(1)}" y1="${cy.toFixed(1)}" x2="${(cx + sx*rs).toFixed(1)}" y2="${cy.toFixed(1)}" stroke="${gold(1.1)}" stroke-width="${sw}"/>`;
+        s += `<circle cx="${cx}" cy="${cy.toFixed(1)}" r="9" fill="none" stroke="${gold(0.8)}" stroke-width="${(sw*0.7).toFixed(2)}"/>`;
+    });
+
+    // Arcs décoratifs aux coins du court
+    const arcR = 38;
+    s += `<path d="M ${L} ${(T+arcR).toFixed(1)} A ${arcR} ${arcR} 0 0 1 ${arcR} ${T.toFixed(1)}" fill="none" stroke="${gold(0.5)}" stroke-width="${(sw*0.8).toFixed(2)}"/>`;
+    s += `<path d="M ${R-arcR} ${T.toFixed(1)} A ${arcR} ${arcR} 0 0 1 ${R} ${(T+arcR).toFixed(1)}" fill="none" stroke="${gold(0.5)}" stroke-width="${(sw*0.8).toFixed(2)}"/>`;
+    s += `<path d="M ${L} ${(B-arcR).toFixed(1)} A ${arcR} ${arcR} 0 0 0 ${arcR} ${B.toFixed(1)}" fill="none" stroke="${gold(0.5)}" stroke-width="${(sw*0.8).toFixed(2)}"/>`;
+    s += `<path d="M ${R-arcR} ${B.toFixed(1)} A ${arcR} ${arcR} 0 0 0 ${R} ${(B-arcR).toFixed(1)}" fill="none" stroke="${gold(0.5)}" stroke-width="${(sw*0.8).toFixed(2)}"/>`;
+
+    return s;
+}
+
+// ─── Court paysage (bureau 1280×720) ──────────────────────────
+function courtLandscape(W, H, op, sw) {
+    const cW_m = 23.77, cH_m = 10.97;
+    const scale = (H * 0.86) / cH_m;
+    const cW = cW_m * scale, cH = cH_m * scale;
+    const offX = (W - cW) / 2, offY = (H - cH) / 2;
+
+    const L = offX, R = offX + cW;
+    const T = offY, B = offY + cH;
+    const netX  = (L + R) / 2;
+    const svcL  = L + 6.4 * scale;
+    const svcR  = R - 6.4 * scale;
+    const singT = T + 1.37 * scale;
+    const singB = B - 1.37 * scale;
+    const midY  = (T + B) / 2;
+
+    const gold = a => `rgba(255,215,0,${(op*a).toFixed(3)})`;
+    const cyan = a => `rgba(0,210,255,${(op*a).toFixed(3)})`;
+
+    let s = '';
+
+    // Cadre extérieur
+    s += `<rect x="${L.toFixed(1)}" y="${T.toFixed(1)}" width="${cW.toFixed(1)}" height="${cH.toFixed(1)}"
+        fill="none" stroke="${gold(1)}" stroke-width="${sw}"/>`;
+
+    // Sidelines simples
+    s += `<line x1="${L.toFixed(1)}" y1="${singT.toFixed(1)}" x2="${R.toFixed(1)}" y2="${singT.toFixed(1)}" stroke="${cyan(0.8)}" stroke-width="${sw}"/>`;
+    s += `<line x1="${L.toFixed(1)}" y1="${singB.toFixed(1)}" x2="${R.toFixed(1)}" y2="${singB.toFixed(1)}" stroke="${cyan(0.8)}" stroke-width="${sw}"/>`;
+
+    // Filet
+    s += `<line x1="${netX.toFixed(1)}" y1="${T.toFixed(1)}" x2="${netX.toFixed(1)}" y2="${B.toFixed(1)}"
+        stroke="${gold(1.5)}" stroke-width="${(sw*1.5).toFixed(2)}"/>`;
+
+    // Lignes de service
+    s += `<line x1="${svcL.toFixed(1)}" y1="${singT.toFixed(1)}" x2="${svcL.toFixed(1)}" y2="${singB.toFixed(1)}" stroke="${cyan(0.85)}" stroke-width="${sw}"/>`;
+    s += `<line x1="${svcR.toFixed(1)}" y1="${singT.toFixed(1)}" x2="${svcR.toFixed(1)}" y2="${singB.toFixed(1)}" stroke="${cyan(0.85)}" stroke-width="${sw}"/>`;
+
+    // Ligne centrale de service
+    s += `<line x1="${svcL.toFixed(1)}" y1="${midY.toFixed(1)}" x2="${svcR.toFixed(1)}" y2="${midY.toFixed(1)}" stroke="${cyan(0.65)}" stroke-width="${sw}"/>`;
+
+    // Marques centrales
+    const mk = 8;
+    s += `<line x1="${L.toFixed(1)}" y1="${(midY-mk).toFixed(1)}" x2="${L.toFixed(1)}" y2="${(midY+mk).toFixed(1)}" stroke="${gold(0.9)}" stroke-width="${(sw*1.1).toFixed(2)}"/>`;
+    s += `<line x1="${R.toFixed(1)}" y1="${(midY-mk).toFixed(1)}" x2="${R.toFixed(1)}" y2="${(midY+mk).toFixed(1)}" stroke="${gold(0.9)}" stroke-width="${(sw*1.1).toFixed(2)}"/>`;
+    s += `<line x1="${(netX-mk).toFixed(1)}" y1="${midY.toFixed(1)}" x2="${(netX+mk).toFixed(1)}" y2="${midY.toFixed(1)}" stroke="${gold(0.7)}" stroke-width="${sw}"/>`;
+
+    // Poteaux filet
+    s += `<circle cx="${netX.toFixed(1)}" cy="${T.toFixed(1)}" r="5" fill="none" stroke="${gold(1.2)}" stroke-width="${(sw*1.3).toFixed(2)}"/>`;
+    s += `<circle cx="${netX.toFixed(1)}" cy="${B.toFixed(1)}" r="5" fill="none" stroke="${gold(1.2)}" stroke-width="${(sw*1.3).toFixed(2)}"/>`;
+
+    // Cercles concentriques
+    [90, 160, 235].forEach(r => {
+        s += `<circle cx="${netX.toFixed(1)}" cy="${midY.toFixed(1)}" r="${r}" fill="none" stroke="${cyan(0.35)}" stroke-width="${(sw*0.7).toFixed(2)}"/>`;
+    });
+
+    // Réticules aux coins du terrain
+    const rs = 22;
+    [[L,T],[R,T],[L,B],[R,B]].forEach(([cx, cy]) => {
+        const sx = cx === L ? 1 : -1, sy = cy === T ? 1 : -1;
+        s += `<line x1="${cx}" y1="${(cy + sy*5).toFixed(1)}" x2="${cx}" y2="${(cy + sy*rs).toFixed(1)}" stroke="${gold(1.1)}" stroke-width="${sw}"/>`;
+        s += `<line x1="${(cx + sx*5).toFixed(1)}" y1="${cy}" x2="${(cx + sx*rs).toFixed(1)}" y2="${cy}" stroke="${gold(1.1)}" stroke-width="${sw}"/>`;
+        s += `<circle cx="${cx}" cy="${cy}" r="10" fill="none" stroke="${gold(0.7)}" stroke-width="${(sw*0.7).toFixed(2)}"/>`;
+    });
+
+    // Cadres d'angle dorés aux coins du canvas
+    const cf = 55;
+    [[0,0,1,1],[W,0,-1,1],[0,H,1,-1],[W,H,-1,-1]].forEach(([x,y,dx,dy]) => {
+        s += `<polyline points="${x+dx*cf},${y} ${x},${y} ${x},${y+dy*cf}" fill="none" stroke="${gold(1.2)}" stroke-width="${(sw*1.3).toFixed(2)}"/>`;
+    });
+
+    // Arcs aux coins du terrain
+    const arcR = 45;
+    s += `<path d="M ${L.toFixed(1)} ${(T+arcR).toFixed(1)} A ${arcR} ${arcR} 0 0 1 ${(L+arcR).toFixed(1)} ${T.toFixed(1)}" fill="none" stroke="${gold(0.45)}" stroke-width="${(sw*0.8).toFixed(2)}"/>`;
+    s += `<path d="M ${(R-arcR).toFixed(1)} ${T.toFixed(1)} A ${arcR} ${arcR} 0 0 1 ${R.toFixed(1)} ${(T+arcR).toFixed(1)}" fill="none" stroke="${gold(0.45)}" stroke-width="${(sw*0.8).toFixed(2)}"/>`;
+    s += `<path d="M ${L.toFixed(1)} ${(B-arcR).toFixed(1)} A ${arcR} ${arcR} 0 0 0 ${(L+arcR).toFixed(1)} ${B.toFixed(1)}" fill="none" stroke="${gold(0.45)}" stroke-width="${(sw*0.8).toFixed(2)}"/>`;
+    s += `<path d="M ${(R-arcR).toFixed(1)} ${B.toFixed(1)} A ${arcR} ${arcR} 0 0 0 ${R.toFixed(1)} ${(B-arcR).toFixed(1)}" fill="none" stroke="${gold(0.45)}" stroke-width="${(sw*0.8).toFixed(2)}"/>`;
+
+    return s;
+}
+
+// ─── Contenu décoratif commun (logo / textes simulés) ─────────
+function contentMobile() {
+    return `
+    <!-- Initiales en haut -->
+    <text x="195" y="65" text-anchor="middle" font-family="Arial" font-weight="900"
+        font-size="38" fill="rgba(255,255,255,0.9)" letter-spacing="8">AB</text>
+    <text x="195" y="88" text-anchor="middle" font-family="Arial"
+        font-size="9" fill="rgba(255,215,0,0.5)" letter-spacing="4">USM TENNIS MONTARGIS</text>
+
+    <!-- Cercle logo central -->
+    <circle cx="195" cy="422" r="100"
+        fill="radial-gradient(circle, rgba(255,215,0,0.14), transparent)"
+        stroke="rgba(255,215,0,0.28)" stroke-width="1"/>
+    <circle cx="195" cy="422" r="100" fill="none" stroke="rgba(255,215,0,0.28)" stroke-width="1"/>
+    <text x="195" y="415" text-anchor="middle" font-family="Arial" font-weight="900"
+        font-size="13" fill="rgba(255,215,0,0.6)" letter-spacing="2">USM TENNIS</text>
+    <text x="195" y="433" text-anchor="middle" font-family="Arial"
+        font-size="10" fill="rgba(255,215,0,0.4)" letter-spacing="2">MONTARGIS</text>
+
+    <!-- Séparateur -->
+    <line x1="85" y1="545" x2="305" y2="545" stroke="rgba(255,215,0,0)" stroke-width="0"/>
+    <line x1="85" y1="545" x2="185" y2="545" stroke="rgba(255,215,0,0.5)" stroke-width="1"/>
+    <line x1="205" y1="545" x2="305" y2="545" stroke="rgba(255,215,0,0.5)" stroke-width="1"/>
+    <text x="195" y="549" text-anchor="middle" font-family="Arial" font-size="10" fill="rgba(255,215,0,0.55)">★</text>
+
+    <!-- Numéro licence -->
+    <text x="195" y="580" text-anchor="middle" font-family="Arial"
+        font-size="9" fill="rgba(255,215,0,0.45)" letter-spacing="4">LICENCE FFT</text>
+    <text x="195" y="605" text-anchor="middle" font-family="Arial" font-weight="700"
+        font-size="22" fill="rgba(255,215,0,0.85)" letter-spacing="4">12345678</text>
+
+    <!-- Saison badge -->
+    <rect x="140" y="625" width="110" height="26" rx="13"
+        fill="rgba(255,215,0,0.07)" stroke="rgba(255,215,0,0.28)" stroke-width="1"/>
+    <text x="195" y="643" text-anchor="middle" font-family="Arial"
+        font-size="10" fill="rgba(255,215,0,0.65)" letter-spacing="3">SAISON 2025</text>
+
+    <!-- Site web -->
+    <text x="195" y="810" text-anchor="middle" font-family="Arial"
+        font-size="9" fill="rgba(255,215,0,0.2)" letter-spacing="2">tennismontargis.fr</text>`;
+}
+
+function contentDesktop() {
+    return `
+    <!-- Cercle logo -->
+    <circle cx="640" cy="300" r="105" fill="none" stroke="rgba(255,215,0,0.28)" stroke-width="1"/>
+    <text x="640" y="293" text-anchor="middle" font-family="Arial" font-weight="900"
+        font-size="14" fill="rgba(255,215,0,0.6)" letter-spacing="2">USM TENNIS</text>
+    <text x="640" y="313" text-anchor="middle" font-family="Arial"
+        font-size="11" fill="rgba(255,215,0,0.4)" letter-spacing="2">MONTARGIS</text>
+
+    <!-- Titre club -->
+    <text x="640" y="432" text-anchor="middle" font-family="Arial"
+        font-size="11" fill="rgba(255,215,0,0.4)" letter-spacing="6">CLUB DE TENNIS</text>
+    <text x="640" y="462" text-anchor="middle" font-family="Arial" font-weight="900"
+        font-size="30" fill="rgba(255,215,0,0.85)" letter-spacing="3">USM TENNIS MONTARGIS</text>
+
+    <!-- Séparateur -->
+    <line x1="440" y1="487" x2="635" y2="487" stroke="rgba(255,215,0,0.45)" stroke-width="1"/>
+    <line x1="645" y1="487" x2="840" y2="487" stroke="rgba(255,215,0,0.45)" stroke-width="1"/>
+    <text x="640" y="491" text-anchor="middle" font-family="Arial" font-size="12" fill="rgba(255,215,0,0.55)">★</text>
+
+    <!-- Saison -->
+    <rect x="570" y="502" width="140" height="28" rx="14"
+        fill="rgba(255,215,0,0.07)" stroke="rgba(255,215,0,0.28)" stroke-width="1"/>
+    <text x="640" y="521" text-anchor="middle" font-family="Arial"
+        font-size="11" fill="rgba(255,215,0,0.6)" letter-spacing="4">SAISON 2025</text>
+
+    <!-- Site web -->
+    <text x="640" y="685" text-anchor="middle" font-family="Arial"
+        font-size="10" fill="rgba(255,215,0,0.2)" letter-spacing="3">tennismontargis.fr</text>`;
+}
+
+// ─── Mise à jour ───────────────────────────────────────────────
+function update() {
+    const op = parseInt(document.getElementById('sl').value) / 100;
+    const sw = parseInt(document.getElementById('sk').value) / 10;
+    document.getElementById('vl').textContent = Math.round(op * 100) + '%';
+    document.getElementById('vk').textContent = sw.toFixed(1) + 'px';
+
+    document.getElementById('court-m').innerHTML = courtPortrait(390, 844, op, sw);
+    document.getElementById('court-d').innerHTML = courtLandscape(1280, 720, op, sw);
+    document.getElementById('content-m').innerHTML = contentMobile();
+    document.getElementById('content-d').innerHTML = contentDesktop();
+}
+
+update();
+</script>
+</body>
+</html>
