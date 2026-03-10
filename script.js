@@ -75,6 +75,53 @@ document.addEventListener('DOMContentLoaded', () => {
             window.firebaseListeners.push({ ref, callback, event: 'value' });
         });
 
+        // Listener info (adresse, téléphone, email)
+        const infoRef = db_ref.ref('info');
+        const infoCallback = (snap) => {
+            db.info = snap.val();
+            if (db.info) {
+                if (document.getElementById('display-address')) document.getElementById('display-address').innerText = db.info.address || "";
+                if (document.getElementById('display-phone')) document.getElementById('display-phone').innerText = db.info.phone || "";
+                if (document.getElementById('display-email')) document.getElementById('display-email').innerText = db.info.email || "";
+            }
+        };
+        infoRef.on('value', infoCallback);
+        window.firebaseListeners.push({ ref: infoRef, callback: infoCallback, event: 'value' });
+
+        // Listener documents téléchargeables
+        const renderDocuments = (docs) => {
+            const container = document.getElementById('documents-grid');
+            if (!container) return;
+            if (!docs || docs.length === 0) {
+                container.innerHTML = '<p style="text-align:center; color:#64748b; grid-column:1/-1;">Aucun document disponible pour le moment.</p>';
+                return;
+            }
+            container.innerHTML = docs.map(doc => `
+            <a href="${escapeHtml(doc.url)}" target="_blank" download
+               style="display:flex; align-items:center; gap:15px; padding:20px; background:rgba(30,41,59,0.6); border-radius:12px; border:1px solid rgba(0,210,255,0.2); text-decoration:none; transition:all 0.3s; cursor:pointer;"
+               onmouseover="this.style.background='rgba(0,210,255,0.15)'; this.style.borderColor='rgba(0,210,255,0.5)'; this.style.transform='translateY(-2px)';"
+               onmouseout="this.style.background='rgba(30,41,59,0.6)'; this.style.borderColor='rgba(0,210,255,0.2)'; this.style.transform='translateY(0)';">
+                <div style="width:50px; height:50px; background:rgba(239,68,68,0.2); border-radius:10px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                    <i class="fas fa-file-pdf" style="font-size:24px; color:#ef4444;"></i>
+                </div>
+                <div style="flex:1; min-width:0;">
+                    <div style="color:#e2e8f0; font-weight:600; margin-bottom:4px; line-height:1.3; word-break:break-word;">${escapeHtml(doc.name)}</div>
+                    <div style="color:#64748b; font-size:12px;">PDF • ${(doc.size / 1024).toFixed(0)} Ko</div>
+                </div>
+                <div style="background:linear-gradient(135deg, #00d2ff, #00a8cc); color:#020617; padding:8px 16px; border-radius:8px; font-weight:bold; font-size:13px; white-space:nowrap;">
+                    <i class="fas fa-download" style="margin-right:6px;"></i>Télécharger
+                </div>
+            </a>
+        `).join('');
+        };
+        const documentsRef = db_ref.ref('documents');
+        const documentsCallback = (snap) => {
+            const docs = snap.val() || [];
+            renderDocuments(docs);
+        };
+        documentsRef.on('value', documentsCallback);
+        window.firebaseListeners.push({ ref: documentsRef, callback: documentsCallback, event: 'value' });
+
         if (user) {
             // Vérifier admin en priorité
             db_ref.ref('admins/' + user.uid).once('value', snapshot => {
@@ -397,54 +444,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    const infoRef = db_ref.ref('info');
-    const infoCallback = (snap) => {
-        db.info = snap.val();
-        if (db.info) {
-            if (document.getElementById('display-address')) document.getElementById('display-address').innerText = db.info.address || "";
-            if (document.getElementById('display-phone')) document.getElementById('display-phone').innerText = db.info.phone || "";
-            if (document.getElementById('display-email')) document.getElementById('display-email').innerText = db.info.email || "";
-        }
-    };
-    infoRef.on('value', infoCallback);
-    window.firebaseListeners.push({ ref: infoRef, callback: infoCallback, event: 'value' });
-
-    // Charger les documents téléchargeables
-    const documentsRef = db_ref.ref('documents');
-    const documentsCallback = (snap) => {
-        const docs = snap.val() || [];
-        renderDocuments(docs);
-    };
-    documentsRef.on('value', documentsCallback);
-    window.firebaseListeners.push({ ref: documentsRef, callback: documentsCallback, event: 'value' });
-
-    function renderDocuments(docs) {
-        const container = document.getElementById('documents-grid');
-        if (!container) return;
-
-        if (!docs || docs.length === 0) {
-            container.innerHTML = '<p style="text-align:center; color:#64748b; grid-column:1/-1;">Aucun document disponible pour le moment.</p>';
-            return;
-        }
-
-        container.innerHTML = docs.map(doc => `
-            <a href="${escapeHtml(doc.url)}" target="_blank" download
-               style="display:flex; align-items:center; gap:15px; padding:20px; background:rgba(30,41,59,0.6); border-radius:12px; border:1px solid rgba(0,210,255,0.2); text-decoration:none; transition:all 0.3s; cursor:pointer;"
-               onmouseover="this.style.background='rgba(0,210,255,0.15)'; this.style.borderColor='rgba(0,210,255,0.5)'; this.style.transform='translateY(-2px)';"
-               onmouseout="this.style.background='rgba(30,41,59,0.6)'; this.style.borderColor='rgba(0,210,255,0.2)'; this.style.transform='translateY(0)';">
-                <div style="width:50px; height:50px; background:rgba(239,68,68,0.2); border-radius:10px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-                    <i class="fas fa-file-pdf" style="font-size:24px; color:#ef4444;"></i>
-                </div>
-                <div style="flex:1; min-width:0;">
-                    <div style="color:#e2e8f0; font-weight:600; margin-bottom:4px; line-height:1.3; word-break:break-word;">${escapeHtml(doc.name)}</div>
-                    <div style="color:#64748b; font-size:12px;">PDF • ${(doc.size / 1024).toFixed(0)} Ko</div>
-                </div>
-                <div style="background:linear-gradient(135deg, #00d2ff, #00a8cc); color:#020617; padding:8px 16px; border-radius:8px; font-weight:bold; font-size:13px; white-space:nowrap;">
-                    <i class="fas fa-download" style="margin-right:6px;"></i>Télécharger
-                </div>
-            </a>
-        `).join('');
-    }
 
     function renderSkeletons() {
         const skeletonHTML = `<article class="news-card skeleton"><div class="skeleton-img"></div><div class="skeleton-title"></div><div class="skeleton-text"></div></article>`.repeat(3);
