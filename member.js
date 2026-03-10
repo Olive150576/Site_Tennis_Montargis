@@ -525,6 +525,25 @@ function loadAnnuairePartenaires() {
     if (!grid) return;
     grid.innerHTML = Array(4).fill('<div class="member-skeleton-card" style="display:flex; gap:12px; align-items:flex-start;"><div class="skeleton-avatar"></div><div style="flex:1;"><div class="skeleton-line medium"></div><div class="skeleton-line short"></div><div class="skeleton-line full"></div></div></div>').join('');
 
+    var myUid = _cardMemberData ? _cardMemberData._uid : null;
+    if (!myUid) { grid.innerHTML = ''; return; }
+
+    window.db_ref.ref('members/' + myUid + '/partenaire/public_profile').once('value', function(optinSnap) {
+        if (!optinSnap.val()) {
+            grid.innerHTML = '<div class="member-empty-state" style="padding:32px 16px; text-align:center;">'
+                + '<i class="fas fa-lock" style="font-size:2rem; color:#64748b; margin-bottom:12px; display:block;"></i>'
+                + '<p style="color:#e2e8f0; font-weight:600; margin-bottom:8px;">Accès restreint</p>'
+                + '<p style="color:#94a3b8; font-size:0.88rem; margin-bottom:20px;">Pour consulter et contacter les partenaires de jeu, activez d\'abord votre propre profil dans <strong style="color:#e3ff00;">Mon Profil → Partenaire de jeu</strong>.</p>'
+                + '<button onclick="window.switchMemberTab(\'profil\')" style="background:#e3ff00; color:#020617; border:none; border-radius:8px; padding:10px 20px; font-weight:700; cursor:pointer; font-size:0.9rem;">'
+                + '<i class="fas fa-user-edit"></i> Activer mon profil partenaire</button>'
+                + '</div>';
+            return;
+        }
+        _loadAnnuaireData(grid);
+    });
+}
+
+function _loadAnnuaireData(grid) {
     window.db_ref.ref('partenaire_index').once('value', function(snap) {
         var data = snap.val();
         if (!data) {
@@ -760,7 +779,8 @@ window.downloadMemberWallpaper = function() {
 
             const isPWA = window.matchMedia('(display-mode: standalone)').matches
                        || window.navigator.standalone === true;
-            if (isPWA) { showDownloadOverlay(dataUrl); return; }
+            const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+            if (isPWA || isIOS) { showDownloadOverlay(dataUrl); return; }
 
             canvas.toBlob(blob => {
                 const url = URL.createObjectURL(blob);
@@ -1031,7 +1051,8 @@ window.downloadMemberWallpaperDesktop = function() {
 
             const isPWA = window.matchMedia('(display-mode: standalone)').matches
                        || window.navigator.standalone === true;
-            if (isPWA) { showDownloadOverlay(dataUrl); return; }
+            const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+            if (isPWA || isIOS) { showDownloadOverlay(dataUrl); return; }
 
             canvas.toBlob(blob => {
                 const url = URL.createObjectURL(blob);
@@ -1171,7 +1192,8 @@ function _captureAndDownload(el, filename, delay) {
                 const dataUrl = canvas.toDataURL('image/png');
                 const isPWA = window.matchMedia('(display-mode: standalone)').matches
                            || window.navigator.standalone === true;
-                if (isPWA) { showDownloadOverlay(dataUrl); resolve(); return; }
+                const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+                if (isPWA || isIOS) { showDownloadOverlay(dataUrl); resolve(); return; }
                 canvas.toBlob(blob => {
                     const url = URL.createObjectURL(blob);
                     const link = document.createElement('a');
