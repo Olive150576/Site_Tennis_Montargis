@@ -116,7 +116,8 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         const documentsRef = db_ref.ref('documents');
         const documentsCallback = (snap) => {
-            const docs = snap.val() || [];
+            const raw = snap.val();
+            const docs = !raw ? [] : Array.isArray(raw) ? raw : Object.values(raw);
             renderDocuments(docs);
         };
         documentsRef.on('value', documentsCallback);

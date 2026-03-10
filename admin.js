@@ -1157,7 +1157,8 @@ window.uploadDocument = async function() {
 
         // Récupérer la liste existante et ajouter le nouveau document
         const snap = await db_ref.ref('documents').once('value');
-        const docs = snap.val() || [];
+        const raw = snap.val();
+        const docs = !raw ? [] : Array.isArray(raw) ? raw : Object.values(raw);
         docs.push(docData);
         await db_ref.ref('documents').set(docs);
 
@@ -1193,7 +1194,8 @@ window.deleteDocument = async function(index) {
 
     try {
         const snap = await db_ref.ref('documents').once('value');
-        const docs = snap.val() || [];
+        const raw = snap.val();
+        const docs = !raw ? [] : Array.isArray(raw) ? raw : Object.values(raw);
         const doc = docs[index];
 
         // Supprimer le fichier du storage
@@ -1220,7 +1222,8 @@ window.deleteDocument = async function(index) {
 // Charger la liste des documents dans l'admin
 function loadDocumentsAdmin() {
     db_ref.ref('documents').once('value', snap => {
-        const docs = snap.val() || [];
+        const raw = snap.val();
+        const docs = !raw ? [] : Array.isArray(raw) ? raw : Object.values(raw);
         const container = document.getElementById('documents-admin-list');
 
         if (!container) return;
