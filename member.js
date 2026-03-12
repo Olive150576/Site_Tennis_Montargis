@@ -1316,14 +1316,14 @@ function _cardHeader(label, annee) {
         border-bottom:1px solid rgba(255,215,0,0.35);flex-shrink:0;">
         <img src="/logo_usm_new.png" style="width:62px;height:62px;object-fit:contain;border-radius:50%;border:2px solid rgba(255,215,0,0.5);flex-shrink:0;" crossorigin="anonymous" alt="USM">
         <div style="flex:1;text-align:center;padding:0 10px;">
-            <div style="color:#ffd700;font-size:15px;font-weight:900;letter-spacing:2px;font-family:Arial,sans-serif;">USM TENNIS MONTARGIS</div>
-            <div style="color:rgba(255,215,0,0.65);font-size:10px;letter-spacing:3px;margin-top:2px;font-family:Arial,sans-serif;">${label} · SAISON ${annee}</div>
+            <div style="color:#ffd700;font-size:19px;font-weight:900;letter-spacing:2px;font-family:Arial,sans-serif;">USM TENNIS MONTARGIS</div>
+            <div style="color:rgba(255,215,0,0.65);font-size:13px;letter-spacing:3px;margin-top:2px;font-family:Arial,sans-serif;">${label} · SAISON ${annee}</div>
         </div>
         <img src="/Logo_F%C3%A9d%C3%A9ration_Fran%C3%A7aise_de_Tennis.png" style="width:52px;height:52px;object-fit:contain;flex-shrink:0;" crossorigin="anonymous" alt="FFT">
     </div>`;
 }
 const _cardFooter = `<div style="text-align:center;padding:6px;border-top:1px solid rgba(255,215,0,0.15);
-    color:rgba(255,215,0,0.3);font-size:9px;letter-spacing:1px;font-family:Arial,sans-serif;flex-shrink:0;">
+    color:rgba(255,215,0,0.3);font-size:12px;letter-spacing:1px;font-family:Arial,sans-serif;flex-shrink:0;">
     tennismontargis.fr</div>`;
 
 // ── RECTO : logo grand + infos membre, sans QR ─────────────
@@ -1345,21 +1345,21 @@ function buildRectoHtml(m) {
 
             <!-- Données membre -->
             <div style="flex:1;text-align:center;overflow:hidden;">
-                <div style="color:#ffffff;font-size:22px;font-weight:900;letter-spacing:1px;margin-bottom:12px;
+                <div style="color:#ffffff;font-size:28px;font-weight:900;letter-spacing:1px;margin-bottom:12px;
                     font-family:Arial,sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
                     ${escMember(`${prenom} ${nom}`.toUpperCase())}
                 </div>
                 ${m.statut && m.statut !== 'Membre'
-                    ? `<div style="margin-bottom:10px;"><span style="background:rgba(255,215,0,0.14);border:1px solid rgba(255,215,0,0.5);color:#ffd700;padding:4px 14px;border-radius:20px;font-size:11px;letter-spacing:0.5px;font-family:Arial,sans-serif;">★ ${escMember(m.statut)}</span></div>`
+                    ? `<div style="margin-bottom:10px;"><span style="background:rgba(255,215,0,0.14);border:1px solid rgba(255,215,0,0.5);color:#ffd700;padding:4px 14px;border-radius:20px;font-size:14px;letter-spacing:0.5px;font-family:Arial,sans-serif;">★ ${escMember(m.statut)}</span></div>`
                     : ''}
                 ${m.classement
-                    ? `<div style="margin-bottom:8px;"><span style="background:rgba(255,215,0,0.12);border:1px solid rgba(255,215,0,0.4);color:#ffd700;padding:4px 14px;border-radius:20px;font-size:13px;font-family:Arial,sans-serif;">Classement : ${escMember(m.classement)}</span></div>`
+                    ? `<div style="margin-bottom:8px;"><span style="background:rgba(255,215,0,0.12);border:1px solid rgba(255,215,0,0.4);color:#ffd700;padding:4px 14px;border-radius:20px;font-size:17px;font-family:Arial,sans-serif;">Classement : ${escMember(m.classement)}</span></div>`
                     : ''}
                 ${m.categorie
-                    ? `<div style="margin-bottom:8px;"><span style="background:rgba(255,215,0,0.08);border:1px solid rgba(255,215,0,0.25);color:rgba(255,215,0,0.85);padding:4px 14px;border-radius:20px;font-size:13px;font-family:Arial,sans-serif;">Catégorie : ${escMember(m.categorie)}</span></div>`
+                    ? `<div style="margin-bottom:8px;"><span style="background:rgba(255,215,0,0.08);border:1px solid rgba(255,215,0,0.25);color:rgba(255,215,0,0.85);padding:4px 14px;border-radius:20px;font-size:17px;font-family:Arial,sans-serif;">Catégorie : ${escMember(m.categorie)}</span></div>`
                     : ''}
                 ${m.licence
-                    ? `<div style="margin-top:12px;"><div style="color:rgba(255,255,255,0.45);font-size:9px;letter-spacing:2px;font-family:Arial,sans-serif;">LICENCE FFT</div><div style="color:#ffffff;font-size:18px;font-weight:700;letter-spacing:3px;font-family:Arial,sans-serif;">${escMember(m.licence)}</div></div>`
+                    ? `<div style="margin-top:12px;"><div style="color:rgba(255,255,255,0.45);font-size:12px;letter-spacing:2px;font-family:Arial,sans-serif;">LICENCE FFT</div><div style="color:#ffffff;font-size:23px;font-weight:700;letter-spacing:3px;font-family:Arial,sans-serif;">${escMember(m.licence)}</div></div>`
                     : ''}
             </div>
         </div>
@@ -1377,14 +1377,14 @@ function buildVersoHtml(m, sponsors) {
         const initiale = (s.title || '?').charAt(0).toUpperCase();
         const logoHtml = logoSrc
             ? `<img src="${logoSrc}" style="width:48px;height:48px;object-fit:contain;border-radius:7px;background:#fff;padding:3px;border:1px solid rgba(255,215,0,0.3);flex-shrink:0;" alt="${escMember(s.title)}">`
-            : `<div style="width:48px;height:48px;background:rgba(255,215,0,0.1);border:1px solid rgba(255,215,0,0.35);border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#ffd700;font-size:18px;font-weight:900;font-family:Arial,sans-serif;">${initiale}</div>`;
+            : `<div style="width:48px;height:48px;background:rgba(255,215,0,0.1);border:1px solid rgba(255,215,0,0.35);border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#ffd700;font-size:22px;font-weight:900;font-family:Arial,sans-serif;">${initiale}</div>`;
         const avantageHtml = s.avantage
-            ? `<div style="color:rgba(255,255,255,0.8);font-size:10px;font-family:Arial,sans-serif;line-height:1.4;">${escMember(s.avantage)}</div>`
+            ? `<div style="color:rgba(255,255,255,0.8);font-size:13px;font-family:Arial,sans-serif;line-height:1.4;">${escMember(s.avantage)}</div>`
             : '';
         return `<div style="display:flex;align-items:flex-start;gap:9px;padding:9px;background:rgba(255,215,0,0.04);border:1px solid rgba(255,215,0,0.15);border-radius:9px;">
             ${logoHtml}
             <div style="flex:1;min-width:0;">
-                <div style="color:#ffd700;font-size:11px;font-weight:700;font-family:Arial,sans-serif;margin-bottom:3px;">${escMember(s.title)}</div>
+                <div style="color:#ffd700;font-size:14px;font-weight:700;font-family:Arial,sans-serif;margin-bottom:3px;">${escMember(s.title)}</div>
                 ${avantageHtml}
             </div>
         </div>`;
@@ -1404,7 +1404,7 @@ function buildVersoHtml(m, sponsors) {
                     <img src="/logo_usm_new.png" style="width:100%;height:100%;object-fit:contain;display:block;" crossorigin="anonymous" alt="USM">
                 </div>
             </div>
-            <div style="color:rgba(255,215,0,0.45);font-size:8px;margin-top:6px;letter-spacing:1px;font-family:Arial,sans-serif;text-align:center;">SCANNER POUR<br>VÉRIFIER</div>
+            <div style="color:rgba(255,215,0,0.45);font-size:11px;margin-top:6px;letter-spacing:1px;font-family:Arial,sans-serif;text-align:center;">SCANNER POUR<br>VÉRIFIER</div>
         </div>`;
 
     return `<div style="${_cardBase}">
