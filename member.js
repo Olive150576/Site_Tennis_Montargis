@@ -1336,48 +1336,72 @@ window.downloadMemberCardPDF = async function(btnEl) {
     el.style.display = 'none';
     el.innerHTML = '';
 
-    // 3. Créer le PDF A4 portrait
+    // 3. Créer le PDF A4 portrait — fond blanc pour impression
     const doc = new jsPDFClass({ orientation: 'portrait', unit: 'mm', format: 'a4' });
     const pageW = 210, pageH = 297;
     const cw = 85.6, ch = 54; // ISO 7810 ID-1 (carte bancaire)
     const x = (pageW - cw) / 2;
-    const rectoY = 65, versoY = rectoY + ch + 28;
+    const rectoY = 65, versoY = rectoY + ch + 30;
 
-    // Fond sombre
-    doc.setFillColor(10, 18, 40);
+    // Fond blanc
+    doc.setFillColor(255, 255, 255);
     doc.rect(0, 0, pageW, pageH, 'F');
 
     // Titre
-    doc.setTextColor(255, 215, 0);
-    doc.setFontSize(18);
+    doc.setTextColor(10, 18, 40);
+    doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
-    doc.text('CARTE MEMBRE', pageW / 2, 28, { align: 'center' });
-    doc.setFontSize(11);
+    doc.text('CARTE MEMBRE — USM Tennis Montargis', pageW / 2, 22, { align: 'center' });
+    doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
-    doc.setTextColor(148, 163, 184);
-    doc.text('USM Tennis Montargis · ' + _saison(), pageW / 2, 36, { align: 'center' });
+    doc.setTextColor(100, 116, 139);
+    doc.text('Saison ' + _saison() + ' · Imprimez et découpez le long des traits de coupe', pageW / 2, 29, { align: 'center' });
 
     // Séparateur
-    doc.setDrawColor(255, 215, 0);
-    doc.setLineWidth(0.3);
-    doc.line(x, 42, x + cw, 42);
+    doc.setDrawColor(200, 200, 200);
+    doc.setLineWidth(0.2);
+    doc.line(20, 33, pageW - 20, 33);
 
-    // Label + image recto
-    doc.setTextColor(255, 215, 0);
-    doc.setFontSize(8);
+    // ── Fonction traits de coupe (crop marks) ──
+    // Petites lignes en L à chaque coin, 3mm de long, 2mm d'écart de la carte
+    const gap = 2, len = 5;
+    const cropMark = (cx, cy, dx, dy) => {
+        doc.setDrawColor(150, 150, 150);
+        doc.setLineWidth(0.2);
+        // Horizontale
+        doc.line(cx + dx * gap, cy, cx + dx * (gap + len), cy);
+        // Verticale
+        doc.line(cx, cy + dy * gap, cx, cy + dy * (gap + len));
+    };
+
+    // Labels
+    doc.setTextColor(100, 116, 139);
+    doc.setFontSize(7);
     doc.setFont('helvetica', 'bold');
-    doc.text('RECTO', x, rectoY - 3);
-    doc.addImage(rectoCanvas.toDataURL('image/png'), 'PNG', x, rectoY, cw, ch);
 
-    // Label + image verso
-    doc.text('VERSO', x, versoY - 3);
+    // Recto
+    doc.text('RECTO', x, rectoY - 4);
+    doc.addImage(rectoCanvas.toDataURL('image/png'), 'PNG', x, rectoY, cw, ch);
+    // Traits de coupe recto
+    cropMark(x,      rectoY,      -1, -1); // coin haut-gauche
+    cropMark(x + cw, rectoY,       1, -1); // coin haut-droit
+    cropMark(x,      rectoY + ch, -1,  1); // coin bas-gauche
+    cropMark(x + cw, rectoY + ch,  1,  1); // coin bas-droit
+
+    // Verso
+    doc.text('VERSO', x, versoY - 4);
     doc.addImage(versoCanvas.toDataURL('image/png'), 'PNG', x, versoY, cw, ch);
+    // Traits de coupe verso
+    cropMark(x,      versoY,      -1, -1);
+    cropMark(x + cw, versoY,       1, -1);
+    cropMark(x,      versoY + ch, -1,  1);
+    cropMark(x + cw, versoY + ch,  1,  1);
 
     // Footer
-    doc.setTextColor(71, 85, 105);
-    doc.setFontSize(7);
+    doc.setTextColor(180, 180, 180);
+    doc.setFontSize(6.5);
     doc.setFont('helvetica', 'normal');
-    doc.text('tennismontargis.fr · Imprimez et découpez au format carte bancaire (85,6 × 54 mm)', pageW / 2, pageH - 12, { align: 'center' });
+    doc.text('tennismontargis.fr · Format carte bancaire ISO 7810 ID-1 (85,6 × 54 mm)', pageW / 2, pageH - 10, { align: 'center' });
 
     const nomFichier = (_cardMemberData.nom || 'membre').toLowerCase().replace(/\s+/g, '-');
     const filename = `carte-membre-usm-${nomFichier}.pdf`;
