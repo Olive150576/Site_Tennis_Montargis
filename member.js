@@ -1268,6 +1268,106 @@ window.downloadMemberCardVerso = async function() {
     await _captureAndDownload(el, `carte-membre-verso-usm-${nomFichier}.png`, 500);
 };
 
+// ── PDF : recto + verso au format carte bancaire (85.6×54 mm) ──
+window.downloadMemberCardPDF = async function() {
+    if (!_cardMemberData || typeof html2canvas === 'undefined' || typeof window.jspdf === 'undefined') return;
+    const el = document.getElementById('member-card-print');
+    if (!el) return;
+
+    // 1. Capture recto
+    el.innerHTML = buildRectoHtml(_cardMemberData);
+    el.style.left = '-9999px';
+    el.style.display = 'block';
+    await new Promise(r => setTimeout(r, 200));
+    const rectoCanvas = await html2canvas(el, { scale: 3, useCORS: true, allowTaint: false, backgroundColor: null, logging: false });
+    el.style.display = 'none';
+    el.innerHTML = '';
+
+    // 2. Capture verso (avec sponsors + QR)
+    if (window.db_ref) {
+        await new Promise(resolve => {
+            window.db_ref.ref('sponsors').once('value', snap => {
+                const data = snap.val();
+                _cardSponsors = data
+                    ? (Array.isArray(data) ? data : Object.values(data)).filter(s => s && !s.draft)
+                    : [];
+                resolve();
+            });
+        });
+    }
+    const sponsorsPreloaded = await preloadSponsorLogos(_cardSponsors);
+    el.innerHTML = buildVersoHtml(_cardMemberData, sponsorsPreloaded);
+    el.style.left = '-9999px';
+    el.style.display = 'block';
+    const qrContainer = el.querySelector('#card-print-qr-verso');
+    if (qrContainer && typeof QRCode !== 'undefined') {
+        const memberUid = (_cardMemberData && _cardMemberData._uid)
+            || (window.auth && window.auth.currentUser ? window.auth.currentUser.uid : '');
+        const qrContent = memberUid
+            ? `https://tennismontargis.fr/v/${memberUid}`
+            : `USM Tennis Montargis | ${_cardMemberData.prenom || ''} ${_cardMemberData.nom || ''}`;
+        new QRCode(qrContainer, { text: qrContent, width: 116, height: 116, colorDark: '#0d1b2e', colorLight: '#f5e88a', correctLevel: QRCode.CorrectLevel.H });
+    }
+    await new Promise(r => setTimeout(r, 500));
+    const versoCanvas = await html2canvas(el, { scale: 3, useCORS: true, allowTaint: false, backgroundColor: null, logging: false });
+    el.style.display = 'none';
+    el.innerHTML = '';
+
+    // 3. Créer le PDF A4 portrait
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const pageW = 210, pageH = 297;
+    const cw = 85.6, ch = 54; // ISO 7810 ID-1 (carte bancaire)
+    const x = (pageW - cw) / 2;
+    const rectoY = 65, versoY = rectoY + ch + 28;
+
+    // Fond sombre
+    doc.setFillColor(10, 18, 40);
+    doc.rect(0, 0, pageW, pageH, 'F');
+
+    // Titre
+    doc.setTextColor(255, 215, 0);
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.text('CARTE MEMBRE', pageW / 2, 28, { align: 'center' });
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(148, 163, 184);
+    doc.text('USM Tennis Montargis · ' + _saison(), pageW / 2, 36, { align: 'center' });
+
+    // Séparateur
+    doc.setDrawColor(255, 215, 0);
+    doc.setLineWidth(0.3);
+    doc.line(x, 42, x + cw, 42);
+
+    // Label + image recto
+    doc.setTextColor(255, 215, 0);
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'bold');
+    doc.text('RECTO', x, rectoY - 3);
+    doc.addImage(rectoCanvas.toDataURL('image/png'), 'PNG', x, rectoY, cw, ch);
+
+    // Label + image verso
+    doc.text('VERSO', x, versoY - 3);
+    doc.addImage(versoCanvas.toDataURL('image/png'), 'PNG', x, versoY, cw, ch);
+
+    // Footer
+    doc.setTextColor(71, 85, 105);
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'normal');
+    doc.text('tennismontargis.fr · Imprimez et découpez au format carte bancaire (85,6 × 54 mm)', pageW / 2, pageH - 12, { align: 'center' });
+
+    const nomFichier = (_cardMemberData.nom || 'membre').toLowerCase().replace(/\s+/g, '-');
+    const filename = `carte-membre-usm-${nomFichier}.pdf`;
+    const isPWA = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+    if (isPWA || isIOS) {
+        window.open(doc.output('bloburi'), '_blank');
+    } else {
+        doc.save(filename);
+    }
+};
+
 function showDownloadOverlay(dataUrl) {
     // Overlay plein écran
     const overlay = document.createElement('div');
