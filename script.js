@@ -39,6 +39,11 @@ document.addEventListener('DOMContentLoaded', () => {
             window.firebaseListeners = [];
         }
 
+        // Réinitialiser l'état admin AVANT d'enregistrer les listeners
+        // Évite que les callbacks lisent un état admin périmé d'une session précédente
+        window.isCurrentUserAdmin = false;
+        window.isCurrentUserMember = false;
+
         // Ré-enregistrer les listeners de sections après chaque changement d'état auth
         const sections = ['news', 'inst', 'event', 'coach', 'rates', 'sponsors'];
         sections.forEach(sec => {
