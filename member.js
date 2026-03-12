@@ -1279,7 +1279,16 @@ window.downloadMemberCardPDF = async function(btnEl) {
     if (!_cardMemberData) { restore(); alert('Données membre non disponibles. Rechargez la page.'); return; }
     if (typeof html2canvas === 'undefined') { restore(); alert('Composant non chargé. Rechargez la page.'); return; }
 
-    // Détection flexible de jsPDF (UMD expose window.jspdf ou window.jsPDF)
+    // Chargement dynamique de jsPDF si pas encore disponible
+    if (!window.jspdf && !window.jsPDF) {
+        await new Promise((resolve, reject) => {
+            const s = document.createElement('script');
+            s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+            s.onload = resolve;
+            s.onerror = () => reject(new Error('Impossible de charger jsPDF'));
+            document.head.appendChild(s);
+        }).catch(e => { restore(); alert(e.message); return; });
+    }
     const jspdfLib = window.jspdf || window.jsPDF;
     if (!jspdfLib) { restore(); alert('jsPDF non chargé. Rechargez la page et réessayez.'); return; }
     const jsPDFClass = jspdfLib.jsPDF || jspdfLib;
