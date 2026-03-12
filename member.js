@@ -1269,11 +1269,25 @@ window.downloadMemberCardVerso = async function() {
 };
 
 // ── PDF : recto + verso au format carte bancaire (85.6×54 mm) ──
-window.downloadMemberCardPDF = async function() {
-    if (!_cardMemberData || typeof html2canvas === 'undefined' || typeof window.jspdf === 'undefined') return;
-    const el = document.getElementById('member-card-print');
-    if (!el) return;
+window.downloadMemberCardPDF = async function(btnEl) {
+    // Feedback visuel sur le bouton
+    const btn = btnEl || document.querySelector('[onclick*="downloadMemberCardPDF"]');
+    const origHtml = btn ? btn.innerHTML : '';
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Génération…'; }
+    const restore = () => { if (btn) { btn.disabled = false; btn.innerHTML = origHtml; } };
 
+    if (!_cardMemberData) { restore(); alert('Données membre non disponibles. Rechargez la page.'); return; }
+    if (typeof html2canvas === 'undefined') { restore(); alert('Composant non chargé. Rechargez la page.'); return; }
+
+    // Détection flexible de jsPDF (UMD expose window.jspdf ou window.jsPDF)
+    const jspdfLib = window.jspdf || window.jsPDF;
+    if (!jspdfLib) { restore(); alert('jsPDF non chargé. Rechargez la page et réessayez.'); return; }
+    const jsPDFClass = jspdfLib.jsPDF || jspdfLib;
+
+    const el = document.getElementById('member-card-print');
+    if (!el) { restore(); return; }
+
+    try {
     // 1. Capture recto
     el.innerHTML = buildRectoHtml(_cardMemberData);
     el.style.left = '-9999px';
@@ -1314,8 +1328,7 @@ window.downloadMemberCardPDF = async function() {
     el.innerHTML = '';
 
     // 3. Créer le PDF A4 portrait
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const doc = new jsPDFClass({ orientation: 'portrait', unit: 'mm', format: 'a4' });
     const pageW = 210, pageH = 297;
     const cw = 85.6, ch = 54; // ISO 7810 ID-1 (carte bancaire)
     const x = (pageW - cw) / 2;
@@ -1366,6 +1379,8 @@ window.downloadMemberCardPDF = async function() {
     } else {
         doc.save(filename);
     }
+    restore();
+    } catch(e) { el.style.display = 'none'; el.innerHTML = ''; restore(); alert('Erreur lors de la génération du PDF : ' + e.message); }
 };
 
 function showDownloadOverlay(dataUrl) {
