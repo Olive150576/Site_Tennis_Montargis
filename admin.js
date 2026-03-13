@@ -1422,6 +1422,57 @@ window.createMemberAccount = async () => {
     }
 };
 
+// Convertit un classement FFT en valeur numérique (plus bas = meilleur)
+function rankToNumber(rank) {
+    if (!rank || rank.trim().toUpperCase() === 'NC') return 9999;
+    const map = {
+        '40':100,'30/5':90,'30/4':80,'30/3':70,'30/2':60,'30/1':50,'30':40,
+        '15/5':30,'15/4':25,'15/3':20,'15/2':15,'15/1':10,'15':5,
+        '5/6':-10,'4/6':-20,'3/6':-30,'2/6':-40,'1/6':-50,'0':-100
+    };
+    return map[rank.trim()] ?? 9999;
+}
+
+window.filterMembers = () => {
+    const all = window._allMembersAdmin || [];
+    const search = (document.getElementById('members-search')?.value || '').toLowerCase();
+    const sort   = document.getElementById('members-sort')?.value || 'alpha-asc';
+    const statut = document.getElementById('members-filter-statut')?.value || '';
+    const actif  = document.getElementById('members-filter-actif')?.value || '';
+
+    let filtered = all.filter(m => {
+        if (statut && (m.statut || 'Membre') !== statut) return false;
+        if (actif === 'actif' && !m.actif) return false;
+        if (actif === 'inactif' && m.actif) return false;
+        if (search) {
+            const haystack = [m.prenom, m.nom, m.email, m.licence, m.classement].join(' ').toLowerCase();
+            if (!haystack.includes(search)) return false;
+        }
+        return true;
+    });
+
+    if (sort === 'alpha-asc')   filtered.sort((a,b) => (a.nom||'').localeCompare(b.nom||''));
+    else if (sort === 'alpha-desc') filtered.sort((a,b) => (b.nom||'').localeCompare(a.nom||''));
+    else if (sort === 'rank-best')  filtered.sort((a,b) => rankToNumber(a.classement) - rankToNumber(b.classement));
+    else if (sort === 'rank-worst') filtered.sort((a,b) => rankToNumber(b.classement) - rankToNumber(a.classement));
+
+    const countEl = document.getElementById('members-count');
+    if (countEl) countEl.textContent = `${filtered.length} / ${all.length} membre${all.length > 1 ? 's' : ''}`;
+
+    renderMembersList(filtered);
+};
+
+function renderMembersList(members) {
+    const list = document.getElementById('members-admin-list');
+    if (!list) return;
+    if (!members.length) {
+        list.innerHTML = '<p style="color:#64748b; text-align:center;">Aucun membre trouvé.</p>';
+        return;
+    }
+    const statutOptions = ['Membre','Membre Bureau','Coach','Secrétaire Général','Trésorier Général Adjoint','Trésorier Général','Vice-Président','Président'];
+    list.innerHTML = members.map(m => memberRowHTML(m, statutOptions)).join('');
+}
+
 window.loadMembersAdmin = () => {
     const list = document.getElementById('members-admin-list');
     if (!list) return;
@@ -1433,81 +1484,82 @@ window.loadMembersAdmin = () => {
             list.innerHTML = '<p style="color:#64748b; text-align:center;">Aucun membre enregistré.</p>';
             return;
         }
-        const members = Object.entries(data).map(([uid, m]) => ({ uid, ...m }));
-        members.sort((a, b) => (a.nom || '').localeCompare(b.nom || ''));
-
-        const statutOptions = ['Membre','Membre Bureau','Coach','Secrétaire Général','Trésorier Général Adjoint','Trésorier Général','Vice-Président','Président'];
-
-        list.innerHTML = members.map(m => `
-            <div style="background:rgba(34,197,94,0.05); border:1px solid rgba(34,197,94,0.15); border-radius:12px; overflow:hidden;">
-                <div style="display:flex; align-items:center; gap:16px; padding:14px 18px; flex-wrap:wrap;">
-                    <div style="width:42px; height:42px; border-radius:50%; background:rgba(34,197,94,0.15); border:1px solid #22c55e; display:flex; align-items:center; justify-content:center; color:#22c55e; font-weight:bold; flex-shrink:0;">
-                        ${(m.prenom || '?')[0]}${(m.nom || '?')[0]}
-                    </div>
-                    <div style="flex:1; min-width:150px;">
-                        <div style="color:white; font-weight:600;">${escapeHtml(m.prenom || '')} ${escapeHtml(m.nom || '')}
-                            ${m.statut && m.statut !== 'Membre' ? `<span style="margin-left:8px; background:rgba(255,215,0,0.1); border:1px solid rgba(255,215,0,0.35); color:#ffd700; padding:2px 8px; border-radius:10px; font-size:10px; font-weight:normal;">${escapeHtml(m.statut)}</span>` : ''}
-                        </div>
-                        <div style="color:#64748b; font-size:12px;">${escapeHtml(m.email || '')} · Licence: ${escapeHtml(m.licence || '—')} · ${escapeHtml(m.classement || '—')}</div>
-                    </div>
-                    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-                        <span style="padding:3px 10px; border-radius:50px; font-size:11px; font-weight:bold; background:${m.actif ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)'}; color:${m.actif ? '#22c55e' : '#ef4444'}; border:1px solid ${m.actif ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'};">
-                            ${m.actif ? 'Actif' : 'Inactif'}
-                        </span>
-                        <button onclick="window.open('/espace-membre.html?uid=${m.uid}', '_blank')"
-                            style="background:rgba(0,210,255,0.08); border:1px solid rgba(0,210,255,0.35); color:#00d2ff; padding:5px 12px; border-radius:8px; cursor:pointer; font-size:12px;">
-                            <i class="fas fa-id-card"></i> Dashboard
-                        </button>
-                        <button onclick="window.toggleMemberEdit('${m.uid}')"
-                            style="background:rgba(255,215,0,0.08); border:1px solid rgba(255,215,0,0.35); color:#ffd700; padding:5px 12px; border-radius:8px; cursor:pointer; font-size:12px;">
-                            <i class="fas fa-edit"></i> Modifier
-                        </button>
-                        <button onclick="window.toggleMemberActive('${m.uid}', ${!m.actif})"
-                            style="background:${m.actif ? 'rgba(239,68,68,0.1)' : 'rgba(34,197,94,0.1)'}; border:1px solid ${m.actif ? 'rgba(239,68,68,0.4)' : 'rgba(34,197,94,0.4)'}; color:${m.actif ? '#ef4444' : '#22c55e'}; padding:5px 12px; border-radius:8px; cursor:pointer; font-size:12px;">
-                            ${m.actif ? 'Désactiver' : 'Réactiver'}
-                        </button>
-                        <button onclick="window.deleteMemberAdmin('${m.uid}', '${escapeHtml(m.prenom || '')} ${escapeHtml(m.nom || '')}')"
-                            style="background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.3); color:#ef4444; padding:5px 10px; border-radius:8px; cursor:pointer; font-size:11px;">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
-                </div>
-                <!-- Formulaire d'édition inline (masqué par défaut) -->
-                <div id="edit-member-${m.uid}" style="display:none; padding:16px 18px; border-top:1px solid rgba(255,215,0,0.15); background:rgba(255,215,0,0.03);">
-                    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-bottom:12px;">
-                        <div>
-                            <label style="color:#94a3b8; font-size:11px; display:block; margin-bottom:4px;">Classement</label>
-                            <input id="edit-classement-${m.uid}" value="${escapeHtml(m.classement || '')}" placeholder="15/4 ou NC"
-                                style="width:100%; padding:8px 10px; background:#1e293b; border:1px solid #475569; color:white; border-radius:6px; font-size:13px; box-sizing:border-box;">
-                        </div>
-                        <div>
-                            <label style="color:#94a3b8; font-size:11px; display:block; margin-bottom:4px;">N° Licence FFT</label>
-                            <input id="edit-licence-${m.uid}" value="${escapeHtml(m.licence || '')}" placeholder="1234567"
-                                style="width:100%; padding:8px 10px; background:#1e293b; border:1px solid #475569; color:white; border-radius:6px; font-size:13px; box-sizing:border-box;">
-                        </div>
-                        <div>
-                            <label style="color:#94a3b8; font-size:11px; display:block; margin-bottom:4px;">Statut</label>
-                            <select id="edit-statut-${m.uid}"
-                                style="width:100%; padding:8px 10px; background:#1e293b; border:1px solid rgba(255,215,0,0.35); color:white; border-radius:6px; font-size:13px; box-sizing:border-box;">
-                                ${statutOptions.map(s => `<option value="${s}" ${(m.statut||'Membre')===s?'selected':''}>${s}</option>`).join('')}
-                            </select>
-                        </div>
-                    </div>
-                    <div style="display:flex; gap:8px;">
-                        <button onclick="window.saveMemberEdit('${m.uid}')"
-                            style="background:linear-gradient(135deg,#ffd700,#f59e0b); color:#0d1b2e; border:none; padding:8px 20px; border-radius:8px; font-weight:700; cursor:pointer; font-size:13px;">
-                            <i class="fas fa-save"></i> Enregistrer
-                        </button>
-                        <button onclick="window.toggleMemberEdit('${m.uid}')"
-                            style="background:rgba(100,116,139,0.15); border:1px solid rgba(100,116,139,0.3); color:#94a3b8; padding:8px 16px; border-radius:8px; cursor:pointer; font-size:13px;">
-                            Annuler
-                        </button>
-                    </div>
-                </div>
-            </div>
-        `).join('');
+        window._allMembersAdmin = Object.entries(data).map(([uid, m]) => ({ uid, ...m }));
+        window.filterMembers();
     });
 };
+
+function memberRowHTML(m, statutOptions) {
+    statutOptions = statutOptions || ['Membre','Membre Bureau','Coach','Secrétaire Général','Trésorier Général Adjoint','Trésorier Général','Vice-Président','Président'];
+    return `
+        <div style="background:rgba(34,197,94,0.05); border:1px solid rgba(34,197,94,0.15); border-radius:12px; overflow:hidden;">
+            <div style="display:flex; align-items:center; gap:16px; padding:14px 18px; flex-wrap:wrap;">
+                <div style="width:42px; height:42px; border-radius:50%; background:rgba(34,197,94,0.15); border:1px solid #22c55e; display:flex; align-items:center; justify-content:center; color:#22c55e; font-weight:bold; flex-shrink:0;">
+                    ${(m.prenom || '?')[0]}${(m.nom || '?')[0]}
+                </div>
+                <div style="flex:1; min-width:150px;">
+                    <div style="color:white; font-weight:600;">${escapeHtml(m.prenom || '')} ${escapeHtml(m.nom || '')}
+                        ${m.statut && m.statut !== 'Membre' ? `<span style="margin-left:8px; background:rgba(255,215,0,0.1); border:1px solid rgba(255,215,0,0.35); color:#ffd700; padding:2px 8px; border-radius:10px; font-size:10px; font-weight:normal;">${escapeHtml(m.statut)}</span>` : ''}
+                    </div>
+                    <div style="color:#64748b; font-size:12px;">${escapeHtml(m.email || '')} · Licence: ${escapeHtml(m.licence || '—')} · ${escapeHtml(m.classement || '—')}</div>
+                </div>
+                <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                    <span style="padding:3px 10px; border-radius:50px; font-size:11px; font-weight:bold; background:${m.actif ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)'}; color:${m.actif ? '#22c55e' : '#ef4444'}; border:1px solid ${m.actif ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'};">
+                        ${m.actif ? 'Actif' : 'Inactif'}
+                    </span>
+                    <button onclick="window.open('/espace-membre.html?uid=${m.uid}', '_blank')"
+                        style="background:rgba(0,210,255,0.08); border:1px solid rgba(0,210,255,0.35); color:#00d2ff; padding:5px 12px; border-radius:8px; cursor:pointer; font-size:12px;">
+                        <i class="fas fa-id-card"></i> Dashboard
+                    </button>
+                    <button onclick="window.toggleMemberEdit('${m.uid}')"
+                        style="background:rgba(255,215,0,0.08); border:1px solid rgba(255,215,0,0.35); color:#ffd700; padding:5px 12px; border-radius:8px; cursor:pointer; font-size:12px;">
+                        <i class="fas fa-edit"></i> Modifier
+                    </button>
+                    <button onclick="window.toggleMemberActive('${m.uid}', ${!m.actif})"
+                        style="background:${m.actif ? 'rgba(239,68,68,0.1)' : 'rgba(34,197,94,0.1)'}; border:1px solid ${m.actif ? 'rgba(239,68,68,0.4)' : 'rgba(34,197,94,0.4)'}; color:${m.actif ? '#ef4444' : '#22c55e'}; padding:5px 12px; border-radius:8px; cursor:pointer; font-size:12px;">
+                        ${m.actif ? 'Désactiver' : 'Réactiver'}
+                    </button>
+                    <button onclick="window.deleteMemberAdmin('${m.uid}', '${escapeHtml(m.prenom || '')} ${escapeHtml(m.nom || '')}')"
+                        style="background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.3); color:#ef4444; padding:5px 10px; border-radius:8px; cursor:pointer; font-size:11px;">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+            <!-- Formulaire d'édition inline (masqué par défaut) -->
+            <div id="edit-member-${m.uid}" style="display:none; padding:16px 18px; border-top:1px solid rgba(255,215,0,0.15); background:rgba(255,215,0,0.03);">
+                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-bottom:12px;">
+                    <div>
+                        <label style="color:#94a3b8; font-size:11px; display:block; margin-bottom:4px;">Classement</label>
+                        <input id="edit-classement-${m.uid}" value="${escapeHtml(m.classement || '')}" placeholder="15/4 ou NC"
+                            style="width:100%; padding:8px 10px; background:#1e293b; border:1px solid #475569; color:white; border-radius:6px; font-size:13px; box-sizing:border-box;">
+                    </div>
+                    <div>
+                        <label style="color:#94a3b8; font-size:11px; display:block; margin-bottom:4px;">N° Licence FFT</label>
+                        <input id="edit-licence-${m.uid}" value="${escapeHtml(m.licence || '')}" placeholder="1234567"
+                            style="width:100%; padding:8px 10px; background:#1e293b; border:1px solid #475569; color:white; border-radius:6px; font-size:13px; box-sizing:border-box;">
+                    </div>
+                    <div>
+                        <label style="color:#94a3b8; font-size:11px; display:block; margin-bottom:4px;">Statut</label>
+                        <select id="edit-statut-${m.uid}"
+                            style="width:100%; padding:8px 10px; background:#1e293b; border:1px solid rgba(255,215,0,0.35); color:white; border-radius:6px; font-size:13px; box-sizing:border-box;">
+                            ${statutOptions.map(s => `<option value="${s}" ${(m.statut||'Membre')===s?'selected':''}>${s}</option>`).join('')}
+                        </select>
+                    </div>
+                </div>
+                <div style="display:flex; gap:8px;">
+                    <button onclick="window.saveMemberEdit('${m.uid}')"
+                        style="background:linear-gradient(135deg,#ffd700,#f59e0b); color:#0d1b2e; border:none; padding:8px 20px; border-radius:8px; font-weight:700; cursor:pointer; font-size:13px;">
+                        <i class="fas fa-save"></i> Enregistrer
+                    </button>
+                    <button onclick="window.toggleMemberEdit('${m.uid}')"
+                        style="background:rgba(100,116,139,0.15); border:1px solid rgba(100,116,139,0.3); color:#94a3b8; padding:8px 16px; border-radius:8px; cursor:pointer; font-size:13px;">
+                        Annuler
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+}
 
 window.loadScanStats = () => {
     const el = document.getElementById('scan-stats-list');

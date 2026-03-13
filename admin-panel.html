@@ -330,6 +330,43 @@
 
             <!-- Liste des membres -->
             <h4 style="color:#e2e8f0; margin-bottom:15px; border-left:4px solid #22c55e; padding-left:15px;">Membres inscrits</h4>
+
+            <!-- Barre de recherche, tri, filtres -->
+            <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:15px; padding:14px; background:rgba(34,197,94,0.04); border:1px solid rgba(34,197,94,0.15); border-radius:10px;">
+                <div style="flex:1; min-width:200px; position:relative;">
+                    <i class="fas fa-search" style="position:absolute; left:11px; top:50%; transform:translateY(-50%); color:#64748b; font-size:13px;"></i>
+                    <input type="text" id="members-search" placeholder="Nom, prénom, email, licence..."
+                        oninput="window.filterMembers()"
+                        style="width:100%; padding:9px 9px 9px 34px; background:#1e293b; border:1px solid #475569; color:white; border-radius:8px; box-sizing:border-box; font-size:13px;">
+                </div>
+                <select id="members-sort" onchange="window.filterMembers()"
+                    style="padding:9px 12px; background:#1e293b; border:1px solid rgba(34,197,94,0.35); color:white; border-radius:8px; cursor:pointer; font-size:13px;">
+                    <option value="alpha-asc">A → Z</option>
+                    <option value="alpha-desc">Z → A</option>
+                    <option value="rank-best">Classement (meilleur)</option>
+                    <option value="rank-worst">Classement (moins bon)</option>
+                </select>
+                <select id="members-filter-statut" onchange="window.filterMembers()"
+                    style="padding:9px 12px; background:#1e293b; border:1px solid #475569; color:white; border-radius:8px; cursor:pointer; font-size:13px;">
+                    <option value="">Tous statuts</option>
+                    <option value="Membre">Membre</option>
+                    <option value="Membre Bureau">Membre Bureau</option>
+                    <option value="Coach">Coach</option>
+                    <option value="Secrétaire Général">Secrétaire Général</option>
+                    <option value="Trésorier Général Adjoint">Trésorier Général Adjoint</option>
+                    <option value="Trésorier Général">Trésorier Général</option>
+                    <option value="Vice-Président">Vice-Président</option>
+                    <option value="Président">Président</option>
+                </select>
+                <select id="members-filter-actif" onchange="window.filterMembers()"
+                    style="padding:9px 12px; background:#1e293b; border:1px solid #475569; color:white; border-radius:8px; cursor:pointer; font-size:13px;">
+                    <option value="">Actifs &amp; Inactifs</option>
+                    <option value="actif">Actifs uniquement</option>
+                    <option value="inactif">Inactifs uniquement</option>
+                </select>
+                <span id="members-count" style="color:#64748b; font-size:12px; white-space:nowrap; min-width:80px; text-align:right;"></span>
+            </div>
+
             <div id="members-admin-list" style="display:grid; gap:10px;">
                 <p style="color:#64748b; text-align:center;">Chargement...</p>
             </div>
