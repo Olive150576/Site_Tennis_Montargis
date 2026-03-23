@@ -218,10 +218,10 @@ exports.sendContactEmail = functions.https.onCall(async (data, context) => {
         template_id:     EMAILJS_TEMPLATE_ID,
         user_id:         EMAILJS_USER_ID,
         template_params: {
-            from_name:    name.trim(),
-            from_email:   email.trim(),
-            message:      message.trim(),
-            reply_to:     email.trim()
+            name:      name.trim(),
+            email:     email.trim(),
+            message:   message.trim(),
+            reply_to:  email.trim()
         }
     });
 
