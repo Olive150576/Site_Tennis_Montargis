@@ -191,6 +191,139 @@ exports.deleteMember = functions.https.onCall(async (data, context) => {
 // avec Firebase Scheduled Functions si nécessaire
 
 /**
+ * Cloud Function Webhook — Création d'une actualité depuis Metricool via Make.com
+ *
+ * Endpoint : POST https://us-central1-[project-id].cloudfunctions.net/createNewsWebhook
+ * Body JSON : { "text": "...", "imageUrl": "https://...", "secret": "votre_secret" }
+ *
+ * Configuration du secret :
+ *   firebase functions:config:set webhook.secret="VOTRE_SECRET_ICI"
+ *   puis : firebase deploy --only functions
+ */
+exports.createNewsWebhook = functions.https.onRequest(async (req, res) => {
+    // Headers CORS (requis pour Make.com)
+    res.set('Access-Control-Allow-Origin', '*');
+    if (req.method === 'OPTIONS') {
+        res.set('Access-Control-Allow-Methods', 'POST');
+        res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+        res.status(204).send('');
+        return;
+    }
+
+    if (req.method !== 'POST') {
+        res.status(405).json({ error: 'Méthode non autorisée. Utilisez POST.' });
+        return;
+    }
+
+    // Vérification du secret
+    const webhookSecret = process.env.WEBHOOK_SECRET;
+    if (!webhookSecret) {
+        console.error('[createNewsWebhook] WEBHOOK_SECRET non configuré');
+        res.status(500).json({ error: 'Configuration serveur incomplète.' });
+        return;
+    }
+
+    // Parser le body quel que soit le format envoyé par Make.com
+    let body = req.body;
+    if (typeof body === 'string') {
+        try { body = JSON.parse(body); } catch(e) { body = {}; }
+    } else if (Buffer.isBuffer(body)) {
+        try { body = JSON.parse(body.toString('utf8')); } catch(e) { body = {}; }
+    }
+    body = body || {};
+
+    const { text, imageUrl, secret: bodySecret } = body;
+
+    // Accepter le secret depuis l'URL (?secret=...) ou depuis le body
+    const secret = (req.query.secret || bodySecret || '').trim();
+
+    if (!secret || secret !== webhookSecret) {
+        console.warn('[createNewsWebhook] Tentative avec secret invalide. Reçu:', JSON.stringify(secret));
+        res.status(401).json({ error: 'Secret invalide.' });
+        return;
+    }
+
+    if (!text || typeof text !== 'string' || text.trim().length === 0) {
+        res.status(400).json({ error: 'Le champ "text" est requis.' });
+        return;
+    }
+
+    // Générer le titre automatiquement depuis les premiers mots du texte
+    const cleanText = text.trim();
+    let autoTitle = cleanText.substring(0, 60);
+    if (cleanText.length > 60) {
+        const lastSpace = autoTitle.lastIndexOf(' ');
+        if (lastSpace > 20) autoTitle = autoTitle.substring(0, lastSpace);
+        autoTitle += '...';
+    }
+    // Supprimer les emojis en début de titre pour un rendu propre sur le site
+    autoTitle = autoTitle.replace(/^[\p{Emoji}\s]+/u, '').trim() || autoTitle.trim();
+
+    // Télécharger et re-uploader l'image dans Firebase Storage (URL permanente)
+    let finalImageUrl = null;
+    if (imageUrl && typeof imageUrl === 'string') {
+        try {
+            const imgResponse = await fetch(imageUrl);
+            if (imgResponse.ok) {
+                const buffer = await imgResponse.arrayBuffer();
+                const contentType = imgResponse.headers.get('content-type') || 'image/jpeg';
+                const ext = contentType.includes('png') ? 'png'
+                          : contentType.includes('webp') ? 'webp' : 'jpg';
+                const fileName = `images/metricool_${Date.now()}.${ext}`;
+
+                // Générer un token de téléchargement Firebase (format standard)
+                const { randomUUID } = require('crypto');
+                const downloadToken = randomUUID();
+
+                const bucket = admin.storage().bucket();
+                const file = bucket.file(fileName);
+                await file.save(Buffer.from(buffer), {
+                    metadata: {
+                        contentType,
+                        metadata: { firebaseStorageDownloadTokens: downloadToken }
+                    }
+                });
+
+                finalImageUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(fileName)}?alt=media&token=${downloadToken}`;
+                console.log(`[createNewsWebhook] Image uploadée : ${fileName}`);
+            }
+        } catch (imgErr) {
+            // On publie sans image plutôt que de bloquer toute la publication
+            console.warn('[createNewsWebhook] Impossible de télécharger l\'image :', imgErr.message);
+        }
+    }
+
+    // Construire l'entrée actualité (même format que le panneau admin)
+    const newItem = {
+        title: autoTitle,
+        desc: cleanText,
+        price: null,
+        url: null,
+        avantage: null,
+        images: finalImageUrl ? [finalImageUrl] : [],
+        date: new Date().toLocaleDateString('fr-FR'),
+        createdAt: Date.now(),
+        featured: false,
+        draft: false
+    };
+
+    // Récupérer le tableau existant et ajouter la nouvelle actualité
+    const newsRef = admin.database().ref('news');
+    const snapshot = await newsRef.once('value');
+    const items = snapshot.val() || [];
+    items.push(newItem);
+    await newsRef.set(items);
+
+    console.log(`[createNewsWebhook] Actualité créée : "${autoTitle}"`);
+    res.status(200).json({
+        success: true,
+        title: autoTitle,
+        hasImage: !!finalImageUrl,
+        message: 'Actualité publiée avec succès sur le site.'
+    });
+});
+
+/**
  * Cloud Function pour envoyer le formulaire de contact via EmailJS (côté serveur)
  * La clé API n'est plus exposée dans le code client
  */
