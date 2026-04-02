@@ -232,10 +232,13 @@ exports.createNewsWebhook = functions.https.onRequest(async (req, res) => {
     }
     body = body || {};
 
-    const { text, imageUrl, secret: bodySecret } = body;
+    const { text: bodyText, imageUrl: bodyImageUrl, secret: bodySecret } = body;
 
-    // Accepter le secret depuis l'URL (?secret=...) ou depuis le body
+    // Accepter le secret, text et imageUrl depuis l'URL (?param=...) ou depuis le body
+    // Les query params sont encodés automatiquement par Make.com — plus fiable pour les textes avec caractères spéciaux
     const secret = (req.query.secret || bodySecret || '').trim();
+    const text = req.query.text || bodyText;
+    const imageUrl = req.query.imageUrl || bodyImageUrl;
 
     if (!secret || secret !== webhookSecret) {
         console.warn('[createNewsWebhook] Tentative avec secret invalide. Reçu:', JSON.stringify(secret));
