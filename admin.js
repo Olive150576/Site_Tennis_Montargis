@@ -2027,6 +2027,8 @@ window.openRencontresModal = function(equipeId) {
         document.getElementById('rencontre-domicile').checked = false;
         document.getElementById('modal-rencontres').style.display = '';
         _loadRencontresModal(equipeId);
+    }).catch(function(err) {
+        window.showNotification && window.showNotification('Erreur chargement calendrier : ' + (err.message || err), 'error');
     });
 };
 
@@ -2078,6 +2080,8 @@ window.saveRencontre = function() {
         document.getElementById('rencontre-save-label').textContent = 'Ajouter';
         _loadRencontresModal(equipeId);
         if (_rencontresModalChampId) window.loadEquipesAdmin(_rencontresModalChampId);
+    }).catch(function(err) {
+        window.showNotification && window.showNotification('Erreur enregistrement rencontre : ' + (err.message || err), 'error');
     });
 };
 
@@ -2093,6 +2097,8 @@ window.editRencontre = function(equipeId, rid) {
         document.getElementById('rencontre-note').value = r.note || '';
         document.getElementById('rencontre-edit-id').value = rid;
         document.getElementById('rencontre-save-label').textContent = 'Modifier';
+    }).catch(function(err) {
+        window.showNotification && window.showNotification('Erreur chargement rencontre : ' + (err.message || err), 'error');
     });
 };
 
@@ -2103,6 +2109,8 @@ window.deleteRencontre = async function(equipeId, rid) {
         window.showNotification && window.showNotification('Rencontre supprimée.', 'success');
         _loadRencontresModal(equipeId);
         if (_rencontresModalChampId) window.loadEquipesAdmin(_rencontresModalChampId);
+    }).catch(function(err) {
+        window.showNotification && window.showNotification('Erreur suppression rencontre : ' + (err.message || err), 'error');
     });
 };
 
@@ -2116,10 +2124,12 @@ window.loadEquipesAdmin = function(champId) {
     if (!champId) { if (container) container.innerHTML = '<p style="color:#64748b; text-align:center;">Sélectionnez un championnat.</p>'; return; }
     if (container) container.innerHTML = '<p style="color:#64748b; text-align:center;"><i class="fas fa-spinner fa-spin"></i> Chargement...</p>';
 
-    db_ref.ref('equipes').orderByChild('champId').equalTo(champId).once('value', function(snapEquipes) {
-        db_ref.ref('inscriptions_equipe/' + champId).once('value', function(snapInscrits) {
-            db_ref.ref('members').once('value', function(snapMembers) {
-                (function() {
+    Promise.all([
+        db_ref.ref('equipes').orderByChild('champId').equalTo(champId).once('value'),
+        db_ref.ref('inscriptions_equipe/' + champId).once('value'),
+        db_ref.ref('members').once('value')
+    ]).then(function(snapsAdmin) {
+        var snapEquipes = snapsAdmin[0]; var snapInscrits = snapsAdmin[1]; var snapMembers = snapsAdmin[2];
 
                     var members = {};
                     snapMembers.forEach(function(m) { members[m.key] = m.val(); });
@@ -2294,11 +2304,9 @@ window.loadEquipesAdmin = function(champId) {
 
                     kanban += '</div>';
                     container.innerHTML = statsHtml + kanban;
-                    window._inscritsList = inscritsList;
                     window._membersCache = members;
-                })();
-            });
-        });
+    }).catch(function(err) {
+        if (container) container.innerHTML = '<p style="color:#ef4444; text-align:center;"><i class="fas fa-exclamation-triangle" style="margin-right:6px;"></i>Erreur de chargement : ' + escHtml(err.message || String(err)) + '</p>';
     });
 };
 
@@ -2329,6 +2337,8 @@ window.openEditEquipeModal = function(equipeId, champId) {
         document.getElementById('edit-equipe-cmin').innerHTML = optsMin;
         document.getElementById('edit-equipe-cmax').innerHTML = optsMax;
         document.getElementById('modal-edit-equipe').style.display = 'flex';
+    }).catch(function(err) {
+        window.showNotification && window.showNotification('Erreur chargement équipe : ' + (err.message || err), 'error');
     });
 };
 
@@ -2343,14 +2353,24 @@ window.saveEditEquipe = function() {
         window.showNotification && window.showNotification('Équipe mise à jour.', 'success');
         document.getElementById('modal-edit-equipe').style.display = 'none';
         window.loadEquipesAdmin(champId);
+    }).catch(function(err) {
+        window.showNotification && window.showNotification('Erreur mise à jour équipe : ' + (err.message || err), 'error');
     });
 };
 
 window.deleteEquipeAdmin = async function(equipeId) {
     var ok = await window.confirmDialog.show({ title: 'Supprimer l\'équipe', message: 'Supprimer cette équipe et ses convocations ?', type: 'danger', confirmText: 'Supprimer', cancelText: 'Annuler' });
     if (!ok) return;
+    var champIdToRefresh = null;
+    try {
+        var snapDel = await db_ref.ref('equipes/' + equipeId + '/champId').once('value');
+        champIdToRefresh = snapDel.val();
+    } catch(_) {}
     db_ref.ref('equipes/' + equipeId).remove().then(function() {
         window.showNotification && window.showNotification('Équipe supprimée.', 'success');
+        if (champIdToRefresh) window.loadEquipesAdmin(champIdToRefresh);
+    }).catch(function(err) {
+        window.showNotification && window.showNotification('Erreur suppression équipe : ' + (err.message || err), 'error');
     });
 };
 
@@ -2457,28 +2477,26 @@ window.openJoueursEquipeModal = function(equipeId, champId) {
     listeEl.innerHTML = '<p style="color:#64748b; font-size:13px; text-align:center;"><i class="fas fa-spinner fa-spin"></i></p>';
     document.getElementById('modal-joueurs-equipe').style.display = '';
 
-    db_ref.ref('equipes/' + equipeId).once('value', function(snapEq) {
-        var joueurActuels = (snapEq.val() && snapEq.val().joueurs) || {};
-
-        // Charger TOUTES les inscriptions (validées ou non) pour ce championnat
-        db_ref.ref('inscriptions_equipe/' + champId).once('value', function(snapInscrits) {
-            var inscrits = {}; // uid → données inscription complètes
-            snapInscrits.forEach(function(child) { inscrits[child.key] = child.val(); });
-
-            db_ref.ref('members').once('value', function(snapMembers) {
-                var tous = [];
-                snapMembers.forEach(function(child) {
-                    var m = child.val();
-                    if (m && m.actif && m.prenom && m.nom) {
-                        tous.push({ uid: child.key, prenom: m.prenom, nom: m.nom, classement: m.classement || '' });
-                    }
-                });
-                tous.sort(function(a, b) { return a.nom.localeCompare(b.nom, 'fr'); });
-
-                _joueursModalData = { tous: tous, inscrits: inscrits, joueurActuels: joueurActuels, showAll: false };
-                _renderJoueursListe(false); // Par défaut : inscrits seulement
-            });
+    Promise.all([
+        db_ref.ref('equipes/' + equipeId).once('value'),
+        db_ref.ref('inscriptions_equipe/' + champId).once('value'),
+        db_ref.ref('members').once('value')
+    ]).then(function(snapsJ) {
+        var joueurActuels = (snapsJ[0].val() && snapsJ[0].val().joueurs) || {};
+        var inscrits = {};
+        snapsJ[1].forEach(function(child) { inscrits[child.key] = child.val(); });
+        var tous = [];
+        snapsJ[2].forEach(function(child) {
+            var m = child.val();
+            if (m && m.actif && m.prenom && m.nom) {
+                tous.push({ uid: child.key, prenom: m.prenom, nom: m.nom, classement: m.classement || '' });
+            }
         });
+        tous.sort(function(a, b) { return a.nom.localeCompare(b.nom, 'fr'); });
+        _joueursModalData = { tous: tous, inscrits: inscrits, joueurActuels: joueurActuels, showAll: false };
+        _renderJoueursListe(false);
+    }).catch(function(err) {
+        document.getElementById('modal-joueurs-liste').innerHTML = '<p style="color:#ef4444; font-size:13px; text-align:center;"><i class="fas fa-exclamation-triangle" style="margin-right:6px;"></i>Erreur chargement : ' + escHtml(err.message || String(err)) + '</p>';
     });
 };
 
@@ -2492,6 +2510,8 @@ window.saveJoueursEquipe = function() {
         window.showNotification && window.showNotification('Composition de l\'équipe enregistrée.', 'success');
         document.getElementById('modal-joueurs-equipe').style.display = 'none';
         window.loadEquipesAdmin(champId);
+    }).catch(function(err) {
+        window.showNotification && window.showNotification('Erreur enregistrement joueurs : ' + (err.message || err), 'error');
     });
 };
 
@@ -2513,6 +2533,7 @@ window.openConvocationModal = function(equipeId, rencontreId, champId) {
     ]).then(function(snaps) {
         var champ   = snaps[0].val() || {};
         var eq      = snaps[1].val() || {};
+
         var r       = snaps[2].val() || {};
         var conv    = snaps[3].val() || {};
         var positions = conv.positions || {};
@@ -2574,7 +2595,11 @@ window.openConvocationModal = function(equipeId, rencontreId, champId) {
                 });
             }
             document.getElementById('modal-convocation-positions').innerHTML = positionsHtml;
+        }).catch(function(err) {
+            document.getElementById('modal-convocation-positions').innerHTML = '<p style="color:#ef4444; font-size:13px; text-align:center;"><i class="fas fa-exclamation-triangle" style="margin-right:6px;"></i>Erreur chargement membres : ' + escHtml(err.message || String(err)) + '</p>';
         });
+    }).catch(function(err) {
+        document.getElementById('modal-convocation-positions').innerHTML = '<p style="color:#ef4444; font-size:13px; text-align:center;"><i class="fas fa-exclamation-triangle" style="margin-right:6px;"></i>Erreur chargement convocation : ' + escHtml(err.message || String(err)) + '</p>';
     });
 };
 
@@ -2594,13 +2619,14 @@ window.saveConvocation = function() {
     document.querySelectorAll('#modal-convocation-positions select').forEach(function(sel) {
         if (sel.value) positions[sel.dataset.pos] = sel.value;
     });
-    // Brouillon : on retire la validation pour que le coach puisse retravailler la composition
     db_ref.ref('equipes/' + equipeId + '/convocations/' + rencontreId).set({
         positions: positions, validee: false, notifie: false, updatedAt: Date.now()
     }).then(function() {
         window.showNotification && window.showNotification('Brouillon enregistré.', 'success');
         document.getElementById('modal-convocation').style.display = 'none';
         if (champId) window.loadEquipesAdmin(champId);
+    }).catch(function(err) {
+        window.showNotification && window.showNotification('Erreur enregistrement brouillon : ' + (err.message || err), 'error');
     });
 };
 
@@ -2623,34 +2649,39 @@ window.validerEtNotifierConvocation = function() {
         return;
     }
 
-    db_ref.ref('equipes/' + equipeId).once('value', function(snapEq) {
-        // ✅ Chemin corrigé : rencontre dans /equipes/{equipeId}/rencontres/
-        db_ref.ref('equipes/' + equipeId + '/rencontres/' + rencontreId).once('value', function(snapR) {
-            var eq = snapEq.val() || {}; var r = snapR.val() || {};
-            var dateLabel = (r.date || '?') + (r.heure ? ' à ' + r.heure : '') + (r.adversaire ? ' vs ' + r.adversaire : '');
-            db_ref.ref('equipes/' + equipeId + '/convocations/' + rencontreId).set({
-                positions: positions, validee: true, notifie: true, updatedAt: Date.now()
-            }).then(function() {
-                var posLabels = { simple1:'Simple 1', simple2:'Simple 2', simple3:'Simple 3', double1_A:'Double 1 — Joueur A', double1_B:'Double 1 — Joueur B', double2_A:'Double 2 — Joueur A', double2_B:'Double 2 — Joueur B' };
-                var notifPromises = Object.keys(positions).map(function(pos) {
-                    var uid = positions[pos]; if (!uid) return Promise.resolve();
-                    var notif = {
-                        uid: uid, champId: champId, equipeId: equipeId, rencontreId: rencontreId,
-                        equipeNom: eq.nom || '',
-                        type: 'convoque',
-                        message: 'Vous êtes convoqué(e) pour ' + (eq.nom || 'l\'équipe') + ' — ' + dateLabel + ' — Poste : ' + (posLabels[pos] || pos),
-                        lue: false, createdAt: Date.now()
-                    };
-                    return db_ref.ref('notifications_equipe').push(notif);
-                });
-                return Promise.all(notifPromises);
-            }).then(function() {
-                window.showNotification && window.showNotification('Convocation validée et joueurs notifiés !', 'success');
-                document.getElementById('modal-convocation').style.display = 'none';
-                // Rafraîchir le Kanban pour voir la mise à jour sur les tuiles
-                if (champId) window.loadEquipesAdmin(champId);
+    Promise.all([
+        db_ref.ref('equipes/' + equipeId).once('value'),
+        db_ref.ref('equipes/' + equipeId + '/rencontres/' + rencontreId).once('value')
+    ]).then(function(snaps) {
+        var eq = snaps[0].val() || {};
+        var r  = snaps[1].val() || {};
+        var dateLabel = (r.date || '?') + (r.heure ? ' à ' + r.heure : '') + (r.adversaire ? ' vs ' + r.adversaire : '');
+        var posLabels = { simple1:'Simple 1', simple2:'Simple 2', simple3:'Simple 3', double1_A:'Double 1 — Joueur A', double1_B:'Double 1 — Joueur B', double2_A:'Double 2 — Joueur A', double2_B:'Double 2 — Joueur B' };
+
+        // 1. Sauvegarder la convocation
+        return db_ref.ref('equipes/' + equipeId + '/convocations/' + rencontreId).set({
+            positions: positions, validee: true, notifie: true, updatedAt: Date.now()
+        }).then(function() {
+            // 2. Envoyer les notifications (erreurs non bloquantes)
+            var notifPromises = Object.keys(positions).map(function(pos) {
+                var uid = positions[pos]; if (!uid) return Promise.resolve();
+                return db_ref.ref('notifications_equipe').push({
+                    uid: uid, champId: champId, equipeId: equipeId, rencontreId: rencontreId,
+                    equipeNom: eq.nom || '',
+                    type: 'convoque',
+                    message: 'Vous êtes convoqué(e) pour ' + (eq.nom || 'l\'équipe') + ' — ' + dateLabel + ' — Poste : ' + (posLabels[pos] || pos),
+                    lue: false, createdAt: Date.now()
+                }).catch(function() {});  // notification non bloquante
             });
+            return Promise.all(notifPromises);
         });
+    }).then(function() {
+        window.showNotification && window.showNotification('Convocation validée et joueurs notifiés !', 'success');
+        document.getElementById('modal-convocation').style.display = 'none';
+        if (champId) window.loadEquipesAdmin(champId);
+    }).catch(function(err) {
+        console.error('Erreur validerEtNotifierConvocation :', err);
+        window.showNotification && window.showNotification('Erreur lors de la validation : ' + (err.message || err), 'error');
     });
 };
 
@@ -2785,8 +2816,12 @@ window.nettoyerDonneesOrphelines = async function() {
         window.showNotification && window.showNotification('Aucun résidu trouvé — les données sont propres.', 'success');
         return;
     }
-    await Promise.all(ops);
-    window.showNotification && window.showNotification(removed + ' entrée(s) résiduelle(s) supprimée(s).', 'success');
+    try {
+        await Promise.all(ops);
+        window.showNotification && window.showNotification(removed + ' entrée(s) résiduelle(s) supprimée(s).', 'success');
+    } catch(err) {
+        window.showNotification && window.showNotification('Erreur nettoyage : ' + (err.message || err), 'error');
+    }
 };
 
 // --- Classement FFT par équipe ---
@@ -2836,6 +2871,7 @@ function _loadInscritsPanel(champId) {
         db_ref.ref('members').once('value')
     ]).then(function(snaps) {
         var snapIns = snaps[0]; var snapMem = snaps[1];
+
         var members = {}; snapMem.forEach(function(m) { members[m.key] = m.val(); });
         var rows = '';
         if (snapIns.exists()) {
@@ -2863,6 +2899,8 @@ function _loadInscritsPanel(champId) {
             + '<button onclick="document.getElementById(\'inscrits-panel-' + champId + '\').style.display=\'none\'" style="background:none; border:none; color:#64748b; cursor:pointer; font-size:14px;"><i class="fas fa-times"></i></button>'
             + '</div>'
             + (rows || '<p style="color:#64748b; font-size:12px; text-align:center; padding:8px 0;">Aucun membre inscrit.</p>');
+    }).catch(function(err) {
+        panel.innerHTML = '<p style="color:#ef4444; font-size:12px; text-align:center;"><i class="fas fa-exclamation-triangle" style="margin-right:5px;"></i>Erreur chargement : ' + escHtml(err.message || String(err)) + '</p>';
     });
 }
 
@@ -2870,6 +2908,8 @@ window.validerInscriptionAdmin = function(champId, uid) {
     db_ref.ref('inscriptions_equipe/' + champId + '/' + uid).update({ valide: true }).then(function() {
         window.showNotification && window.showNotification('Inscription validée.', 'success');
         _loadInscritsPanel(champId);
+    }).catch(function(err) {
+        window.showNotification && window.showNotification('Erreur validation inscription : ' + (err.message || err), 'error');
     });
 };
 
@@ -2880,9 +2920,13 @@ window.supprimerInscription = async function(champId, uid) {
         type: 'danger', confirmText: 'Supprimer', cancelText: 'Annuler'
     });
     if (!ok) return;
-    await db_ref.ref('inscriptions_equipe/' + champId + '/' + uid).remove();
-    window.showNotification && window.showNotification('Inscription supprimée.', 'success');
-    _loadInscritsPanel(champId);
+    try {
+        await db_ref.ref('inscriptions_equipe/' + champId + '/' + uid).remove();
+        window.showNotification && window.showNotification('Inscription supprimée.', 'success');
+        _loadInscritsPanel(champId);
+    } catch(err) {
+        window.showNotification && window.showNotification('Erreur suppression inscription : ' + (err.message || err), 'error');
+    }
 };
 
 function escHtml(str) {
