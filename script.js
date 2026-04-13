@@ -270,10 +270,11 @@ document.addEventListener('DOMContentLoaded', () => {
         // Gestion du hash (ex: #contact-section)
         const hash = window.location.hash;
         if (hash) {
+            urlParamHandled = true;
             setTimeout(() => {
                 const target = document.querySelector(hash);
                 if (target) target.scrollIntoView({ behavior: 'smooth' });
-            }, 500);
+            }, 2000);
         }
 
         if (viewParam) {
