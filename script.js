@@ -267,6 +267,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const urlParams = new URLSearchParams(window.location.search);
         const viewParam = urlParams.get('view');
 
+        // Gestion du hash (ex: #contact-section)
+        const hash = window.location.hash;
+        if (hash) {
+            setTimeout(() => {
+                const target = document.querySelector(hash);
+                if (target) target.scrollIntoView({ behavior: 'smooth' });
+            }, 500);
+        }
+
         if (viewParam) {
             // Format: section_key (ex: news_5 ou event_abc123)
             const [section, key] = viewParam.split('_');
@@ -848,6 +857,28 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     }
+
+    // Mot de passe oublié (sans être connecté)
+    window.memberForgotPassword = () => {
+        const email = (document.getElementById('member-login-email').value || '').trim();
+        if (!email) {
+            window.showNotification && window.showNotification('Saisissez votre adresse email dans le champ ci-dessus, puis cliquez sur "Mot de passe oublié".', 'warning');
+            document.getElementById('member-login-email').focus();
+            return;
+        }
+        auth.sendPasswordResetEmail(email).then(() => {
+            document.getElementById('member-login-modal').classList.add('hidden');
+            window.showSuccessMessage && window.showSuccessMessage(
+                '📧 Email envoyé à ' + email,
+                '⚠️ Si vous ne le recevez pas dans les 2 minutes, vérifiez votre dossier SPAM ou courrier indésirable — l\'email peut y être classé automatiquement.'
+            );
+        }).catch(err => {
+            var msg = 'Impossible d\'envoyer l\'email.';
+            if (err.code === 'auth/user-not-found') msg = 'Aucun compte trouvé pour cette adresse email.';
+            if (err.code === 'auth/invalid-email') msg = 'Adresse email invalide.';
+            window.showNotification && window.showNotification(msg, 'error');
+        });
+    };
 
     // Login membre (appelé depuis le modal member-login-modal)
     window.memberLoginWithEmail = () => {

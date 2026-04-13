@@ -74,7 +74,8 @@
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script defer src="notifications.min.js"></script>
-    <script defer src="admin.min.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+    <script defer src="admin.min.js?v=14"></script>
 </head>
 <body>
 
@@ -227,6 +228,9 @@
             </button>
             <button class="tab-btn" onclick="switchAdmin('club_messages')" style="background:linear-gradient(135deg, #f59e0b, #b45309); color:white;">
                 <i class="fas fa-bullhorn"></i> Messages Club
+            </button>
+            <button class="tab-btn" onclick="switchAdmin('equipes')" style="background:linear-gradient(135deg, #e11d48, #9f1239); color:white;">
+                <i class="fas fa-shield-alt"></i> Équipes
             </button>
         </div>
 
@@ -439,6 +443,273 @@
             </div>
         </div>
 
+        <!-- SECTION GESTION ÉQUIPES EN ÉQUIPE -->
+        <div id="equipes-admin" class="hidden" style="background:rgba(2,6,23,0.8); padding:25px; border-radius:15px; border:1px solid rgba(225,29,72,0.4); margin-bottom:30px;">
+            <h3 style="color:#e11d48; font-family:'Orbitron'; font-size:1.1rem; margin-bottom:20px; border-bottom:2px solid #334155; padding-bottom:15px;">
+                <i class="fas fa-shield-alt" style="margin-right:10px;"></i>Gestion des Championnats en Équipe
+            </h3>
+
+            <!-- Sous-onglets -->
+            <div style="display:flex; gap:8px; margin-bottom:25px; border-bottom:2px solid #334155; padding-bottom:0;">
+                <button id="eq-subtab-btn-championnats" onclick="switchEquipesSubTab('championnats')"
+                    style="padding:10px 20px; border:none; border-radius:8px 8px 0 0; background:#e11d48; color:white; font-weight:bold; cursor:pointer; font-size:13px;">
+                    <i class="fas fa-trophy" style="margin-right:6px;"></i>Championnats
+                </button>
+
+                <button id="eq-subtab-btn-equipes" onclick="switchEquipesSubTab('equipes')"
+                    style="padding:10px 20px; border:none; border-radius:8px 8px 0 0; background:#334155; color:#94a3b8; font-weight:bold; cursor:pointer; font-size:13px;">
+                    <i class="fas fa-users" style="margin-right:6px;"></i>Équipes &amp; Convocations
+                </button>
+            </div>
+
+            <!-- Sous-onglet : Championnats -->
+            <div id="eq-subtab-championnats">
+                <div style="background:rgba(225,29,72,0.08); border:1px solid rgba(225,29,72,0.3); border-radius:12px; padding:20px; margin-bottom:20px;">
+                    <h4 style="color:#e11d48; margin-bottom:16px; font-size:0.95rem;"><i class="fas fa-plus-circle" style="margin-right:8px;"></i>Nouveau championnat</h4>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+                        <div>
+                            <label style="color:#e2e8f0; font-size:13px; display:block; margin-bottom:6px;">Nom du championnat *</label>
+                            <input type="text" id="champ-nom" placeholder="Ex: Interclub Hommes D1 — 2025-2026"
+                                style="width:100%; padding:12px; background:#1e293b; border:1px solid #475569; color:white; border-radius:8px; font-size:14px; box-sizing:border-box;">
+                        </div>
+                        <div>
+                            <label style="color:#e2e8f0; font-size:13px; display:block; margin-bottom:6px;">Saison *</label>
+                            <input type="text" id="champ-saison" placeholder="2025-2026"
+                                style="width:100%; padding:12px; background:#1e293b; border:1px solid #475569; color:white; border-radius:8px; font-size:14px; box-sizing:border-box;">
+                        </div>
+                        <div>
+                            <label style="color:#e2e8f0; font-size:13px; display:block; margin-bottom:6px;">Catégorie</label>
+                            <select id="champ-categorie"
+                                style="width:100%; padding:12px; background:#1e293b; border:1px solid #475569; color:white; border-radius:8px; font-size:14px; box-sizing:border-box;">
+                                <option value="homme">Hommes</option>
+                                <option value="femme">Femmes</option>
+                                <option value="mixte">Mixte</option>
+                                <option value="jeune">Jeunes</option>
+                                <option value="tous">Tous</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="color:#e2e8f0; font-size:13px; display:block; margin-bottom:6px;">Simples par rencontre</label>
+                            <select id="champ-nb-simples"
+                                style="width:100%; padding:12px; background:#1e293b; border:1px solid #475569; color:white; border-radius:8px; font-size:14px; box-sizing:border-box;">
+                                <option value="2">2 simples</option>
+                                <option value="3">3 simples</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="color:#e2e8f0; font-size:13px; display:block; margin-bottom:6px;">Doubles par rencontre</label>
+                            <select id="champ-nb-doubles"
+                                style="width:100%; padding:12px; background:#1e293b; border:1px solid #475569; color:white; border-radius:8px; font-size:14px; box-sizing:border-box;">
+                                <option value="0">Aucun double</option>
+                                <option value="1">1 double</option>
+                                <option value="2">2 doubles</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="color:#e2e8f0; font-size:13px; display:block; margin-bottom:6px;">Description (optionnel)</label>
+                            <textarea id="champ-description" rows="4" placeholder="Informations complémentaires — ex: Équipe 1 : classement -15/1 requis, Équipe 2 : -30/1..."
+                                style="width:100%; padding:12px; background:#1e293b; border:1px solid #475569; color:white; border-radius:8px; font-size:14px; box-sizing:border-box; resize:vertical; font-family:inherit; line-height:1.5;"></textarea>
+                        </div>
+                        <div>
+                            <label style="color:#e2e8f0; font-size:13px; display:block; margin-bottom:6px;">Nombre d'équipes à créer</label>
+                            <select id="champ-nb-equipes" onchange="window.updateEquipesClassementRows(this.value)"
+                                style="width:100%; padding:12px; background:#1e293b; border:1px solid #475569; color:white; border-radius:8px; font-size:14px; box-sizing:border-box;">
+                                <option value="0">Ne pas créer automatiquement</option>
+                                <option value="1">1 équipe</option>
+                                <option value="2">2 équipes</option>
+                                <option value="3">3 équipes</option>
+                                <option value="4">4 équipes</option>
+                                <option value="5">5 équipes</option>
+                                <option value="6">6 équipes</option>
+                                <option value="7">7 équipes</option>
+                                <option value="8">8 équipes</option>
+                            </select>
+                        </div>
+                        <div id="champ-equipes-classement" style="display:none;">
+                            <label style="color:#e2e8f0; font-size:13px; display:block; margin-bottom:10px;"><i class="fas fa-trophy" style="color:#c9a227; margin-right:6px;"></i>Classement requis par équipe</label>
+                            <p style="color:#64748b; font-size:11px; margin-bottom:10px; margin-top:-6px;">Définissez la plage de classement autorisée pour chaque équipe (du meilleur au moins bon joueur).</p>
+                            <div id="champ-equipes-classement-rows" style="display:grid; gap:8px;"></div>
+                        </div>
+                    </div>
+                    <input type="hidden" id="champ-edit-id">
+                    <div style="display:flex; gap:10px; margin-top:14px;">
+                        <button onclick="saveChampionnat()"
+                            style="background:linear-gradient(135deg,#e11d48,#9f1239); color:white; border:none; padding:12px 28px; border-radius:8px; font-weight:bold; cursor:pointer; font-size:14px;">
+                            <i class="fas fa-save" style="margin-right:8px;"></i><span id="champ-save-label">Créer le championnat</span>
+                        </button>
+                        <button onclick="resetChampionnatForm()" id="champ-cancel-btn"
+                            style="display:none; background:#334155; color:#e2e8f0; border:none; padding:12px 20px; border-radius:8px; cursor:pointer; font-size:14px;">
+                            Annuler
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Liste des championnats -->
+                <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:15px;">
+                    <h4 style="color:#e2e8f0; margin:0; border-left:4px solid #e11d48; padding-left:15px;">Championnats existants</h4>
+                    <button onclick="window.nettoyerDonneesOrphelines()" style="background:#0f172a; color:#f59e0b; border:1px solid #f59e0b44; padding:7px 14px; border-radius:8px; cursor:pointer; font-size:12px;"><i class="fas fa-broom" style="margin-right:6px;"></i>Nettoyer les résidus</button>
+                </div>
+                <div id="championnats-admin-list" style="display:grid; gap:14px;">
+                    <p style="color:#64748b; text-align:center;">Chargement...</p>
+                </div>
+            </div>
+
+
+            <!-- Sous-onglet : Équipes & Convocations -->
+            <div id="eq-subtab-equipes" style="display:none;">
+                <div style="margin-bottom:18px;">
+                    <label style="color:#e2e8f0; font-size:13px; display:block; margin-bottom:8px;">Sélectionner un championnat</label>
+                    <select id="equipes-champ-select" onchange="loadEquipesAdmin(this.value)"
+                        style="width:100%; max-width:400px; padding:12px; background:#1e293b; border:1px solid #475569; color:white; border-radius:8px; font-size:14px;">
+                        <option value="">-- Choisir --</option>
+                    </select>
+                </div>
+                <div id="equipes-admin-container">
+                    <p style="color:#64748b; text-align:center;">Sélectionnez un championnat pour gérer les équipes.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL : Gestion des rencontres d'un championnat -->
+        <div id="modal-rencontres" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:3000; overflow-y:auto; padding:30px 15px;">
+            <div style="max-width:700px; margin:0 auto; background:#0f172a; border-radius:16px; border:1px solid rgba(225,29,72,0.4); padding:30px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                    <h3 style="color:#e11d48; font-family:'Orbitron'; font-size:1rem; margin:0;">
+                        <i class="fas fa-calendar-alt" style="margin-right:8px;"></i>Calendrier des rencontres
+                    </h3>
+                    <button onclick="window.closeRencontresModal()"
+                        style="background:#334155; color:white; border:none; padding:8px 16px; border-radius:8px; cursor:pointer;">✕ Fermer</button>
+                </div>
+                <p id="modal-rencontres-equipe-nom" style="color:#94a3b8; font-size:13px; margin-bottom:20px;"></p>
+                <input type="hidden" id="modal-rencontres-equipe-id">
+
+                <!-- Import FFT -->
+                <div style="background:rgba(0,210,255,0.06); border:1px solid rgba(0,210,255,0.25); border-radius:10px; padding:14px; margin-bottom:18px;">
+                    <div style="color:#00d2ff; font-size:13px; font-weight:bold; margin-bottom:8px;">
+                        <i class="fas fa-file-excel" style="margin-right:6px;"></i>Import automatique — Fichier FFT
+                    </div>
+                    <p style="color:#94a3b8; font-size:12px; margin-bottom:10px;">Importez le fichier .xlsx reçu de la FFT. Les rencontres de Montargis seront créées automatiquement.</p>
+                    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                        <input type="file" id="import-excel-file" accept=".xlsx,.xls"
+                            style="flex:1; padding:9px; background:#1e293b; border:1px solid #475569; color:white; border-radius:6px; font-size:12px; cursor:pointer;">
+                        <button onclick="importRencontresExcel()"
+                            style="background:linear-gradient(135deg,#00d2ff,#0099bb); color:white; border:none; padding:10px 18px; border-radius:8px; font-weight:bold; cursor:pointer; font-size:12px; white-space:nowrap;">
+                            <i class="fas fa-upload" style="margin-right:5px;"></i>Importer
+                        </button>
+                    </div>
+                    <p id="import-excel-status" style="color:#64748b; font-size:11px; margin-top:8px; display:none;"></p>
+                </div>
+
+                <!-- Formulaire ajout rencontre -->
+                <div style="background:rgba(225,29,72,0.08); border:1px solid rgba(225,29,72,0.3); border-radius:10px; padding:16px; margin-bottom:20px;">
+                    <h4 style="color:#e11d48; margin-bottom:12px; font-size:0.9rem;">Ajouter une rencontre</h4>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                        <div>
+                            <label style="color:#e2e8f0; font-size:12px; display:block; margin-bottom:4px;">Date *</label>
+                            <input type="date" id="rencontre-date"
+                                style="width:100%; padding:10px; background:#1e293b; border:1px solid #475569; color:white; border-radius:6px; font-size:13px; box-sizing:border-box;">
+                        </div>
+                        <div>
+                            <label style="color:#e2e8f0; font-size:12px; display:block; margin-bottom:4px;">Heure *</label>
+                            <input type="time" id="rencontre-heure"
+                                style="width:100%; padding:10px; background:#1e293b; border:1px solid #475569; color:white; border-radius:6px; font-size:13px; box-sizing:border-box;">
+                        </div>
+                        <div>
+                            <label style="color:#e2e8f0; font-size:12px; display:block; margin-bottom:4px;">Adversaire</label>
+                            <input type="text" id="rencontre-adversaire" placeholder="Nom du club adverse"
+                                style="width:100%; padding:10px; background:#1e293b; border:1px solid #475569; color:white; border-radius:6px; font-size:13px; box-sizing:border-box;">
+                        </div>
+                        <div>
+                            <label style="color:#e2e8f0; font-size:12px; display:block; margin-bottom:4px;">Lieu</label>
+                            <input type="text" id="rencontre-lieu" placeholder="Courts ou adresse"
+                                style="width:100%; padding:10px; background:#1e293b; border:1px solid #475569; color:white; border-radius:6px; font-size:13px; box-sizing:border-box;">
+                        </div>
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <input type="checkbox" id="rencontre-domicile" style="width:18px; height:18px; accent-color:#e11d48;">
+                            <label style="color:#e2e8f0; font-size:13px; cursor:pointer;" for="rencontre-domicile">À domicile</label>
+                        </div>
+                        <div>
+                            <label style="color:#e2e8f0; font-size:12px; display:block; margin-bottom:4px;">Note</label>
+                            <input type="text" id="rencontre-note" placeholder="Information complémentaire"
+                                style="width:100%; padding:10px; background:#1e293b; border:1px solid #475569; color:white; border-radius:6px; font-size:13px; box-sizing:border-box;">
+                        </div>
+                    </div>
+                    <input type="hidden" id="rencontre-edit-id">
+                    <button onclick="saveRencontre()"
+                        style="margin-top:12px; background:linear-gradient(135deg,#e11d48,#9f1239); color:white; border:none; padding:10px 24px; border-radius:8px; font-weight:bold; cursor:pointer; font-size:13px;">
+                        <i class="fas fa-plus" style="margin-right:6px;"></i><span id="rencontre-save-label">Ajouter</span>
+                    </button>
+                </div>
+
+                <!-- Liste des rencontres -->
+                <div id="rencontres-list-modal" style="display:grid; gap:10px;">
+                    <p style="color:#64748b; text-align:center;">Aucune rencontre.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL : Sélection des joueurs pour une équipe -->
+        <div id="modal-joueurs-equipe" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:3000; overflow-y:auto; padding:30px 15px;">
+            <div style="max-width:600px; margin:0 auto; background:#0f172a; border-radius:16px; border:1px solid rgba(225,29,72,0.4); padding:30px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                    <h3 style="color:#e11d48; font-family:'Orbitron'; font-size:1rem; margin:0;">
+                        <i class="fas fa-user-plus" style="margin-right:8px;"></i>Ajouter des joueurs à l'équipe
+                    </h3>
+                    <button onclick="document.getElementById('modal-joueurs-equipe').style.display='none'"
+                        style="background:#334155; color:white; border:none; padding:8px 16px; border-radius:8px; cursor:pointer;">✕</button>
+                </div>
+                <p style="color:#94a3b8; font-size:13px; margin-bottom:12px;">Cochez les joueurs à ajouter à cette équipe. Les inscrits au championnat s'affichent en premier.</p>
+                <input type="hidden" id="modal-joueurs-equipe-id">
+                <input type="hidden" id="modal-joueurs-champ-id">
+                <button id="joueurs-toggle-btn"
+                    style="width:100%; padding:9px 16px; border:1px solid rgba(0,210,255,0.3); border-radius:8px; cursor:pointer; font-size:12px; font-weight:bold; margin-bottom:12px; background:rgba(0,210,255,0.1); color:#00d2ff; transition:all 0.2s;">
+                    <i class="fas fa-users" style="margin-right:5px;"></i>Voir tous les membres
+                </button>
+                <div id="modal-joueurs-liste" style="display:grid; gap:8px; max-height:400px; overflow-y:auto; margin-bottom:16px;"></div>
+                <button onclick="saveJoueursEquipe()"
+                    style="background:linear-gradient(135deg,#e11d48,#9f1239); color:white; border:none; padding:12px 28px; border-radius:8px; font-weight:bold; cursor:pointer; font-size:14px; width:100%;">
+                    <i class="fas fa-save" style="margin-right:8px;"></i>Enregistrer la composition de l'équipe
+                </button>
+            </div>
+        </div>
+
+        <!-- MODAL : Convocation pour une rencontre -->
+        <div id="modal-convocation" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:3000; overflow-y:auto; padding:30px 15px;">
+            <div style="max-width:650px; margin:0 auto; background:#0f172a; border-radius:16px; border:1px solid rgba(225,29,72,0.4); padding:30px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                    <h3 style="color:#e11d48; font-family:'Orbitron'; font-size:1rem; margin:0;">
+                        <i class="fas fa-clipboard-list" style="margin-right:8px;"></i>Convocation — Composition
+                    </h3>
+                    <button onclick="document.getElementById('modal-convocation').style.display='none'"
+                        style="background:#334155; color:white; border:none; padding:8px 16px; border-radius:8px; cursor:pointer;">✕</button>
+                </div>
+                <p id="modal-convocation-info" style="color:#94a3b8; font-size:13px; margin-bottom:20px;"></p>
+                <input type="hidden" id="modal-convocation-equipe-id">
+                <input type="hidden" id="modal-convocation-rencontre-id">
+                <input type="hidden" id="modal-convocation-champ-id">
+                <div id="modal-convocation-positions" style="display:grid; gap:12px; margin-bottom:16px;"></div>
+                <!-- Explication des boutons -->
+                <div style="background:#0f172a; border-radius:8px; padding:10px 14px; margin-bottom:14px; font-size:11px; color:#64748b; line-height:1.6;">
+                    <div><i class="fas fa-save" style="color:#94a3b8; margin-right:5px;"></i><strong style="color:#94a3b8;">Enregistrer en brouillon</strong> — sauvegarde votre sélection sans notifier les joueurs.</div>
+                    <div style="margin-top:4px;"><i class="fas fa-bell" style="color:#e11d48; margin-right:5px;"></i><strong style="color:#e11d48;">Valider &amp; Notifier</strong> — finalise la composition et envoie une notification à chaque joueur convoqué. La tuile de rencontre sera marquée ✅ Validée.</div>
+                </div>
+                <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                    <button onclick="reinitialiserConvocation()"
+                        style="flex:1; min-width:120px; background:#0f172a; color:#64748b; border:1px solid #334155; padding:11px; border-radius:8px; font-weight:bold; cursor:pointer; font-size:13px;">
+                        <i class="fas fa-rotate-left" style="margin-right:6px;"></i>Réinitialiser
+                    </button>
+                    <button onclick="saveConvocation()"
+                        style="flex:1; min-width:120px; background:#334155; color:#e2e8f0; border:none; padding:11px; border-radius:8px; font-weight:bold; cursor:pointer; font-size:13px;">
+                        <i class="fas fa-save" style="margin-right:6px;"></i>Brouillon
+                    </button>
+                    <button onclick="validerEtNotifierConvocation()"
+                        style="flex:2; min-width:180px; background:linear-gradient(135deg,#e11d48,#9f1239); color:white; border:none; padding:11px; border-radius:8px; font-weight:bold; cursor:pointer; font-size:13px;">
+                        <i class="fas fa-bell" style="margin-right:6px;"></i>Valider &amp; Notifier
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- SECTION GESTION DOCUMENTS -->
         <div id="documents-admin" class="hidden" style="background:rgba(2,6,23,0.8); padding:25px; border-radius:15px; border:1px solid #334155; margin-bottom:30px;">
             <h3 style="color:#8b5cf6; font-family:'Orbitron'; font-size:1.1rem; margin-bottom:20px; border-bottom:2px solid #334155; padding-bottom:15px;">
@@ -496,7 +767,7 @@
         </div>
 
         <!-- FORMULAIRE UNIVERSEL -->
-        <div style="background:rgba(2,6,23,0.8); padding:25px; border-radius:15px; border:1px solid #334155; overflow:hidden; margin-bottom:30px;">
+        <div id="universal-form-container" style="background:rgba(2,6,23,0.8); padding:25px; border-radius:15px; border:1px solid #334155; overflow:hidden; margin-bottom:30px;">
             <h3 id="form-title" style="color:#00d2ff; font-family:'Orbitron'; font-size:1.1rem; margin-bottom:20px; border-bottom:2px solid #334155; padding-bottom:15px;">Gérer : ACTUALITÉS</h3>
             <form id="universal-form" style="display:grid; gap:20px; max-width:100%;">
                 <input type="hidden" id="edit-index" value="-1">
@@ -613,6 +884,34 @@
 
 <!-- Div hors-écran pour génération affiche -->
 <div id="affiche-print" style="position:fixed; left:-9999px; top:0; width:794px; z-index:-1; display:none;"></div>
+
+<!-- MODAL : Édition d'une équipe (nom + classement) -->
+<div id="modal-edit-equipe" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:9000; align-items:center; justify-content:center; padding:20px;">
+    <div style="max-width:440px; width:100%; background:#0f172a; border-radius:16px; border:1px solid rgba(201,162,39,0.4); padding:28px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <h3 style="color:#c9a227; font-family:'Orbitron'; font-size:0.9rem; margin:0;"><i class="fas fa-shield-alt" style="margin-right:8px;"></i>Modifier l'équipe</h3>
+            <button onclick="document.getElementById('modal-edit-equipe').style.display='none'" style="background:#334155; color:white; border:none; padding:6px 12px; border-radius:6px; cursor:pointer;">✕</button>
+        </div>
+        <input type="hidden" id="edit-equipe-id">
+        <input type="hidden" id="edit-equipe-champ-id">
+        <div style="margin-bottom:14px;">
+            <label style="color:#e2e8f0; font-size:13px; display:block; margin-bottom:6px;">Nom de l'équipe</label>
+            <input type="text" id="edit-equipe-nom" style="width:100%; padding:11px; background:#1e293b; border:1px solid #475569; color:white; border-radius:8px; font-size:14px; box-sizing:border-box;">
+        </div>
+        <div style="margin-bottom:20px;">
+            <label style="color:#e2e8f0; font-size:13px; display:block; margin-bottom:8px;"><i class="fas fa-trophy" style="color:#c9a227; margin-right:6px;"></i>Classement requis</label>
+            <div style="display:flex; align-items:center; gap:10px;">
+                <select id="edit-equipe-cmin" style="flex:1; padding:10px; background:#1e293b; border:1px solid #475569; color:white; border-radius:8px; font-size:13px;"></select>
+                <span style="color:#64748b; font-size:13px;">→</span>
+                <select id="edit-equipe-cmax" style="flex:1; padding:10px; background:#1e293b; border:1px solid #475569; color:white; border-radius:8px; font-size:13px;"></select>
+            </div>
+            <p style="color:#64748b; font-size:11px; margin-top:6px; margin-bottom:0;">Laissez "—" pour aucune restriction.</p>
+        </div>
+        <button onclick="window.saveEditEquipe()" style="width:100%; background:linear-gradient(135deg,#c9a227,#a07d1a); color:white; border:none; padding:13px; border-radius:10px; font-weight:bold; cursor:pointer; font-size:14px;">
+            <i class="fas fa-save" style="margin-right:8px;"></i>Enregistrer
+        </button>
+    </div>
+</div>
 
 </body>
 </html>

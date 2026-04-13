@@ -260,7 +260,7 @@
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script defer src="member.min.js"></script>
+    <script defer src="member.min.js?v=3"></script>
     <script defer src="member-auth.min.js"></script>
 </head>
 
@@ -325,6 +325,10 @@
                 <button class="mtab" onclick="window.switchMemberTab('infos')" id="mtab-btn-infos" style="position:relative;">
                     <i class="fas fa-bullhorn"></i> Infos Club
                     <span id="infos-badge" style="display:none; position:absolute; top:6px; right:6px; width:8px; height:8px; background:#ef4444; border-radius:50%;"></span>
+                </button>
+                <button class="mtab" onclick="window.switchMemberTab('equipes')" id="mtab-btn-equipes" style="position:relative;">
+                    <i class="fas fa-shield-alt"></i> Mes Équipes
+                    <span id="equipes-badge" style="display:none; position:absolute; top:6px; right:6px; width:8px; height:8px; background:#e11d48; border-radius:50%;"></span>
                 </button>
             </div>
 
@@ -698,9 +702,69 @@
             </div>
 
 
+            <!-- ===== ONGLET : MES ÉQUIPES ===== -->
+            <div id="mtab-equipes" class="member-tab-content hidden">
+                <div class="member-section-title">
+                    <i class="fas fa-shield-alt"></i> Championnats en Équipe
+                </div>
+
+                <!-- Section A : Championnats ouverts à l'inscription -->
+                <div id="equipes-section-inscrire" style="margin-bottom:28px;">
+                    <h4 style="color:#e11d48; font-size:14px; margin-bottom:12px; display:flex; align-items:center; gap:8px;">
+                        <i class="fas fa-door-open"></i> Championnats ouverts aux inscriptions
+                    </h4>
+                    <div id="equipes-champs-dispos" style="display:grid; gap:14px;">
+                        <p style="color:#64748b; font-size:13px; text-align:center;"><i class="fas fa-spinner fa-spin"></i> Chargement...</p>
+                    </div>
+                </div>
+
+                <!-- Section B : Mes inscriptions -->
+                <div id="equipes-section-mes-champs" style="margin-bottom:28px;">
+                    <h4 style="color:#c9a227; font-size:14px; margin-bottom:12px; display:flex; align-items:center; gap:8px;">
+                        <i class="fas fa-clipboard-check"></i> Mes inscriptions
+                    </h4>
+                    <div id="equipes-mes-champs" style="display:grid; gap:14px;">
+                        <p style="color:#64748b; font-size:13px; text-align:center;">Aucune inscription pour l'instant.</p>
+                    </div>
+                </div>
+
+                <!-- Section C : Mes convocations -->
+                <div id="equipes-section-convocations">
+                    <h4 style="color:#00d2ff; font-size:14px; margin-bottom:12px; display:flex; align-items:center; gap:8px;">
+                        <i class="fas fa-bell"></i> Mes convocations
+                    </h4>
+                    <div id="equipes-mes-convocations" style="display:grid; gap:14px;">
+                        <p style="color:#64748b; font-size:13px; text-align:center;">Aucune convocation.</p>
+                    </div>
+                </div>
+            </div>
+
         </div><!-- /#member-zone -->
 
     </div><!-- /#member-page -->
+
+    <!-- Modal : Inscription à un championnat + disponibilités -->
+    <div id="modal-inscription-champ" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.88); z-index:9000; overflow-y:auto; padding:30px 15px;">
+        <div style="max-width:580px; margin:0 auto; background:#0f172a; border-radius:16px; border:1px solid rgba(225,29,72,0.4); padding:28px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                <h3 style="color:#e11d48; font-family:'Orbitron'; font-size:0.95rem; margin:0;">
+                    <i class="fas fa-shield-alt" style="margin-right:8px;"></i>S'inscrire au championnat
+                </h3>
+                <button onclick="document.getElementById('modal-inscription-champ').style.display='none'"
+                    style="background:#334155; color:white; border:none; padding:7px 14px; border-radius:8px; cursor:pointer;">✕</button>
+            </div>
+            <p id="modal-inscription-champ-nom" style="color:#c9a227; font-size:14px; font-weight:bold; margin-bottom:6px;"></p>
+            <p id="modal-inscription-champ-format" style="color:#94a3b8; font-size:12px; margin-bottom:16px;"></p>
+            <input type="hidden" id="modal-inscription-champ-id">
+
+            <div id="modal-inscription-rencontres" style="display:grid; gap:8px; margin-bottom:20px;"></div>
+
+            <button onclick="document.getElementById('modal-inscription-champ').style.display='none'"
+                style="width:100%; background:#1e293b; color:#94a3b8; border:1px solid #475569; padding:13px; border-radius:10px; font-weight:bold; cursor:pointer; font-size:14px;">
+                <i class="fas fa-times" style="margin-right:8px;"></i>Fermer
+            </button>
+        </div>
+    </div>
 
     <!-- Modal plein écran : visualisation de la carte membre -->
     <div id="card-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(2,6,23,0.96); z-index:9999; align-items:center; justify-content:center; flex-direction:column; gap:24px; padding:20px; box-sizing:border-box;" onclick="if(event.target===this)window.hideCardModal()">

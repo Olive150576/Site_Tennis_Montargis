@@ -439,7 +439,7 @@ function resizeImage(file, maxWidth, maxHeight, quality) {
 // --- EXPOSITION DES FONCTIONS ---
 window.switchAdmin = (section) => {
     const titleEl = document.getElementById('form-title');
-    const universalForm = document.getElementById('universal-form')?.closest('div[style*="background:rgba(2,6,23"]');
+    const universalForm = document.getElementById('universal-form-container');
     const documentsAdmin = document.getElementById('documents-admin');
 
     const contactsAdmin = document.getElementById('contacts-admin');
@@ -447,6 +447,7 @@ window.switchAdmin = (section) => {
     const sponsorsListAdmin = document.getElementById('sponsors-list-admin');
     const tournamentsListAdmin = document.getElementById('tournaments-list-admin');
     const clubMessagesAdmin = document.getElementById('club-messages-admin');
+    const equipesAdmin = document.getElementById('equipes-admin');
 
     // Gérer l'affichage spécial pour les sections documents, contacts, membres et messages
     const hideSpecialSections = () => {
@@ -455,6 +456,7 @@ window.switchAdmin = (section) => {
         if (membersAdmin) membersAdmin.classList.add('hidden');
         if (clubMessagesAdmin) clubMessagesAdmin.classList.add('hidden');
         if (sponsorsListAdmin) sponsorsListAdmin.classList.add('hidden');
+        if (equipesAdmin) equipesAdmin.classList.add('hidden');
     };
 
     if (section === 'documents') {
@@ -473,6 +475,10 @@ window.switchAdmin = (section) => {
         if (universalForm) universalForm.style.display = 'none';
         hideSpecialSections();
         if (clubMessagesAdmin) { clubMessagesAdmin.classList.remove('hidden'); window.loadClubMessagesAdmin(); }
+    } else if (section === 'equipes') {
+        if (universalForm) universalForm.style.display = 'none';
+        hideSpecialSections();
+        if (equipesAdmin) { equipesAdmin.classList.remove('hidden'); window.loadChampionnatsAdmin && window.loadChampionnatsAdmin(); }
     } else {
         if (universalForm) universalForm.style.display = 'block';
         hideSpecialSections();
@@ -493,6 +499,10 @@ window.switchAdmin = (section) => {
             }
         }
     }
+
+    // Les sections suivantes ont leur propre interface — pas de formulaire universel
+    var _specialSections = ['documents','contacts','members','club_messages','equipes'];
+    if (_specialSections.indexOf(section) !== -1) return;
 
     if (titleEl) titleEl.innerText = `Gérer : ${section.toUpperCase()}`;
 
@@ -1810,6 +1820,1069 @@ window.deleteClubMessage = async function(id) {
         window.showSuccessMessage && window.showSuccessMessage('Message supprimé.', '');
         window.loadClubMessagesAdmin();
     });
+};
+
+// =====================================================================
+// GESTION DES CHAMPIONNATS EN ÉQUIPE
+// =====================================================================
+
+var _champListenerEq = null;
+var _champDataCache = {};
+var _equipeListenerEq = null;
+var _inscritsMembersCache = null;
+
+// --- Sous-onglets ---
+window.switchEquipesSubTab = function(tab) {
+    ['championnats','equipes'].forEach(function(t) {
+        var el = document.getElementById('eq-subtab-' + t);
+        var btn = document.getElementById('eq-subtab-btn-' + t);
+        if (el) el.style.display = (t === tab) ? '' : 'none';
+        if (btn) {
+            btn.style.background = (t === tab) ? '#e11d48' : '#334155';
+            btn.style.color = (t === tab) ? 'white' : '#94a3b8';
+        }
+    });
+    if (tab === 'equipes') _refreshEquipesSelect();
+};
+
+
+function _refreshEquipesSelect() {
+    var sel = document.getElementById('equipes-champ-select');
+    if (!sel) return;
+    var prev = sel.value;
+    sel.innerHTML = '<option value="">-- Choisir --</option>';
+    Object.keys(_champDataCache).forEach(function(id) {
+        var c = _champDataCache[id];
+        var opt = document.createElement('option');
+        opt.value = id; opt.textContent = escHtml(c.nom);
+        if (id === prev) opt.selected = true;
+        sel.appendChild(opt);
+    });
+}
+
+// --- Chargement principal ---
+window.loadChampionnatsAdmin = function() {
+    if (_champListenerEq) return;
+    _champListenerEq = true;
+    db_ref.ref('championnats_equipe').on('value', function(snap) {
+        _champDataCache = {};
+        var list = document.getElementById('championnats-admin-list');
+        if (!snap.exists()) {
+            if (list) list.innerHTML = '<p style="color:#64748b; text-align:center;">Aucun championnat. Créez-en un ci-dessus.</p>';
+            return;
+        }
+        var html = '';
+        snap.forEach(function(child) {
+            var c = child.val(); var id = child.key;
+            _champDataCache[id] = Object.assign({}, c, {id: id});
+            var statutColor = {inscriptions:'#22c55e', equipes:'#f59e0b', en_cours:'#00d2ff', termine:'#64748b'}[c.statut] || '#64748b';
+            var statutLabel = {inscriptions:'Inscriptions ouvertes', equipes:'Équipes constituées', en_cours:'En cours', termine:'Terminé'}[c.statut] || c.statut;
+            var format = (c.nb_simples || 2) + ' Simple' + ((c.nb_simples > 1) ? 's' : '');
+            if (c.nb_doubles > 0) format += ' + ' + c.nb_doubles + ' Double' + (c.nb_doubles > 1 ? 's' : '');
+            html += '<div id="champ-container-' + id + '" style="margin-bottom:8px;">'
+                + '<div style="background:#1e293b; border:1px solid #334155; border-radius:10px; padding:16px; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">'
+                + '<div style="flex:1; min-width:180px;">'
+                + '<div style="font-weight:bold; color:#e2e8f0; margin-bottom:4px;">' + escHtml(c.nom) + '</div>'
+                + '<div style="font-size:12px; color:#94a3b8;">' + escHtml(c.saison) + ' — ' + escHtml(format) + '</div>'
+                + '</div>'
+                + '<span style="background:' + statutColor + '22; color:' + statutColor + '; border:1px solid ' + statutColor + '55; border-radius:20px; padding:4px 12px; font-size:12px; white-space:nowrap;">' + escHtml(statutLabel) + '</span>'
+                + '<div style="display:flex; gap:8px; flex-wrap:wrap;">'
+                + '<button onclick="window.toggleInscritsChamp(\'' + id + '\')" style="background:#0f172a; color:#00d2ff; border:1px solid #00d2ff44; padding:7px 14px; border-radius:6px; cursor:pointer; font-size:12px;"><i class="fas fa-users" style="margin-right:5px;"></i>Inscrits</button>'
+                + '<button onclick="changerStatutChamp(\'' + id + '\',\'' + c.statut + '\')" style="background:#0f172a; color:#f59e0b; border:1px solid #f59e0b44; padding:7px 14px; border-radius:6px; cursor:pointer; font-size:12px;"><i class="fas fa-exchange-alt" style="margin-right:5px;"></i>Statut</button>'
+                + '<button onclick="editChampionnat(\'' + id + '\')" style="background:#0f172a; color:#e2e8f0; border:1px solid #47556944; padding:7px 14px; border-radius:6px; cursor:pointer; font-size:12px;"><i class="fas fa-edit"></i></button>'
+                + '<button onclick="deleteChampionnat(\'' + id + '\')" style="background:#0f172a; color:#ef4444; border:1px solid #ef444444; padding:7px 14px; border-radius:6px; cursor:pointer; font-size:12px;"><i class="fas fa-trash"></i></button>'
+                + '</div></div>'
+                + '<div id="inscrits-panel-' + id + '" style="display:none; background:#0f172a; border:1px solid #334155; border-top:none; border-radius:0 0 10px 10px; padding:12px 16px;"></div>'
+                + '</div>';
+        });
+        if (list) list.innerHTML = html || '<p style="color:#64748b; text-align:center;">Aucun championnat.</p>';
+        _refreshEquipesSelect();
+    });
+};
+
+// --- CRUD Championnats ---
+window.saveChampionnat = function() {
+    var nom = (document.getElementById('champ-nom').value || '').trim();
+    var saison = (document.getElementById('champ-saison').value || '').trim();
+    var categorie = document.getElementById('champ-categorie').value;
+    var nbSimples = parseInt(document.getElementById('champ-nb-simples').value) || 2;
+    var nbDoubles = parseInt(document.getElementById('champ-nb-doubles').value) || 0;
+    var desc = (document.getElementById('champ-description').value || '').trim();
+    var nbEquipes = parseInt(document.getElementById('champ-nb-equipes').value) || 0;
+    var editId = document.getElementById('champ-edit-id').value;
+    if (!nom || !saison) { window.showNotification && window.showNotification('Remplissez au moins le nom et la saison.', 'error'); return; }
+    var data = { nom: nom, saison: saison, categorie: categorie, nb_simples: nbSimples, nb_doubles: nbDoubles, description: desc };
+    var ref = editId ? db_ref.ref('championnats_equipe/' + editId) : db_ref.ref('championnats_equipe').push();
+    if (!editId) data.statut = 'inscriptions';
+    if (!editId) data.createdAt = Date.now();
+    ref.update(data).then(function() {
+        var champId = ref.key;
+        // Création automatique des équipes (nouveau championnat uniquement)
+        if (!editId && nbEquipes > 0) {
+            var promises = [];
+            for (var i = 1; i <= nbEquipes; i++) {
+                var cminEl = document.getElementById('champ-eq-cmin-' + i);
+                var cmaxEl = document.getElementById('champ-eq-cmax-' + i);
+                promises.push(db_ref.ref('equipes').push({
+                    champId: champId,
+                    nom: 'Équipe ' + i,
+                    classement_min: cminEl ? (cminEl.value || '') : '',
+                    classement_max: cmaxEl ? (cmaxEl.value || '') : '',
+                    niveau: '',
+                    createdAt: Date.now()
+                }));
+            }
+            Promise.all(promises).then(function() {
+                window.showNotification && window.showNotification('Championnat créé avec ' + nbEquipes + ' équipe' + (nbEquipes > 1 ? 's' : '') + ' !', 'success');
+            });
+        } else {
+            window.showNotification && window.showNotification(editId ? 'Championnat mis à jour.' : 'Championnat créé !', 'success');
+        }
+        resetChampionnatForm();
+    });
+};
+
+window.editChampionnat = function(id) {
+    var c = _champDataCache[id]; if (!c) return;
+    document.getElementById('champ-nom').value = c.nom || '';
+    document.getElementById('champ-saison').value = c.saison || '';
+    document.getElementById('champ-categorie').value = c.categorie || 'homme';
+    document.getElementById('champ-nb-simples').value = c.nb_simples || 2;
+    document.getElementById('champ-nb-doubles').value = c.nb_doubles || 0;
+    document.getElementById('champ-description').value = c.description || '';
+    document.getElementById('champ-nb-equipes').value = 0;
+    // Masquer le champ nb équipes en mode édition (inutile de recréer)
+    var nbEqEl = document.getElementById('champ-nb-equipes');
+    if (nbEqEl) nbEqEl.closest('div').style.display = 'none';
+    document.getElementById('champ-edit-id').value = id;
+    document.getElementById('champ-save-label').textContent = 'Enregistrer les modifications';
+    document.getElementById('champ-cancel-btn').style.display = '';
+    document.getElementById('champ-nom').focus();
+};
+
+window.resetChampionnatForm = function() {
+    ['champ-nom','champ-saison','champ-description'].forEach(function(f) { var el = document.getElementById(f); if (el) el.value = ''; });
+    document.getElementById('champ-edit-id').value = '';
+    document.getElementById('champ-nb-equipes').value = 0;
+    var nbEqEl = document.getElementById('champ-nb-equipes');
+    if (nbEqEl) nbEqEl.closest('div').style.display = '';
+    window.updateEquipesClassementRows(0);
+    document.getElementById('champ-save-label').textContent = 'Créer le championnat';
+    document.getElementById('champ-cancel-btn').style.display = 'none';
+};
+
+window.deleteChampionnat = async function(id) {
+    var ok = await window.confirmDialog.show({
+        title: 'Supprimer le championnat',
+        message: 'Cette action supprimera définitivement le championnat, toutes ses rencontres, les inscriptions des membres, les équipes et les convocations associées.',
+        type: 'danger', confirmText: 'Tout supprimer', cancelText: 'Annuler'
+    });
+    if (!ok) return;
+
+    // 1. Supprimer le championnat + ses rencontres
+    await db_ref.ref('championnats_equipe/' + id).remove();
+
+    // 2. Supprimer toutes les inscriptions des membres pour ce championnat
+    await db_ref.ref('inscriptions_equipe/' + id).remove();
+
+    // 3. Supprimer toutes les équipes liées à ce championnat
+    var snapEquipes = await db_ref.ref('equipes').orderByChild('champId').equalTo(id).once('value');
+    var suppEquipes = [];
+    snapEquipes.forEach(function(child) { suppEquipes.push(db_ref.ref('equipes/' + child.key).remove()); });
+    await Promise.all(suppEquipes);
+
+    // 4. Supprimer toutes les notifications liées à ce championnat
+    var snapNotifs = await db_ref.ref('notifications_equipe').orderByChild('champId').equalTo(id).once('value');
+    var suppNotifs = [];
+    snapNotifs.forEach(function(child) { suppNotifs.push(db_ref.ref('notifications_equipe/' + child.key).remove()); });
+    await Promise.all(suppNotifs);
+
+    window.showNotification && window.showNotification('Championnat et toutes les données associées supprimés.', 'success');
+};
+
+var _STATUT_NEXT = { inscriptions: 'equipes', equipes: 'en_cours', en_cours: 'termine', termine: 'inscriptions' };
+var _STATUT_LABEL = { inscriptions: 'Inscriptions ouvertes', equipes: 'Équipes constituées', en_cours: 'En cours', termine: 'Terminé' };
+
+window.changerStatutChamp = async function(id, statut) {
+    var next = _STATUT_NEXT[statut] || 'inscriptions';
+    var ok = await window.confirmDialog.show({ title: 'Changer le statut', message: 'Passer à : « ' + _STATUT_LABEL[next] + ' » ?', type: 'info', confirmText: 'Confirmer', cancelText: 'Annuler' });
+    if (!ok) return;
+    db_ref.ref('championnats_equipe/' + id).update({ statut: next }).then(function() {
+        window.showNotification && window.showNotification('Statut mis à jour.', 'success');
+    });
+};
+
+// --- Rencontres (par équipe) ---
+var _rencontresModalChampId = null; // utilisé pour rafraîchir le Kanban
+
+window.openRencontresModal = function(equipeId) {
+    db_ref.ref('equipes/' + equipeId).once('value', function(snap) {
+        var eq = snap.val() || {};
+        _rencontresModalChampId = eq.champId || null;
+        document.getElementById('modal-rencontres-equipe-id').value = equipeId;
+        document.getElementById('modal-rencontres-equipe-nom').textContent = (eq.nom || 'Équipe') + (eq.niveau ? ' — ' + eq.niveau : '');
+        document.getElementById('rencontre-edit-id').value = '';
+        document.getElementById('rencontre-save-label').textContent = 'Ajouter';
+        ['rencontre-date','rencontre-heure','rencontre-adversaire','rencontre-lieu','rencontre-note'].forEach(function(f) { var el = document.getElementById(f); if (el) el.value = ''; });
+        document.getElementById('rencontre-domicile').checked = false;
+        document.getElementById('modal-rencontres').style.display = '';
+        _loadRencontresModal(equipeId);
+    });
+};
+
+window.closeRencontresModal = function() {
+    document.getElementById('modal-rencontres').style.display = 'none';
+    if (_rencontresModalChampId) window.loadEquipesAdmin(_rencontresModalChampId);
+};
+
+function _loadRencontresModal(equipeId) {
+    db_ref.ref('equipes/' + equipeId + '/rencontres').orderByChild('date').once('value', function(snap) {
+        var list = document.getElementById('rencontres-list-modal');
+        if (!snap.exists()) { list.innerHTML = '<p style="color:#64748b; text-align:center;">Aucune rencontre.</p>'; return; }
+        var html = '';
+        snap.forEach(function(child) {
+            var r = child.val(); var rid = child.key;
+            var domicile = r.domicile ? '<span style="color:#22c55e; font-size:11px;"><i class="fas fa-home" style="margin-right:3px;"></i>Domicile</span>' : '<span style="color:#f59e0b; font-size:11px;"><i class="fas fa-bus" style="margin-right:3px;"></i>Extérieur</span>';
+            html += '<div style="background:#1e293b; border:1px solid #334155; border-radius:8px; padding:12px; display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">'
+                + '<div style="flex:1; min-width:160px;">'
+                + '<div style="font-weight:bold; color:#e2e8f0; font-size:14px;">' + escHtml(r.date) + ' à ' + escHtml(r.heure) + ' ' + domicile + '</div>'
+                + '<div style="font-size:12px; color:#94a3b8; margin-top:3px;">' + (r.adversaire ? 'vs ' + escHtml(r.adversaire) : '<em>Adversaire TBD</em>') + (r.lieu ? ' — ' + escHtml(r.lieu) : '') + (r.note ? ' · ' + escHtml(r.note) : '') + '</div>'
+                + '</div>'
+                + '<div style="display:flex; gap:8px;">'
+                + '<button onclick="editRencontre(\'' + equipeId + '\',\'' + rid + '\')" style="background:#0f172a; color:#e2e8f0; border:1px solid #47556944; padding:6px 12px; border-radius:6px; cursor:pointer; font-size:12px;"><i class="fas fa-edit"></i></button>'
+                + '<button onclick="deleteRencontre(\'' + equipeId + '\',\'' + rid + '\')" style="background:#0f172a; color:#ef4444; border:1px solid #ef444444; padding:6px 12px; border-radius:6px; cursor:pointer; font-size:12px;"><i class="fas fa-trash"></i></button>'
+                + '</div></div>';
+        });
+        list.innerHTML = html;
+    });
+}
+
+window.saveRencontre = function() {
+    var equipeId = document.getElementById('modal-rencontres-equipe-id').value;
+    var date = document.getElementById('rencontre-date').value;
+    var heure = document.getElementById('rencontre-heure').value;
+    var adversaire = (document.getElementById('rencontre-adversaire').value || '').trim();
+    var lieu = (document.getElementById('rencontre-lieu').value || '').trim();
+    var domicile = document.getElementById('rencontre-domicile').checked;
+    var note = (document.getElementById('rencontre-note').value || '').trim();
+    var editId = document.getElementById('rencontre-edit-id').value;
+    if (!equipeId) { window.showNotification && window.showNotification('Erreur : identifiant d\'équipe manquant.', 'error'); return; }
+    if (!date || !heure) { window.showNotification && window.showNotification('Date et heure obligatoires.', 'error'); return; }
+    var data = { date: date, heure: heure, adversaire: adversaire, lieu: lieu, domicile: domicile, note: note };
+    var ref = editId ? db_ref.ref('equipes/' + equipeId + '/rencontres/' + editId) : db_ref.ref('equipes/' + equipeId + '/rencontres').push();
+    ref.set(data).then(function() {
+        window.showNotification && window.showNotification('Rencontre enregistrée.', 'success');
+        ['rencontre-date','rencontre-heure','rencontre-adversaire','rencontre-lieu','rencontre-note'].forEach(function(f) { var el = document.getElementById(f); if (el) el.value = ''; });
+        document.getElementById('rencontre-domicile').checked = false;
+        document.getElementById('rencontre-edit-id').value = '';
+        document.getElementById('rencontre-save-label').textContent = 'Ajouter';
+        _loadRencontresModal(equipeId);
+        if (_rencontresModalChampId) window.loadEquipesAdmin(_rencontresModalChampId);
+    });
+};
+
+window.editRencontre = function(equipeId, rid) {
+    db_ref.ref('equipes/' + equipeId + '/rencontres/' + rid).once('value', function(snap) {
+        if (!snap.exists()) return;
+        var r = snap.val();
+        document.getElementById('rencontre-date').value = r.date || '';
+        document.getElementById('rencontre-heure').value = r.heure || '';
+        document.getElementById('rencontre-adversaire').value = r.adversaire || '';
+        document.getElementById('rencontre-lieu').value = r.lieu || '';
+        document.getElementById('rencontre-domicile').checked = !!r.domicile;
+        document.getElementById('rencontre-note').value = r.note || '';
+        document.getElementById('rencontre-edit-id').value = rid;
+        document.getElementById('rencontre-save-label').textContent = 'Modifier';
+    });
+};
+
+window.deleteRencontre = async function(equipeId, rid) {
+    var ok = await window.confirmDialog.show({ title: 'Supprimer la rencontre', message: 'Supprimer cette rencontre ?', type: 'danger', confirmText: 'Supprimer', cancelText: 'Annuler' });
+    if (!ok) return;
+    db_ref.ref('equipes/' + equipeId + '/rencontres/' + rid).remove().then(function() {
+        window.showNotification && window.showNotification('Rencontre supprimée.', 'success');
+        _loadRencontresModal(equipeId);
+        if (_rencontresModalChampId) window.loadEquipesAdmin(_rencontresModalChampId);
+    });
+};
+
+
+// --- Équipes & Convocations ---
+// Couleurs distinctes pour chaque équipe dans le Kanban
+var _EQUIPE_COLORS = ['#e11d48','#00d2ff','#f59e0b','#22c55e','#8b5cf6','#f97316','#06b6d4','#ec4899'];
+
+window.loadEquipesAdmin = function(champId) {
+    var container = document.getElementById('equipes-admin-container');
+    if (!champId) { if (container) container.innerHTML = '<p style="color:#64748b; text-align:center;">Sélectionnez un championnat.</p>'; return; }
+    if (container) container.innerHTML = '<p style="color:#64748b; text-align:center;"><i class="fas fa-spinner fa-spin"></i> Chargement...</p>';
+
+    db_ref.ref('equipes').orderByChild('champId').equalTo(champId).once('value', function(snapEquipes) {
+        db_ref.ref('inscriptions_equipe/' + champId).once('value', function(snapInscrits) {
+            db_ref.ref('members').once('value', function(snapMembers) {
+                (function() {
+
+                    var members = {};
+                    snapMembers.forEach(function(m) { members[m.key] = m.val(); });
+
+                    // Trier les équipes
+                    var equipesTriees = [];
+                    snapEquipes.forEach(function(child) { equipesTriees.push({ key: child.key, val: child.val() }); });
+                    equipesTriees.sort(function(a, b) {
+                        return (a.val.nom || '').localeCompare(b.val.nom || '', 'fr', { numeric: true });
+                    });
+
+                    // Stats globales
+                    var totalJoueurs = 0;
+                    var totalRencontres = 0;
+                    equipesTriees.forEach(function(item) {
+                        totalJoueurs += Object.keys(item.val.joueurs || {}).length;
+                        totalRencontres += Object.keys(item.val.rencontres || {}).length;
+                    });
+
+                    // Barre d'outils + stats
+                    var statsHtml = '<div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:20px; padding:14px 18px; background:#1e293b; border-radius:12px; border:1px solid #334155;">'
+                        + '<div style="display:flex; gap:20px; flex-wrap:wrap;">'
+                        + '<span style="color:#e2e8f0; font-size:13px;"><i class="fas fa-shield-alt" style="color:#e11d48; margin-right:6px;"></i><strong>' + equipesTriees.length + '</strong> équipe' + (equipesTriees.length > 1 ? 's' : '') + '</span>'
+                        + '<span style="color:#e2e8f0; font-size:13px;"><i class="fas fa-users" style="color:#00d2ff; margin-right:6px;"></i><strong>' + totalJoueurs + '</strong> joueur' + (totalJoueurs > 1 ? 's' : '') + ' assigné' + (totalJoueurs > 1 ? 's' : '') + '</span>'
+                        + '<span style="color:#e2e8f0; font-size:13px;"><i class="fas fa-calendar-alt" style="color:#f59e0b; margin-right:6px;"></i><strong>' + totalRencontres + '</strong> rencontre' + (totalRencontres > 1 ? 's' : '') + ' au total</span>'
+                        + '</div>'
+                        + '<button onclick="openEquipeForm(\'' + champId + '\',null)" style="background:linear-gradient(135deg,#e11d48,#9f1239); color:white; border:none; padding:9px 20px; border-radius:8px; font-weight:bold; cursor:pointer; font-size:13px; white-space:nowrap;">'
+                        + '<i class="fas fa-plus" style="margin-right:6px;"></i>Ajouter une équipe</button>'
+                        + '</div>';
+
+                    if (!equipesTriees.length) {
+                        container.innerHTML = statsHtml + '<p style="color:#64748b; text-align:center; padding:30px;">Aucune équipe pour ce championnat.<br><small>Cliquez sur "Ajouter une équipe" ou recréez le championnat avec un nombre d\'équipes défini.</small></p>';
+
+                        window._membersCache = members;
+                        return;
+                    }
+
+                    // Kanban : grille horizontale
+                    var kanban = '<div style="display:grid; grid-template-columns: repeat(' + equipesTriees.length + ', minmax(260px, 320px)); gap:14px; overflow-x:auto; padding-bottom:10px;">';
+
+                    equipesTriees.forEach(function(item, idx) {
+                        var eq = item.val; var eqId = item.key;
+                        var color = _EQUIPE_COLORS[idx % _EQUIPE_COLORS.length];
+                        var joueurs = eq.joueurs || {};
+                        var nbJoueurs = Object.keys(joueurs).length;
+
+                        // Joueurs triés par nom
+                        var joueursList = Object.keys(joueurs).map(function(uid) {
+                            var m = members[uid] || {};
+                            return { uid: uid, prenom: m.prenom || '', nom: m.nom || '', classement: m.classement || '' };
+                        }).sort(function(a,b) { return a.nom.localeCompare(b.nom, 'fr'); });
+
+                        var joueursHtml = joueursList.length
+                            ? joueursList.map(function(j) {
+                                return '<div style="display:flex; align-items:center; justify-content:space-between; padding:7px 10px; background:#0f172a; border-radius:6px;">'
+                                    + '<span style="color:#e2e8f0; font-size:12px;">' + escHtml(j.prenom) + ' ' + escHtml(j.nom) + '</span>'
+                                    + (j.classement ? '<span style="background:' + color + '22; color:' + color + '; border:1px solid ' + color + '44; border-radius:10px; padding:1px 8px; font-size:10px;">' + escHtml(j.classement) + '</span>' : '')
+                                    + '</div>';
+                              }).join('')
+                            : '<p style="color:#64748b; font-size:11px; text-align:center; padding:10px 0; margin:0;">Aucun joueur assigné</p>';
+
+                        // Rencontres de cette équipe (depuis eq.rencontres)
+                        var convocations = eq.convocations || {};
+                        var eqRencontres = eq.rencontres || {};
+                        var eqRencontreIds = Object.keys(eqRencontres).sort(function(a, b) {
+                            return (eqRencontres[a].date || '').localeCompare(eqRencontres[b].date || '');
+                        });
+
+                        var rencontresHtml = eqRencontreIds.length
+                            ? eqRencontreIds.map(function(rid) {
+                                var r = eqRencontres[rid];
+                                var conv = convocations[rid];
+                                var isValidee = conv && conv.validee;
+                                var convPositions = (conv && conv.positions) || {};
+                                var nbConvoques = Object.keys(convPositions).length;
+
+                                // Construire les chips joueurs : simples individuels, doubles regroupés par paire
+                                var isBrouillon = conv && !conv.validee && nbConvoques > 0;
+                                var joueursConvoquesHtml = '';
+                                if (nbConvoques > 0) {
+                                    var chips = [];
+                                    var doublesTraites = {};
+
+                                    // Simples d'abord
+                                    ['simple1','simple2','simple3'].forEach(function(pos) {
+                                        if (!convPositions[pos]) return;
+                                        var m = members[convPositions[pos]] || {};
+                                        var nom = m.prenom || m.nom || '?';
+                                        chips.push({ label: 'S' + pos.slice(-1), noms: [nom], isDouble: false });
+                                    });
+
+                                    // Doubles regroupés A+B dans un seul chip
+                                    [1,2,3].forEach(function(n) {
+                                        var keyA = 'double' + n + '_A'; var keyB = 'double' + n + '_B';
+                                        var uidA = convPositions[keyA]; var uidB = convPositions[keyB];
+                                        if (!uidA && !uidB) return;
+                                        var mA = uidA ? (members[uidA] || {}) : null;
+                                        var mB = uidB ? (members[uidB] || {}) : null;
+                                        var noms = [];
+                                        if (mA) noms.push(mA.prenom || mA.nom || '?');
+                                        if (mB) noms.push(mB.prenom || mB.nom || '?');
+                                        chips.push({ label: 'D' + n, noms: noms, isDouble: true });
+                                    });
+
+                                    if (chips.length) {
+                                        // Couleurs selon état : vert si validé, orange si brouillon
+                                        var chipBase = isValidee ? { s:'#22c55e', d:'#60a5fa' } : { s:'#f59e0b', d:'#f59e0b' };
+                                        joueursConvoquesHtml = '<div style="display:flex; flex-wrap:wrap; gap:3px; margin-top:5px;">';
+                                        chips.forEach(function(chip) {
+                                            var col = chip.isDouble ? chipBase.d : chipBase.s;
+                                            joueursConvoquesHtml += '<span style="background:' + col + '18; color:' + col + '; border:1px solid ' + col + '33; border-radius:10px; padding:1px 6px; font-size:9px; white-space:nowrap;">'
+                                                + escHtml(chip.label) + ' · ' + escHtml(chip.noms.join(' / ')) + '</span>';
+                                        });
+                                        joueursConvoquesHtml += '</div>';
+                                    }
+                                }
+
+                                var statusBadge = isValidee
+                                    ? '<span style="background:#22c55e22; color:#22c55e; border:1px solid #22c55e44; border-radius:10px; padding:2px 7px; font-size:10px; white-space:nowrap;"><i class="fas fa-check-circle" style="margin-right:3px;"></i>Validée</span>'
+                                    : isBrouillon
+                                        ? '<span style="background:#f59e0b22; color:#f59e0b; border:1px solid #f59e0b44; border-radius:10px; padding:2px 7px; font-size:10px; white-space:nowrap;"><i class="fas fa-pencil-alt" style="margin-right:3px;"></i>Brouillon</span>'
+                                        : '<span style="background:#47556922; color:#64748b; border:1px solid #47556944; border-radius:10px; padding:2px 7px; font-size:10px; white-space:nowrap;"><i class="far fa-circle" style="margin-right:3px;"></i>À faire</span>';
+
+                                var borderLeft = isValidee ? '3px solid #22c55e' : isBrouillon ? '3px solid #f59e0b' : '3px solid #334155';
+                                return '<div style="padding:8px 10px; background:#0f172a; border-radius:6px; border-left:' + borderLeft + ';">'
+                                    + '<div style="display:flex; align-items:flex-start; justify-content:space-between; gap:6px;">'
+                                    + '<div style="font-size:11px; color:#94a3b8; flex:1; min-width:0;">'
+                                    + (r.domicile ? '🏠 ' : '🚌 ') + '<strong style="color:#e2e8f0;">' + escHtml(r.date) + '</strong>'
+                                    + (r.heure ? ' ' + escHtml(r.heure) : '')
+                                    + (r.adversaire ? '<br><span style="color:#64748b; font-size:10px;">vs ' + escHtml(r.adversaire) + '</span>' : '')
+                                    + joueursConvoquesHtml
+                                    + '</div>'
+                                    + '<div style="display:flex; flex-direction:column; align-items:flex-end; gap:4px; flex-shrink:0;">'
+                                    + statusBadge
+                                    + '<button onclick="openConvocationModal(\'' + eqId + '\',\'' + rid + '\',\'' + champId + '\')" style="background:' + color + '22; color:' + color + '; border:1px solid ' + color + '44; padding:3px 8px; border-radius:5px; cursor:pointer; font-size:10px; white-space:nowrap;">'
+                                    + '<i class="fas fa-clipboard-list" style="margin-right:3px;"></i>' + (isValidee ? 'Modifier' : isBrouillon ? 'Modifier' : 'Composer') + '</button>'
+                                    + '</div></div></div>';
+                              }).join('')
+                            : '<p style="color:#64748b; font-size:11px; text-align:center; padding:8px 0; margin:0;">Aucune rencontre — importez le fichier FFT</p>';
+
+                        kanban += '<div style="background:#1e293b; border:1px solid ' + color + '44; border-top:3px solid ' + color + '; border-radius:12px; display:flex; flex-direction:column; overflow:hidden;">'
+                            // En-tête équipe
+                            + '<div style="padding:14px 14px 10px; border-bottom:1px solid #334155;">'
+                            + '<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;">'
+                            + '<div style="font-weight:bold; color:' + color + '; font-size:14px;">' + escHtml(eq.nom) + '</div>'
+                            + '<div style="display:flex; gap:6px;">'
+                            + '<button onclick="window.openEditEquipeModal(\'' + eqId + '\',\'' + champId + '\')" title="Modifier" style="background:#0f172a; color:#94a3b8; border:1px solid #33415544; padding:4px 8px; border-radius:5px; cursor:pointer; font-size:11px;"><i class="fas fa-pen"></i></button>'
+                            + '<button onclick="deleteEquipeAdmin(\'' + eqId + '\')" title="Supprimer" style="background:#0f172a; color:#ef4444; border:1px solid #ef444444; padding:4px 8px; border-radius:5px; cursor:pointer; font-size:11px;"><i class="fas fa-trash"></i></button>'
+                            + '</div></div>'
+                            + (eq.niveau ? '<div style="font-size:11px; color:#64748b;">' + escHtml(eq.niveau) + '</div>' : '')
+                            + '<div style="font-size:11px; color:#94a3b8; margin-top:4px;"><i class="fas fa-users" style="margin-right:4px;"></i>' + nbJoueurs + ' joueur' + (nbJoueurs > 1 ? 's' : '') + ' · ' + eqRencontreIds.length + ' rencontre' + (eqRencontreIds.length > 1 ? 's' : '') + '</div>'
+                            + ((eq.classement_min || eq.classement_max) ? '<div style="font-size:11px; color:#c9a227; margin-top:3px;"><i class="fas fa-trophy" style="margin-right:4px;"></i>' + escHtml(eq.classement_min || '…') + ' → ' + escHtml(eq.classement_max || '…') + '</div>' : '')
+                            + '</div>'
+                            // Section joueurs
+                            + '<div style="padding:10px 14px; border-bottom:1px solid #334155; flex:1;">'
+                            + '<div style="font-size:11px; color:#94a3b8; font-weight:bold; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.5px;">Joueurs</div>'
+                            + '<div style="display:grid; gap:5px; margin-bottom:10px;">' + joueursHtml + '</div>'
+                            + '<button onclick="openJoueursEquipeModal(\'' + eqId + '\',\'' + champId + '\')" style="width:100%; background:#0f172a; color:' + color + '; border:1px solid ' + color + '44; padding:7px; border-radius:7px; cursor:pointer; font-size:11px; font-weight:bold;">'
+                            + '<i class="fas fa-user-plus" style="margin-right:5px;"></i>Gérer les joueurs</button>'
+                            + '</div>'
+                            // Section rencontres
+                            + '<div style="padding:10px 14px;">'
+                            + '<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">'
+                            + '<span style="font-size:11px; color:#94a3b8; font-weight:bold; text-transform:uppercase; letter-spacing:0.5px;">Rencontres</span>'
+                            + '<button onclick="openRencontresModal(\'' + eqId + '\')" style="background:' + color + '22; color:' + color + '; border:1px solid ' + color + '44; padding:4px 10px; border-radius:6px; cursor:pointer; font-size:10px; font-weight:bold;">'
+                            + '<i class="fas fa-calendar-alt" style="margin-right:4px;"></i>Calendrier</button>'
+                            + '</div>'
+                            + '<div style="display:grid; gap:5px;">' + rencontresHtml + '</div>'
+                            + '</div>'
+                            + '</div>';
+                    });
+
+                    kanban += '</div>';
+                    container.innerHTML = statsHtml + kanban;
+                    window._inscritsList = inscritsList;
+                    window._membersCache = members;
+                })();
+            });
+        });
+    });
+};
+
+window.openEquipeForm = async function(champId, equipeId) {
+    var nom = window.prompt('Nom de l\'équipe :', '');
+    if (nom === null || !nom.trim()) return;
+    var niveau = window.prompt('Niveau (optionnel, ex: National, Régional) :', '');
+    var data = { champId: champId, nom: nom.trim(), niveau: (niveau || '').trim(), createdAt: Date.now() };
+    var ref = equipeId ? db_ref.ref('equipes/' + equipeId) : db_ref.ref('equipes').push();
+    ref.set(data).then(function() {
+        window.showNotification && window.showNotification('Équipe enregistrée !', 'success');
+        window.loadEquipesAdmin(champId);
+    });
+};
+
+window.openEditEquipeModal = function(equipeId, champId) {
+    db_ref.ref('equipes/' + equipeId).once('value', function(snap) {
+        var eq = snap.val() || {};
+        document.getElementById('edit-equipe-id').value = equipeId;
+        document.getElementById('edit-equipe-champ-id').value = champId;
+        document.getElementById('edit-equipe-nom').value = eq.nom || '';
+        var optsMin = '<option value="">De (meilleur)</option>' + _CLASSEMENTS_FFT.map(function(c) {
+            return '<option value="' + c + '"' + (c === eq.classement_min ? ' selected' : '') + '>' + c + '</option>';
+        }).join('');
+        var optsMax = '<option value="">À (moins bon)</option>' + _CLASSEMENTS_FFT.map(function(c) {
+            return '<option value="' + c + '"' + (c === eq.classement_max ? ' selected' : '') + '>' + c + '</option>';
+        }).join('');
+        document.getElementById('edit-equipe-cmin').innerHTML = optsMin;
+        document.getElementById('edit-equipe-cmax').innerHTML = optsMax;
+        document.getElementById('modal-edit-equipe').style.display = 'flex';
+    });
+};
+
+window.saveEditEquipe = function() {
+    var equipeId = document.getElementById('edit-equipe-id').value;
+    var champId = document.getElementById('edit-equipe-champ-id').value;
+    var nom = (document.getElementById('edit-equipe-nom').value || '').trim();
+    var cmin = document.getElementById('edit-equipe-cmin').value;
+    var cmax = document.getElementById('edit-equipe-cmax').value;
+    if (!nom) { window.showNotification && window.showNotification('Le nom de l\'équipe est requis.', 'error'); return; }
+    db_ref.ref('equipes/' + equipeId).update({ nom: nom, classement_min: cmin, classement_max: cmax }).then(function() {
+        window.showNotification && window.showNotification('Équipe mise à jour.', 'success');
+        document.getElementById('modal-edit-equipe').style.display = 'none';
+        window.loadEquipesAdmin(champId);
+    });
+};
+
+window.deleteEquipeAdmin = async function(equipeId) {
+    var ok = await window.confirmDialog.show({ title: 'Supprimer l\'équipe', message: 'Supprimer cette équipe et ses convocations ?', type: 'danger', confirmText: 'Supprimer', cancelText: 'Annuler' });
+    if (!ok) return;
+    db_ref.ref('equipes/' + equipeId).remove().then(function() {
+        window.showNotification && window.showNotification('Équipe supprimée.', 'success');
+    });
+};
+
+// Données en cache pour le modal joueurs (pour le toggle sans re-fetch)
+var _joueursModalData = { tous: [], inscrits: {}, joueurActuels: {}, showAll: false };
+
+function _renderJoueursListe(showAll) {
+    _joueursModalData.showAll = showAll;
+    var listeEl = document.getElementById('modal-joueurs-liste');
+    var toggleBtn = document.getElementById('joueurs-toggle-btn');
+    var tous = _joueursModalData.tous;
+    var inscrits = _joueursModalData.inscrits; // uid → { valide, prenom, nom, classement, ... }
+    var joueurActuels = _joueursModalData.joueurActuels;
+
+    var inscritsUids = Object.keys(inscrits);
+    var membresInscrits = tous.filter(function(m) { return inscrits[m.uid]; });
+    var membresNonInscrits = tous.filter(function(m) { return !inscrits[m.uid]; });
+
+    // Mettre à jour le bouton toggle
+    if (toggleBtn) {
+        if (showAll) {
+            toggleBtn.innerHTML = '<i class="fas fa-filter" style="margin-right:5px;"></i>Voir seulement les inscrits (' + inscritsUids.length + ')';
+            toggleBtn.style.background = 'rgba(34,197,94,0.15)';
+            toggleBtn.style.color = '#22c55e';
+            toggleBtn.style.borderColor = 'rgba(34,197,94,0.4)';
+        } else {
+            toggleBtn.innerHTML = '<i class="fas fa-users" style="margin-right:5px;"></i>Voir tous les membres (' + tous.length + ')';
+            toggleBtn.style.background = 'rgba(0,210,255,0.1)';
+            toggleBtn.style.color = '#00d2ff';
+            toggleBtn.style.borderColor = 'rgba(0,210,255,0.3)';
+        }
+        toggleBtn.onclick = function() { _renderJoueursListe(!showAll); };
+    }
+
+    var listeAAfficher = showAll ? membresInscrits.concat(membresNonInscrits) : membresInscrits;
+
+    if (!listeAAfficher.length) {
+        listeEl.innerHTML = '<p style="color:#64748b; font-size:13px; text-align:center;">'
+            + (showAll ? 'Aucun membre actif.' : 'Aucun membre inscrit à ce championnat.<br><small style="color:#475569;">Utilisez le bouton ci-dessus pour voir tous les membres.</small>')
+            + '</p>';
+        return;
+    }
+
+    var html = '';
+    if (!showAll && membresNonInscrits.length > 0) {
+        html += '<p style="color:#94a3b8; font-size:11px; margin-bottom:6px; padding:8px 10px; background:#0f172a; border-radius:6px;">'
+            + '<i class="fas fa-info-circle" style="color:#00d2ff; margin-right:4px;"></i>'
+            + membresNonInscrits.length + ' autre' + (membresNonInscrits.length > 1 ? 's membres' : ' membre') + ' actif' + (membresNonInscrits.length > 1 ? 's' : '') + ' non inscrit' + (membresNonInscrits.length > 1 ? 's' : '')
+            + ' — utilisez le bouton ci-dessus pour les afficher.</p>';
+    }
+
+    listeAAfficher.forEach(function(m, idx) {
+        var checked = joueurActuels[m.uid] ? 'checked' : '';
+        var estInscrit = !!inscrits[m.uid];
+        var estValide = estInscrit && inscrits[m.uid].valide;
+
+        // Séparateur si mode "tous" et passage aux non-inscrits
+        if (showAll && idx === membresInscrits.length && membresNonInscrits.length > 0) {
+            html += '<div style="padding:6px 0; display:flex; align-items:center; gap:8px;">'
+                + '<div style="flex:1; height:1px; background:#334155;"></div>'
+                + '<span style="color:#475569; font-size:10px; white-space:nowrap; text-transform:uppercase; letter-spacing:0.5px;">Autres membres actifs</span>'
+                + '<div style="flex:1; height:1px; background:#334155;"></div></div>';
+        }
+
+        // Badge statut inscription
+        var statutHtml = '';
+        if (estInscrit) {
+            if (estValide) {
+                statutHtml = '<span style="background:#22c55e22; color:#22c55e; border:1px solid #22c55e44; border-radius:10px; padding:1px 7px; font-size:10px; margin-left:6px;"><i class="fas fa-check-circle" style="margin-right:2px;"></i>Inscrit · validé</span>';
+            } else {
+                var champId = document.getElementById('modal-joueurs-champ-id').value;
+                statutHtml = '<span style="background:#f59e0b22; color:#f59e0b; border:1px solid #f59e0b44; border-radius:10px; padding:1px 7px; font-size:10px; margin-left:6px;"><i class="fas fa-clock" style="margin-right:2px;"></i>En attente</span>'
+                    + '<button onclick="window.validerInscriptionInline(\'' + champId + '\',\'' + m.uid + '\')" style="background:#22c55e22; color:#22c55e; border:1px solid #22c55e44; border-radius:8px; padding:2px 8px; font-size:10px; cursor:pointer; margin-left:5px; font-weight:bold;"><i class="fas fa-check" style="margin-right:3px;"></i>Valider</button>';
+            }
+        } else {
+            statutHtml = '<span style="background:#47556922; color:#64748b; border:1px solid #47556944; border-radius:10px; padding:1px 7px; font-size:10px; margin-left:6px;">Non inscrit</span>';
+        }
+
+        html += '<label style="display:flex; align-items:center; gap:12px; padding:10px 12px; background:' + (estInscrit ? '#1e293b' : '#0f172a') + '; border-radius:8px; cursor:pointer; border:1px solid ' + (estValide ? '#22c55e33' : estInscrit ? '#f59e0b33' : '#1e293b') + ';">'
+            + '<input type="checkbox" value="' + m.uid + '" ' + checked + ' style="width:18px; height:18px; accent-color:#e11d48; flex-shrink:0;">'
+            + '<div style="flex:1; min-width:0;">'
+            + '<div style="color:' + (estInscrit ? '#e2e8f0' : '#94a3b8') + '; font-size:13px; display:flex; align-items:center; flex-wrap:wrap; gap:4px;">'
+            + escHtml(m.prenom) + ' ' + escHtml(m.nom) + statutHtml
+            + '</div>'
+            + '<div style="color:#64748b; font-size:11px; margin-top:2px;">' + escHtml(m.classement || '—') + '</div>'
+            + '</div></label>';
+    });
+    listeEl.innerHTML = html;
+}
+
+// Validation inline depuis le modal de sélection des joueurs
+window.validerInscriptionInline = function(champId, uid) {
+    db_ref.ref('inscriptions_equipe/' + champId + '/' + uid).update({ valide: true }).then(function() {
+        if (_joueursModalData.inscrits[uid]) _joueursModalData.inscrits[uid].valide = true;
+        _renderJoueursListe(_joueursModalData.showAll);
+        window.showNotification && window.showNotification('Inscription validée.', 'success');
+    });
+};
+
+window.openJoueursEquipeModal = function(equipeId, champId) {
+    document.getElementById('modal-joueurs-equipe-id').value = equipeId;
+    document.getElementById('modal-joueurs-champ-id').value = champId;
+    var listeEl = document.getElementById('modal-joueurs-liste');
+    listeEl.innerHTML = '<p style="color:#64748b; font-size:13px; text-align:center;"><i class="fas fa-spinner fa-spin"></i></p>';
+    document.getElementById('modal-joueurs-equipe').style.display = '';
+
+    db_ref.ref('equipes/' + equipeId).once('value', function(snapEq) {
+        var joueurActuels = (snapEq.val() && snapEq.val().joueurs) || {};
+
+        // Charger TOUTES les inscriptions (validées ou non) pour ce championnat
+        db_ref.ref('inscriptions_equipe/' + champId).once('value', function(snapInscrits) {
+            var inscrits = {}; // uid → données inscription complètes
+            snapInscrits.forEach(function(child) { inscrits[child.key] = child.val(); });
+
+            db_ref.ref('members').once('value', function(snapMembers) {
+                var tous = [];
+                snapMembers.forEach(function(child) {
+                    var m = child.val();
+                    if (m && m.actif && m.prenom && m.nom) {
+                        tous.push({ uid: child.key, prenom: m.prenom, nom: m.nom, classement: m.classement || '' });
+                    }
+                });
+                tous.sort(function(a, b) { return a.nom.localeCompare(b.nom, 'fr'); });
+
+                _joueursModalData = { tous: tous, inscrits: inscrits, joueurActuels: joueurActuels, showAll: false };
+                _renderJoueursListe(false); // Par défaut : inscrits seulement
+            });
+        });
+    });
+};
+
+window.saveJoueursEquipe = function() {
+    var equipeId = document.getElementById('modal-joueurs-equipe-id').value;
+    var champId = document.getElementById('modal-joueurs-champ-id').value;
+    var checkboxes = document.querySelectorAll('#modal-joueurs-liste input[type=checkbox]');
+    var joueurs = {};
+    checkboxes.forEach(function(cb) { if (cb.checked) joueurs[cb.value] = true; });
+    db_ref.ref('equipes/' + equipeId + '/joueurs').set(joueurs).then(function() {
+        window.showNotification && window.showNotification('Composition de l\'équipe enregistrée.', 'success');
+        document.getElementById('modal-joueurs-equipe').style.display = 'none';
+        window.loadEquipesAdmin(champId);
+    });
+};
+
+// --- Convocations ---
+window.openConvocationModal = function(equipeId, rencontreId, champId) {
+    document.getElementById('modal-convocation-equipe-id').value = equipeId;
+    document.getElementById('modal-convocation-rencontre-id').value = rencontreId;
+    document.getElementById('modal-convocation-champ-id').value = champId;
+    document.getElementById('modal-convocation-positions').innerHTML = '<p style="color:#64748b; font-size:13px; text-align:center;"><i class="fas fa-spinner fa-spin"></i> Chargement...</p>';
+    document.getElementById('modal-convocation').style.display = '';
+
+    // Lecture parallèle de toutes les données nécessaires
+    Promise.all([
+        db_ref.ref('championnats_equipe/' + champId).once('value'),
+        db_ref.ref('equipes/' + equipeId).once('value'),
+        db_ref.ref('equipes/' + equipeId + '/rencontres/' + rencontreId).once('value'),
+        db_ref.ref('equipes/' + equipeId + '/convocations/' + rencontreId).once('value'),
+        db_ref.ref('inscriptions_equipe/' + champId).once('value')
+    ]).then(function(snaps) {
+        var champ   = snaps[0].val() || {};
+        var eq      = snaps[1].val() || {};
+        var r       = snaps[2].val() || {};
+        var conv    = snaps[3].val() || {};
+        var positions = conv.positions || {};
+        var inscrits = {};
+        snaps[4].forEach(function(i) { inscrits[i.key] = i.val(); });
+
+        var joueurs = eq.joueurs || {};
+        var joueurUids = Object.keys(joueurs);
+
+        if (!joueurUids.length) {
+            document.getElementById('modal-convocation-positions').innerHTML =
+                '<p style="color:#f59e0b; font-size:13px; text-align:center;"><i class="fas fa-exclamation-triangle" style="margin-right:6px;"></i>Aucun joueur assigné à cette équipe. Utilisez "Gérer les joueurs" d\'abord.</p>';
+            var infoR0 = (r.date || '?') + (r.heure ? ' à ' + r.heure : '') + (r.adversaire ? ' — vs ' + r.adversaire : '') + (r.domicile ? ' 🏠' : ' 🚌');
+            document.getElementById('modal-convocation-info').textContent = (eq.nom || '') + ' | ' + infoR0;
+            return;
+        }
+
+        // Lire les données membres directement depuis Firebase pour les joueurs de l'équipe
+        Promise.all(joueurUids.map(function(uid) {
+            return db_ref.ref('members/' + uid).once('value').then(function(s) {
+                return { uid: uid, data: s.val() || {} };
+            });
+        })).then(function(memberResults) {
+            var membersMap = {};
+            memberResults.forEach(function(mr) { membersMap[mr.uid] = mr.data; });
+
+            var joueurOptions = '<option value="">— Non assigné —</option>'
+                + joueurUids.map(function(uid) {
+                    var m = membersMap[uid] || {};
+                    var ins = inscrits[uid] || {};
+                    var prenom = m.prenom || ins.prenom || '';
+                    var nom = m.nom || ins.nom || '';
+                    var classement = m.classement || ins.classement || '—';
+                    // La dispo est stockée avec la clé composée equipeId_rencontreId
+                    var dispoKey = equipeId + '_' + rencontreId;
+                    var dispo = ins.disponibilites && ins.disponibilites[dispoKey];
+                    var label = prenom + ' ' + nom + ' (' + classement + ')';
+                    if (dispo === true) label += ' ✓ Dispo';
+                    else if (dispo === false) label += ' ✗ Indispo';
+                    // Bloquer la sélection si indispo, sauf si déjà assigné (pour permettre de le retirer)
+                    var isCurrentlyAssigned = Object.values(positions).indexOf(uid) !== -1;
+                    var disabled = (dispo === false && !isCurrentlyAssigned) ? ' disabled' : '';
+                    return '<option value="' + uid + '"' + disabled + '>' + escHtml(label.trim() || uid) + '</option>';
+                }).join('');
+
+            var infoR = (r.date || '?') + (r.heure ? ' à ' + r.heure : '') + (r.adversaire ? ' — vs ' + r.adversaire : '') + (r.domicile ? ' 🏠' : ' 🚌');
+            document.getElementById('modal-convocation-info').textContent = (eq.nom || '') + ' | ' + infoR;
+
+            var positionsHtml = '';
+            var nbS = champ.nb_simples || 2; var nbD = champ.nb_doubles || 0;
+            for (var i = 1; i <= nbS; i++) {
+                var key = 'simple' + i; var cur = positions[key] || '';
+                positionsHtml += _positionRow('Simple ' + i, key, joueurOptions, cur);
+            }
+            for (var d = 1; d <= nbD; d++) {
+                ['A','B'].forEach(function(p) {
+                    var key = 'double' + d + '_' + p; var cur = positions[key] || '';
+                    positionsHtml += _positionRow('Double ' + d + ' — Joueur ' + p, key, joueurOptions, cur);
+                });
+            }
+            document.getElementById('modal-convocation-positions').innerHTML = positionsHtml;
+        });
+    });
+};
+
+function _positionRow(label, key, options, selected) {
+    return '<div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">'
+        + '<label style="color:#e2e8f0; font-size:13px; min-width:160px;">' + escHtml(label) + '</label>'
+        + '<select data-pos="' + key + '" style="flex:1; padding:10px; background:#1e293b; border:1px solid #475569; color:white; border-radius:8px; font-size:13px;">'
+        + options.replace('value="' + selected + '"', 'value="' + selected + '" selected')
+        + '</select></div>';
+}
+
+window.saveConvocation = function() {
+    var equipeId = document.getElementById('modal-convocation-equipe-id').value;
+    var rencontreId = document.getElementById('modal-convocation-rencontre-id').value;
+    var champId = document.getElementById('modal-convocation-champ-id').value;
+    var positions = {};
+    document.querySelectorAll('#modal-convocation-positions select').forEach(function(sel) {
+        if (sel.value) positions[sel.dataset.pos] = sel.value;
+    });
+    // Brouillon : on retire la validation pour que le coach puisse retravailler la composition
+    db_ref.ref('equipes/' + equipeId + '/convocations/' + rencontreId).set({
+        positions: positions, validee: false, notifie: false, updatedAt: Date.now()
+    }).then(function() {
+        window.showNotification && window.showNotification('Brouillon enregistré.', 'success');
+        document.getElementById('modal-convocation').style.display = 'none';
+        if (champId) window.loadEquipesAdmin(champId);
+    });
+};
+
+window.reinitialiserConvocation = function() {
+    document.querySelectorAll('#modal-convocation-positions select').forEach(function(sel) {
+        sel.value = '';
+    });
+};
+
+window.validerEtNotifierConvocation = function() {
+    var equipeId = document.getElementById('modal-convocation-equipe-id').value;
+    var rencontreId = document.getElementById('modal-convocation-rencontre-id').value;
+    var champId = document.getElementById('modal-convocation-champ-id').value;
+    var positions = {};
+    document.querySelectorAll('#modal-convocation-positions select').forEach(function(sel) {
+        if (sel.value) positions[sel.dataset.pos] = sel.value;
+    });
+    if (!Object.keys(positions).length) {
+        window.showNotification && window.showNotification('Assignez au moins un joueur avant de valider.', 'error');
+        return;
+    }
+
+    db_ref.ref('equipes/' + equipeId).once('value', function(snapEq) {
+        // ✅ Chemin corrigé : rencontre dans /equipes/{equipeId}/rencontres/
+        db_ref.ref('equipes/' + equipeId + '/rencontres/' + rencontreId).once('value', function(snapR) {
+            var eq = snapEq.val() || {}; var r = snapR.val() || {};
+            var dateLabel = (r.date || '?') + (r.heure ? ' à ' + r.heure : '') + (r.adversaire ? ' vs ' + r.adversaire : '');
+            db_ref.ref('equipes/' + equipeId + '/convocations/' + rencontreId).set({
+                positions: positions, validee: true, notifie: true, updatedAt: Date.now()
+            }).then(function() {
+                var posLabels = { simple1:'Simple 1', simple2:'Simple 2', simple3:'Simple 3', double1_A:'Double 1 — Joueur A', double1_B:'Double 1 — Joueur B', double2_A:'Double 2 — Joueur A', double2_B:'Double 2 — Joueur B' };
+                var notifPromises = Object.keys(positions).map(function(pos) {
+                    var uid = positions[pos]; if (!uid) return Promise.resolve();
+                    var notif = {
+                        uid: uid, champId: champId, equipeId: equipeId, rencontreId: rencontreId,
+                        equipeNom: eq.nom || '',
+                        type: 'convoque',
+                        message: 'Vous êtes convoqué(e) pour ' + (eq.nom || 'l\'équipe') + ' — ' + dateLabel + ' — Poste : ' + (posLabels[pos] || pos),
+                        lue: false, createdAt: Date.now()
+                    };
+                    return db_ref.ref('notifications_equipe').push(notif);
+                });
+                return Promise.all(notifPromises);
+            }).then(function() {
+                window.showNotification && window.showNotification('Convocation validée et joueurs notifiés !', 'success');
+                document.getElementById('modal-convocation').style.display = 'none';
+                // Rafraîchir le Kanban pour voir la mise à jour sur les tuiles
+                if (champId) window.loadEquipesAdmin(champId);
+            });
+        });
+    });
+};
+
+// --- Import calendrier FFT (Excel) ---
+window.importRencontresExcel = function() {
+    var equipeId = document.getElementById('modal-rencontres-equipe-id').value;
+    var fileInput = document.getElementById('import-excel-file');
+    var statusEl = document.getElementById('import-excel-status');
+    var file = fileInput.files[0];
+
+    if (!equipeId) { window.showNotification && window.showNotification('Ouvrez d\'abord le calendrier d\'une équipe.', 'error'); return; }
+    if (!file) { window.showNotification && window.showNotification('Sélectionnez un fichier Excel.', 'error'); return; }
+
+    statusEl.style.display = 'block';
+    statusEl.style.color = '#64748b';
+    statusEl.textContent = 'Lecture du fichier...';
+
+    var reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            var workbook = XLSX.read(e.target.result, { type: 'array' });
+            var sheet = workbook.Sheets[workbook.SheetNames[0]];
+            var rows = XLSX.utils.sheet_to_json(sheet, { header: 1, range: 4 });
+
+            var rencontres = [];
+            for (var i = 1; i < rows.length; i++) {
+                var row = rows[i];
+                if (!row || !row[1]) continue;
+                var dateRaw = String(row[1] || '').trim();
+                var domCol = String(row[2] || '').trim();
+                var extCol = String(row[3] || '').trim();
+                if (!dateRaw.match(/^\d{2}\/\d{2}\/\d{4}$/)) continue;
+
+                var domMontargis = domCol.toUpperCase().indexOf('MONTARGIS') !== -1;
+                var extMontargis = extCol.toUpperCase().indexOf('MONTARGIS') !== -1;
+                if (!domMontargis && !extMontargis) continue;
+
+                var parts = dateRaw.split('/');
+                var dateISO = parts[2] + '-' + parts[1] + '-' + parts[0];
+
+                rencontres.push({
+                    date: dateISO,
+                    heure: '14:00',
+                    domicile: domMontargis,
+                    adversaire: domMontargis ? extCol : domCol,
+                    lieu: domMontargis ? 'Courts USM Montargis' : '',
+                    note: 'Journée ' + String(row[0] || '')
+                });
+            }
+
+            if (!rencontres.length) {
+                statusEl.style.color = '#f59e0b';
+                statusEl.textContent = '⚠️ Aucune rencontre de Montargis trouvée dans ce fichier.';
+                return;
+            }
+
+            statusEl.textContent = 'Enregistrement de ' + rencontres.length + ' rencontre(s)...';
+            var promises = rencontres.map(function(r) {
+                return db_ref.ref('equipes/' + equipeId + '/rencontres').push(r);
+            });
+            Promise.all(promises).then(function() {
+                statusEl.style.color = '#22c55e';
+                statusEl.textContent = '✅ ' + rencontres.length + ' rencontre(s) importée(s) avec succès !';
+                fileInput.value = '';
+                _loadRencontresModal(equipeId);
+                if (_rencontresModalChampId) window.loadEquipesAdmin(_rencontresModalChampId);
+                window.showNotification && window.showNotification(rencontres.length + ' rencontres importées !', 'success');
+            }).catch(function(err) {
+                statusEl.style.color = '#ef4444';
+                statusEl.textContent = '❌ Erreur lors de l\'enregistrement.';
+            });
+
+        } catch(err) {
+            statusEl.style.color = '#ef4444';
+            statusEl.textContent = '❌ Erreur de lecture du fichier Excel.';
+        }
+    };
+    reader.readAsArrayBuffer(file);
+};
+
+// --- Nettoyage des données orphelines ---
+window.nettoyerDonneesOrphelines = async function() {
+    var ok = await window.confirmDialog.show({
+        title: 'Nettoyer les résidus',
+        message: 'Cette opération supprime les assignations d\'équipes et convocations validées pour tout membre qui n\'est plus inscrit au championnat correspondant. Continuer ?',
+        type: 'danger', confirmText: 'Nettoyer', cancelText: 'Annuler'
+    });
+    if (!ok) return;
+
+    var snaps = await Promise.all([
+        db_ref.ref('equipes').once('value'),
+        db_ref.ref('inscriptions_equipe').once('value')
+    ]);
+    var snapEquipes = snaps[0]; var snapInscrits = snaps[1];
+
+    // Map : champId → { uid: true }
+    var inscrits = {};
+    snapInscrits.forEach(function(champNode) {
+        inscrits[champNode.key] = {};
+        champNode.forEach(function(userNode) { inscrits[champNode.key][userNode.key] = true; });
+    });
+
+    var ops = []; var removed = 0;
+    snapEquipes.forEach(function(eqSnap) {
+        var eq = eqSnap.val(); var equipeId = eqSnap.key;
+        var champId = eq.champId;
+        var champInscrits = inscrits[champId] || {};
+
+        // Retirer les joueurs non inscrits du roster
+        Object.keys(eq.joueurs || {}).forEach(function(uid) {
+            if (!champInscrits[uid]) {
+                ops.push(db_ref.ref('equipes/' + equipeId + '/joueurs/' + uid).remove());
+                removed++;
+            }
+        });
+
+        // Invalider les convocations validées contenant des membres non inscrits
+        Object.entries(eq.convocations || {}).forEach(function(entry) {
+            var rid = entry[0]; var conv = entry[1];
+            if (!conv || !conv.validee) return;
+            var hasOrphan = Object.values(conv.positions || {}).some(function(uid) {
+                return uid && !champInscrits[uid];
+            });
+            if (hasOrphan) {
+                ops.push(db_ref.ref('equipes/' + equipeId + '/convocations/' + rid + '/validee').set(false));
+                removed++;
+            }
+        });
+    });
+
+    if (!ops.length) {
+        window.showNotification && window.showNotification('Aucun résidu trouvé — les données sont propres.', 'success');
+        return;
+    }
+    await Promise.all(ops);
+    window.showNotification && window.showNotification(removed + ' entrée(s) résiduelle(s) supprimée(s).', 'success');
+};
+
+// --- Classement FFT par équipe ---
+var _CLASSEMENTS_FFT = ['1','2','3','4','5','6','15','15/1','15/2','15/3','15/4','15/5','30','30/1','30/2','30/3','30/4','30/5','40','NC'];
+
+function _classementOptionsHtml() {
+    return _CLASSEMENTS_FFT.map(function(c) { return '<option value="' + c + '">' + c + '</option>'; }).join('');
+}
+
+window.updateEquipesClassementRows = function(n) {
+    n = parseInt(n) || 0;
+    var container = document.getElementById('champ-equipes-classement');
+    var rows = document.getElementById('champ-equipes-classement-rows');
+    if (!container || !rows) return;
+    if (n === 0) { container.style.display = 'none'; rows.innerHTML = ''; return; }
+    container.style.display = 'block';
+    var opts = _classementOptionsHtml();
+    var html = '';
+    for (var i = 1; i <= n; i++) {
+        html += '<div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">'
+            + '<span style="color:#c9a227; font-size:12px; font-weight:bold; min-width:68px;">Équipe ' + i + '</span>'
+            + '<select id="champ-eq-cmin-' + i + '" style="flex:1; padding:8px; background:#0f172a; border:1px solid #475569; color:white; border-radius:6px; font-size:12px;">'
+            + '<option value="">De (meilleur)</option>' + opts + '</select>'
+            + '<span style="color:#64748b; font-size:11px;">→</span>'
+            + '<select id="champ-eq-cmax-' + i + '" style="flex:1; padding:8px; background:#0f172a; border:1px solid #475569; color:white; border-radius:6px; font-size:12px;">'
+            + '<option value="">À (moins bon)</option>' + opts + '</select>'
+            + '</div>';
+    }
+    rows.innerHTML = html;
+};
+
+// --- Gestion des inscriptions (panneau admin par championnat) ---
+window.toggleInscritsChamp = function(champId) {
+    var panel = document.getElementById('inscrits-panel-' + champId);
+    if (!panel) return;
+    if (panel.style.display !== 'none') { panel.style.display = 'none'; return; }
+    _loadInscritsPanel(champId);
+};
+
+function _loadInscritsPanel(champId) {
+    var panel = document.getElementById('inscrits-panel-' + champId);
+    if (!panel) return;
+    panel.style.display = 'block';
+    panel.innerHTML = '<p style="color:#64748b; font-size:12px; text-align:center;"><i class="fas fa-spinner fa-spin"></i> Chargement...</p>';
+    Promise.all([
+        db_ref.ref('inscriptions_equipe/' + champId).once('value'),
+        db_ref.ref('members').once('value')
+    ]).then(function(snaps) {
+        var snapIns = snaps[0]; var snapMem = snaps[1];
+        var members = {}; snapMem.forEach(function(m) { members[m.key] = m.val(); });
+        var rows = '';
+        if (snapIns.exists()) {
+            snapIns.forEach(function(insNode) {
+                var uid = insNode.key; var data = insNode.val();
+                var m = members[uid] || {};
+                var nom = ((m.prenom || '') + ' ' + (m.nom || '')).trim() || uid;
+                var valide = data && data.valide;
+                var disposValidees = data && data.disponibilitesValidees;
+                var disposDate = (data && data.disponibilitesValideeAt) ? new Date(data.disponibilitesValideeAt).toLocaleDateString('fr-FR') : '';
+                rows += '<div style="display:flex; align-items:center; justify-content:space-between; padding:8px 4px; border-bottom:1px solid #1e293b44; gap:10px; flex-wrap:wrap;">'
+                    + '<span style="font-size:12px; color:#e2e8f0; flex:1;">' + escHtml(nom) + '</span>'
+                    + '<div style="display:flex; flex-direction:column; align-items:flex-end; gap:3px;">'
+                    + '<span style="font-size:11px; color:' + (valide ? '#22c55e' : '#f59e0b') + '; white-space:nowrap;">' + (valide ? '<i class="fas fa-check-circle"></i> Inscr. validée' : '<i class="fas fa-clock"></i> En attente') + '</span>'
+                    + '<span style="font-size:10px; color:' + (disposValidees ? '#22c55e' : '#64748b') + '; white-space:nowrap;">' + (disposValidees ? '<i class="fas fa-calendar-check"></i> Dispos confirmées' + (disposDate ? ' ' + disposDate : '') : '<i class="fas fa-hourglass-half"></i> Dispos non confirmées') + '</span>'
+                    + '</div>'
+                    + '<div style="display:flex; gap:5px;">'
+                    + (!valide ? '<button onclick="window.validerInscriptionAdmin(\'' + champId + '\',\'' + uid + '\')" style="background:#22c55e22; color:#22c55e; border:1px solid #22c55e44; padding:4px 10px; border-radius:5px; cursor:pointer; font-size:11px;" title="Valider inscription"><i class="fas fa-check"></i></button>' : '')
+                    + '<button onclick="window.supprimerInscription(\'' + champId + '\',\'' + uid + '\')" style="background:#ef444422; color:#ef4444; border:1px solid #ef444444; padding:4px 10px; border-radius:5px; cursor:pointer; font-size:11px;" title="Supprimer"><i class="fas fa-trash"></i></button>'
+                    + '</div></div>';
+            });
+        }
+        panel.innerHTML = '<div style="font-size:11px; color:#64748b; margin-bottom:8px; font-weight:bold; text-transform:uppercase; letter-spacing:0.5px; display:flex; justify-content:space-between; align-items:center;">'
+            + '<span><i class="fas fa-users" style="margin-right:5px;"></i>Membres inscrits</span>'
+            + '<button onclick="document.getElementById(\'inscrits-panel-' + champId + '\').style.display=\'none\'" style="background:none; border:none; color:#64748b; cursor:pointer; font-size:14px;"><i class="fas fa-times"></i></button>'
+            + '</div>'
+            + (rows || '<p style="color:#64748b; font-size:12px; text-align:center; padding:8px 0;">Aucun membre inscrit.</p>');
+    });
+}
+
+window.validerInscriptionAdmin = function(champId, uid) {
+    db_ref.ref('inscriptions_equipe/' + champId + '/' + uid).update({ valide: true }).then(function() {
+        window.showNotification && window.showNotification('Inscription validée.', 'success');
+        _loadInscritsPanel(champId);
+    });
+};
+
+window.supprimerInscription = async function(champId, uid) {
+    var ok = await window.confirmDialog.show({
+        title: 'Supprimer l\'inscription',
+        message: 'Supprimer définitivement l\'inscription de ce membre pour ce championnat ?',
+        type: 'danger', confirmText: 'Supprimer', cancelText: 'Annuler'
+    });
+    if (!ok) return;
+    await db_ref.ref('inscriptions_equipe/' + champId + '/' + uid).remove();
+    window.showNotification && window.showNotification('Inscription supprimée.', 'success');
+    _loadInscritsPanel(champId);
 };
 
 function escHtml(str) {

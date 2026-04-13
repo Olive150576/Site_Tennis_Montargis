@@ -252,6 +252,8 @@ window.initMemberDashboard = function(memberData) {
     loadMemberSponsors();
     loadPartenaireProfile();
     checkClubMessagesBadge();
+    var _uid = memberData._uid;
+    if (_uid) checkEquipesBadge(_uid);
 };
 
 // --- Chargement des tournois depuis /tournaments/ ---
@@ -496,7 +498,7 @@ window.savePartenaireProfile = function() {
 var _annuaireLoaded = false;
 var _messagesLoaded = false;
 window.switchMemberTab = function(tab) {
-    ['profil', 'partenaires', 'club', 'infos'].forEach(t => {
+    ['profil', 'partenaires', 'club', 'infos', 'equipes'].forEach(t => {
         const content = document.getElementById(`mtab-${t}`);
         const btn = document.getElementById(`mtab-btn-${t}`);
         if (content) content.classList.toggle('hidden', t !== tab);
@@ -513,6 +515,15 @@ window.switchMemberTab = function(tab) {
         localStorage.setItem('usm_infos_seen_at', String(Date.now()));
         var badge = document.getElementById('infos-badge');
         if (badge) badge.style.display = 'none';
+    }
+    if (tab === 'equipes' && !_equipesLoaded) {
+        _equipesLoaded = true;
+        var uid = _cardMemberData ? _cardMemberData._uid : null;
+        if (uid) loadEquipesMember(uid);
+        // Masquer le badge
+        var badge = document.getElementById('equipes-badge');
+        if (badge) badge.style.display = 'none';
+        localStorage.setItem('usm_equipes_seen_at', String(Date.now()));
     }
 };
 
@@ -1792,6 +1803,513 @@ function loadClubMessages() {
                 '<div class="club-message-body">' + escMember(m.contenu) + '</div>' +
             '</div>';
         }).join('');
+    });
+}
+
+// =====================================================================
+// GESTION DES ÉQUIPES EN ÉQUIPE (côté membre)
+// =====================================================================
+
+var _equipesLoaded = false;
+var _equipesChampData = {};
+var _equipesInscriptionsData = {};
+
+function loadEquipesMember(uid) {
+    var disposEl = document.getElementById('equipes-champs-dispos');
+    var mesChEl = document.getElementById('equipes-mes-champs');
+    var convEl = document.getElementById('equipes-mes-convocations');
+
+    if (disposEl) disposEl.innerHTML = '<p style="color:#64748b; font-size:13px; text-align:center;"><i class="fas fa-spinner fa-spin"></i></p>';
+
+    // Charger championnats + inscriptions + équipes/convocations en parallèle
+    window.db_ref.ref('championnats_equipe').once('value', function(snapChamps) {
+        window.db_ref.ref('inscriptions_equipe').once('value', function(snapInscrits) {
+            window.db_ref.ref('equipes').once('value', function(snapEquipes) {
+
+                var champs = {}; _equipesChampData = {};
+                snapChamps.forEach(function(c) { champs[c.key] = Object.assign({}, c.val(), {id: c.key}); _equipesChampData[c.key] = champs[c.key]; });
+
+                // Équipes où le membre est assigné (champId -> {id, data})
+                var mesEquipesAssignees = {};
+                // Toutes les équipes (equipeId -> data)
+                var allEquipes = {};
+                snapEquipes.forEach(function(eqChild) {
+                    var eq = eqChild.val();
+                    if (eq) allEquipes[eqChild.key] = eq;
+                    if (eq && eq.champId && eq.joueurs && eq.joueurs[uid]) {
+                        mesEquipesAssignees[eq.champId] = { id: eqChild.key, data: eq };
+                    }
+                });
+
+                // Inscriptions du membre
+                var mesInscriptions = {};
+                snapInscrits.forEach(function(champNode) {
+                    var champId = champNode.key;
+                    champNode.forEach(function(userNode) {
+                        if (userNode.key === uid) {
+                            mesInscriptions[champId] = userNode.val();
+                            _equipesInscriptionsData[champId] = userNode.val();
+                        }
+                    });
+                });
+
+                // Noms de tous les membres inscrits (pour résoudre les UIDs dans les convocations)
+                var membresMap = {};
+                snapInscrits.forEach(function(champNode) {
+                    champNode.forEach(function(userNode) {
+                        var d = userNode.val();
+                        if (d && !membresMap[userNode.key] && (d.prenom || d.nom)) {
+                            membresMap[userNode.key] = { prenom: d.prenom || '', nom: d.nom || '', classement: d.classement || '' };
+                        }
+                    });
+                });
+
+                // ---- Section A : championnats ouverts ----
+                var champsOuverts = Object.values(champs).filter(function(c) { return c.statut === 'inscriptions'; });
+                if (!champsOuverts.length) {
+                    if (disposEl) disposEl.innerHTML = '<p style="color:#64748b; font-size:13px; text-align:center;">Aucun championnat ouvert aux inscriptions pour l\'instant.</p>';
+                } else {
+                    var html = '';
+                    champsOuverts.forEach(function(c) {
+                        var inscrit = !!mesInscriptions[c.id];
+                        var format = (c.nb_simples || 2) + ' Simple' + (c.nb_simples > 1 ? 's' : '');
+                        if (c.nb_doubles > 0) format += ' + ' + c.nb_doubles + ' Double' + (c.nb_doubles > 1 ? 's' : '');
+                        html += '<div style="background:#1e293b; border:1px solid ' + (inscrit ? 'rgba(34,197,94,0.4)' : 'rgba(225,29,72,0.3)') + '; border-radius:12px; padding:16px;">'
+                            + '<div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px; margin-bottom:10px;">'
+                            + '<div><div style="font-weight:bold; color:#e2e8f0; font-size:14px;">' + escMember(c.nom) + '</div>'
+                            + '<div style="font-size:12px; color:#94a3b8; margin-top:3px;">' + escMember(c.saison) + ' — ' + escMember(format) + '</div>'
+                            + (c.description ? '<div style="font-size:12px; color:#64748b; margin-top:4px;">' + escMember(c.description) + '</div>' : '')
+                            + '</div>'
+                            + (inscrit
+                                ? '<span style="background:#22c55e22; color:#22c55e; border:1px solid #22c55e44; border-radius:20px; padding:4px 12px; font-size:12px;"><i class="fas fa-check-circle" style="margin-right:4px;"></i>Inscrit(e)</span>'
+                                : '<button onclick="window.ouvrirModalInscription(\'' + c.id + '\')" style="background:linear-gradient(135deg,#e11d48,#9f1239); color:white; border:none; padding:8px 16px; border-radius:8px; font-weight:bold; cursor:pointer; font-size:12px;"><i class="fas fa-plus" style="margin-right:5px;"></i>S\'inscrire</button>')
+                            + '</div>';
+                        if (inscrit) {
+                            html += '<button onclick="window.annulerInscription(\'' + c.id + '\',\'' + uid + '\')" style="background:#0f172a; color:#94a3b8; border:1px solid #33415544; padding:6px 12px; border-radius:6px; cursor:pointer; font-size:11px;"><i class="fas fa-times" style="margin-right:4px;"></i>Se désinscrire</button>';
+                        }
+                        html += '</div>';
+                    });
+                    if (disposEl) disposEl.innerHTML = html;
+                }
+
+                // ---- Section B : mes inscriptions ----
+                var inscritChampIds = Object.keys(mesInscriptions);
+                if (!inscritChampIds.length) {
+                    if (mesChEl) mesChEl.innerHTML = '<p style="color:#64748b; font-size:13px; text-align:center;">Vous n\'êtes inscrit(e) à aucun championnat.</p>';
+                } else {
+                    var html2 = '';
+                    inscritChampIds.forEach(function(champId) {
+                        var c = champs[champId]; if (!c) return;
+                        var ins = mesInscriptions[champId];
+                        var dispos = ins.disponibilites || {};
+                        // Rencontres depuis l'équipe assignée (pas depuis le championnat)
+                        var monEquipe = mesEquipesAssignees[champId];
+
+                        html2 += '<div style="background:#1e293b; border:1px solid rgba(201,162,39,0.3); border-radius:12px; padding:16px; margin-bottom:8px;">'
+                            + '<div style="font-weight:bold; color:#c9a227; margin-bottom:4px;">' + escMember(c.nom) + '</div>'
+                            + '<div style="font-size:12px; color:#94a3b8; margin-bottom:12px;">' + escMember(c.saison) + (ins.valide ? ' — <span style="color:#22c55e;"><i class="fas fa-check-circle"></i> Validé par le coach</span>' : ' — <span style="color:#f59e0b;"><i class="fas fa-clock"></i> En attente de validation</span>') + '</div>';
+
+                        // Équipes où le membre s'est inscrit (nouveau format equipeIds ou ancien equipeId)
+                        var registeredEquipeIds = ins.equipeIds || {};
+                        if (ins.equipeId && !ins.equipeIds) registeredEquipeIds[ins.equipeId] = true;
+
+                        // Toutes les équipes de ce championnat, triées par nom
+                        var equipesduChamp = Object.entries(allEquipes)
+                            .filter(function(e) { return e[1].champId === champId; })
+                            .sort(function(a, b) { return (a[1].nom || '').localeCompare(b[1].nom || ''); });
+
+                        if (!equipesduChamp.length) {
+                            html2 += '<p style="color:#64748b; font-size:12px;"><i class="fas fa-clock" style="margin-right:4px;"></i>Aucune équipe dans ce championnat pour l\'instant.</p>';
+                        } else {
+                            html2 += '<div style="font-size:12px; color:#94a3b8; margin-bottom:10px;"><i class="fas fa-calendar-alt" style="margin-right:4px;"></i>Calendrier de toutes les équipes :</div>';
+                            equipesduChamp.forEach(function(eEntry) {
+                                var equipeId = eEntry[0]; var eq = eEntry[1];
+                                var isMyTeam = monEquipe && monEquipe.id === equipeId;
+                                var isInscrit = !!registeredEquipeIds[equipeId];
+                                var rencontres = Object.entries(eq.rencontres || {})
+                                    .sort(function(a, b) { return (a[1].date || '').localeCompare(b[1].date || ''); });
+                                // En-tête équipe : gold si mon équipe (assignée), cyan si inscrit, gris sinon
+                                var eqColor = isMyTeam ? '#c9a227' : isInscrit ? '#00d2ff' : '#475569';
+                                html2 += '<div style="margin-bottom:12px; opacity:' + (isInscrit ? '1' : '0.55') + ';">';
+                                html2 += '<div style="font-size:12px; color:' + eqColor + '; font-weight:bold; margin-bottom:6px;">'
+                                    + '<i class="fas fa-shield-alt" style="margin-right:4px;"></i>' + escMember(eq.nom)
+                                    + (isMyTeam ? ' <span style="background:#c9a22722; color:#c9a227; border:1px solid #c9a22744; border-radius:10px; padding:1px 7px; font-size:10px; margin-left:5px;">Mon équipe</span>' : '')
+                                    + (isInscrit && !isMyTeam ? ' <span style="background:#00d2ff22; color:#00d2ff; border:1px solid #00d2ff44; border-radius:10px; padding:1px 7px; font-size:10px; margin-left:5px;">Inscrit(e)</span>' : '')
+                                    + (!isInscrit ? ' <span style="background:#47556922; color:#64748b; border:1px solid #47556944; border-radius:10px; padding:1px 7px; font-size:10px; margin-left:5px;">Non inscrit(e)</span>' : '')
+                                    + '</div>';
+                                if (!rencontres.length) {
+                                    html2 += '<p style="color:#475569; font-size:12px; padding:4px 0 4px 16px;">Aucune rencontre planifiée</p>';
+                                } else {
+                                    html2 += '<div style="display:grid; gap:6px;">';
+                                    rencontres.forEach(function(rEntry) {
+                                        var rid = rEntry[0]; var r = rEntry[1];
+                                        var domLabel = r.domicile ? '🏠' : '🚌';
+                                        var dateInfo = '<div style="font-size:12px; color:' + (isInscrit ? '#e2e8f0' : '#64748b') + ';">' + domLabel + ' ' + escMember(r.date) + ' ' + escMember(r.heure || '') + (r.adversaire ? ' — vs ' + escMember(r.adversaire) : '') + '</div>';
+                                        if (isInscrit) {
+                                            var dispoKey = equipeId + '_' + rid;
+                                            var isDispo = dispos[dispoKey];
+                                            var convRid = eq.convocations && eq.convocations[rid];
+                                            var isConvoque = convRid && convRid.validee && (Object.values(convRid.positions || {}).indexOf(uid) !== -1);
+                                            var vuParCoach = isConvoque || (ins.valide && isDispo === true);
+                                            html2 += '<div style="display:flex; align-items:center; justify-content:space-between; padding:8px 12px; background:#0f172a; border-radius:8px; flex-wrap:wrap; gap:8px;">'
+                                                + dateInfo
+                                                + '<div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">'
+                                                + (vuParCoach ? '<span style="background:#c9a22722; color:#c9a227; border:1px solid #c9a22766; border-radius:6px; padding:3px 8px; font-size:10px; white-space:nowrap;"><i class="fas fa-star" style="margin-right:3px;"></i>Convoqué(e)</span>' : '')
+                                                + '<button onclick="window.toggleDisponibilite(\'' + champId + '\',\'' + uid + '\',\'' + dispoKey + '\',true)" style="background:' + (isDispo === true ? '#22c55e' : '#1e293b') + '; color:' + (isDispo === true ? 'white' : '#22c55e') + '; border:1px solid #22c55e44; padding:5px 10px; border-radius:6px; cursor:pointer; font-size:11px;"><i class="fas fa-check"></i> Dispo</button>'
+                                                + '<button onclick="window.toggleDisponibilite(\'' + champId + '\',\'' + uid + '\',\'' + dispoKey + '\',false)" style="background:' + (isDispo === false ? '#ef4444' : '#1e293b') + '; color:' + (isDispo === false ? 'white' : '#ef4444') + '; border:1px solid #ef444444; padding:5px 10px; border-radius:6px; cursor:pointer; font-size:11px;"><i class="fas fa-times"></i> Indispo</button>'
+                                                + '</div></div>';
+                                        } else {
+                                            html2 += '<div style="padding:7px 12px; background:#0f172a; border-radius:8px;">' + dateInfo + '</div>';
+                                        }
+                                    });
+                                    html2 += '</div>';
+                                }
+                                html2 += '</div>';
+                            });
+                        }
+
+                        // Bouton de validation des disponibilités
+                        if (ins.disponibilitesValidees) {
+                            var valDate = ins.disponibilitesValideeAt ? new Date(ins.disponibilitesValideeAt).toLocaleDateString('fr-FR') : '';
+                            html2 += '<div style="background:#22c55e18; border:1px solid #22c55e44; border-radius:8px; padding:10px 14px; margin-top:14px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">'
+                                + '<i class="fas fa-check-circle" style="color:#22c55e; font-size:15px; flex-shrink:0;"></i>'
+                                + '<span style="font-size:12px; color:#22c55e; flex:1;">Disponibilités confirmées au coach' + (valDate ? ' le ' + valDate : '') + '</span>'
+                                + '<button onclick="window.validerDisponibilites(\'' + champId + '\',\'' + uid + '\')" '
+                                + 'style="background:#0f172a; color:#22c55e; border:1px solid #22c55e44; padding:5px 12px; border-radius:6px; cursor:pointer; font-size:11px; white-space:nowrap;">'
+                                + '<i class="fas fa-redo" style="margin-right:4px;"></i>Mettre à jour</button>'
+                                + '</div>';
+                        } else {
+                            html2 += '<button onclick="window.validerDisponibilites(\'' + champId + '\',\'' + uid + '\')" '
+                                + 'style="width:100%; margin-top:14px; background:linear-gradient(135deg,#e11d48,#9f1239); color:white; border:none; padding:12px; border-radius:8px; font-weight:bold; cursor:pointer; font-size:13px;">'
+                                + '<i class="fas fa-paper-plane" style="margin-right:8px;"></i>Valider mes disponibilités au coach</button>';
+                        }
+                        html2 += '</div>';
+                    });
+                    if (mesChEl) mesChEl.innerHTML = html2;
+                }
+
+                // ---- Section C : mes convocations ----
+                var convocations = [];
+                snapEquipes.forEach(function(eqChild) {
+                    var eq = eqChild.val(); var eqId = eqChild.key;
+                    if (!eq || !eq.joueurs || !eq.joueurs[uid]) return;
+                    if (!eq.convocations) return;
+                    var champId = eq.champId;
+                    Object.entries(eq.convocations).forEach(function(entry) {
+                        var rencontreId = entry[0]; var conv = entry[1];
+                        if (!conv.validee) return;
+                        var posLabels = { simple1:'Simple 1', simple2:'Simple 2', simple3:'Simple 3', double1_A:'Double 1 — Joueur A', double1_B:'Double 1 — Joueur B', double2_A:'Double 2 — Joueur A', double2_B:'Double 2 — Joueur B' };
+                        var myPos = null;
+                        Object.entries(conv.positions || {}).forEach(function(p) { if (p[1] === uid) myPos = posLabels[p[0]] || p[0]; });
+                        if (!myPos) return;
+                        var r = (eq.rencontres && eq.rencontres[rencontreId]) || {};
+                        convocations.push({ equipeNom: eq.nom, champNom: (champs[champId] || {}).nom, champId: champId, r: r, myPos: myPos, positions: conv.positions || {} });
+                    });
+                });
+
+                // Récupérer les données complètes (nom + téléphone) de tous les joueurs convoqués
+                var convUids = [];
+                convocations.forEach(function(cv) {
+                    Object.values(cv.positions).forEach(function(pUid) {
+                        if (pUid && convUids.indexOf(pUid) === -1) convUids.push(pUid);
+                    });
+                });
+
+                function _renderConvocations() {
+                if (!convocations.length) {
+                    if (convEl) convEl.innerHTML = '<p style="color:#64748b; font-size:13px; text-align:center;">Aucune convocation pour l\'instant.</p>';
+                } else {
+                    var html3 = convocations.map(function(cv) {
+                        var domBadge = cv.r.domicile
+                            ? '<span style="display:inline-flex; align-items:center; gap:5px; background:#22c55e18; color:#22c55e; border:1px solid #22c55e44; border-radius:20px; padding:3px 10px; font-size:12px; font-weight:600;"><span style="font-size:18px; line-height:1;">🏠</span>Domicile</span>'
+                            : '<span style="display:inline-flex; align-items:center; gap:5px; background:#f59e0b18; color:#f59e0b; border:1px solid #f59e0b44; border-radius:20px; padding:3px 10px; font-size:12px; font-weight:600;"><span style="font-size:18px; line-height:1;">🚌</span>Extérieur</span>';
+
+                        // --- Composition de l'équipe ---
+                        var posOrder = ['simple1','simple2','simple3','double1_A','double2_A','double3_A'];
+                        var posShortLabels = { simple1:'S1', simple2:'S2', simple3:'S3', double1_A:'D1', double2_A:'D2', double3_A:'D3' };
+
+                        // Partenaire en double (si le membre est en double)
+                        var partenaireHtml = '';
+                        Object.entries(cv.positions).forEach(function(entry) {
+                            var pos = entry[0]; var pUid = entry[1];
+                            if (pUid !== uid || !pos.startsWith('double')) return;
+                            var partnerKey = pos.endsWith('_A') ? pos.replace('_A','_B') : pos.replace('_B','_A');
+                            var partnerUid = cv.positions[partnerKey];
+                            if (partnerUid) {
+                                var pm = membresMap[partnerUid] || {};
+                                var pName = ((pm.prenom || '') + ' ' + (pm.nom || '')).trim() || '?';
+                                var pClass = pm.classement ? ' (' + pm.classement + ')' : '';
+                                var pTel = pm.telephone || '';
+                                partenaireHtml = '<div style="background:#00d2ff11; border:1px solid #00d2ff33; border-radius:7px; padding:8px 10px; margin-top:8px; font-size:12px; color:#00d2ff;">'
+                                    + '<div><i class="fas fa-handshake" style="margin-right:5px;"></i>Votre partenaire : <strong>' + escMember(pName + pClass) + '</strong></div>'
+                                    + (pTel ? '<div style="display:flex; gap:6px; margin-top:6px;">'
+                                        + '<a href="tel:' + escMember(pTel) + '" style="display:inline-flex;align-items:center;gap:4px;background:#22c55e18;color:#22c55e;border:1px solid #22c55e44;border-radius:8px;padding:3px 9px;font-size:10px;text-decoration:none;"><i class="fas fa-phone" style="font-size:9px;"></i>Appeler</a>'
+                                        + '<a href="sms:' + escMember(pTel) + '" style="display:inline-flex;align-items:center;gap:4px;background:#3b82f618;color:#60a5fa;border:1px solid #3b82f644;border-radius:8px;padding:3px 9px;font-size:10px;text-decoration:none;"><i class="fas fa-comment-sms" style="font-size:9px;"></i>SMS</a>'
+                                        + '</div>' : '')
+                                    + '</div>';
+                            }
+                        });
+
+                        // Lignes de composition
+                        var doublesTraites = {};
+                        var lignes = [];
+                        posOrder.forEach(function(pos) {
+                            var posUid = cv.positions[pos];
+                            if (!posUid && !cv.positions[pos.replace('_A','_B')]) return;
+                            if (pos.startsWith('double')) {
+                                var num = pos.match(/double(\d+)/)[1];
+                                if (doublesTraites[num]) return;
+                                doublesTraites[num] = true;
+                                var keyA = 'double' + num + '_A'; var keyB = 'double' + num + '_B';
+                                var uidA = cv.positions[keyA]; var uidB = cv.positions[keyB];
+                                if (!uidA && !uidB) return;
+                                var mA = uidA ? (membresMap[uidA] || {}) : null;
+                                var mB = uidB ? (membresMap[uidB] || {}) : null;
+                                var nameA = mA ? (((mA.prenom||'') + ' ' + (mA.nom||'')).trim() || '?') + (mA.classement ? ' (' + mA.classement + ')' : '') : '?';
+                                var nameB = mB ? (((mB.prenom||'') + ' ' + (mB.nom||'')).trim() || '?') + (mB.classement ? ' (' + mB.classement + ')' : '') : '?';
+                                var telA = mA ? (mA.telephone || '') : '';
+                                var telB = mB ? (mB.telephone || '') : '';
+                                lignes.push({ label: 'D' + num, text: escMember(nameA), tel: telA, isMe: uidA === uid, isDouble: true });
+                                if (uidB) lignes.push({ label: '↳', text: escMember(nameB), tel: telB, isMe: uidB === uid, isDouble: true });
+                            } else {
+                                if (!posUid) return;
+                                var m = membresMap[posUid] || {};
+                                var name = (((m.prenom||'') + ' ' + (m.nom||'')).trim()) || '?';
+                                var cls = m.classement ? ' (' + m.classement + ')' : '';
+                                var tel = m.telephone || '';
+                                lignes.push({ label: posShortLabels[pos], text: escMember(name + cls), tel: tel, isMe: posUid === uid, isDouble: false });
+                            }
+                        });
+
+                        var compositionHtml = '';
+                        if (lignes.length) {
+                            compositionHtml = '<div style="border-top:1px solid rgba(255,255,255,0.08); margin-top:10px; padding-top:10px;">'
+                                + '<div style="font-size:10px; color:#475569; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">Composition de l\'équipe</div>'
+                                + '<div style="display:grid; gap:4px;">'
+                                + lignes.map(function(l) {
+                                    var bg = l.isMe ? 'background:#c9a22715; border:1px solid #c9a22740;' : 'background:#0f172a; border:1px solid transparent;';
+                                    var labelColor = l.isDouble ? '#60a5fa' : '#c9a227';
+                                    var textColor = l.isMe ? '#e2e8f0' : '#94a3b8';
+                                    var phoneHtml = (!l.isMe && l.tel)
+                                        ? '<div style="display:flex;gap:4px;flex-shrink:0;margin-left:auto;">'
+                                            + '<a href="tel:' + escMember(l.tel) + '" style="display:inline-flex;align-items:center;gap:2px;background:#22c55e18;color:#22c55e;border:1px solid #22c55e33;border-radius:7px;padding:2px 7px;font-size:9px;text-decoration:none;" title="Appeler"><i class="fas fa-phone" style="font-size:8px;"></i></a>'
+                                            + '<a href="sms:' + escMember(l.tel) + '" style="display:inline-flex;align-items:center;gap:2px;background:#3b82f618;color:#60a5fa;border:1px solid #3b82f633;border-radius:7px;padding:2px 7px;font-size:9px;text-decoration:none;" title="SMS"><i class="fas fa-comment-sms" style="font-size:8px;"></i></a>'
+                                            + '</div>'
+                                        : '';
+                                    return '<div style="display:flex; align-items:center; gap:8px; padding:4px 8px; border-radius:6px; ' + bg + '">'
+                                        + '<span style="background:' + labelColor + '22; color:' + labelColor + '; border:1px solid ' + labelColor + '44; border-radius:4px; padding:1px 5px; font-size:9px; font-weight:bold; min-width:20px; text-align:center;">' + escMember(l.label) + '</span>'
+                                        + '<span style="font-size:12px; color:' + textColor + '; flex:1;">' + l.text + (l.isMe ? ' <span style="color:#c9a227; font-size:10px;">(vous)</span>' : '') + '</span>'
+                                        + phoneHtml
+                                        + '</div>';
+                                }).join('')
+                                + '</div>'
+                                + partenaireHtml
+                                + '</div>';
+                        }
+
+                        return '<div style="background:linear-gradient(135deg,rgba(225,29,72,0.1),rgba(0,210,255,0.05)); border:1px solid rgba(225,29,72,0.4); border-radius:12px; padding:16px;">'
+                            + '<div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">'
+                            + '<i class="fas fa-bell" style="color:#e11d48; font-size:16px;"></i>'
+                            + '<span style="font-weight:bold; color:#e2e8f0;">' + escMember(cv.equipeNom) + '</span>'
+                            + '<span style="background:#00d2ff22; color:#00d2ff; border:1px solid #00d2ff44; border-radius:12px; padding:2px 10px; font-size:11px;">' + escMember(cv.myPos) + '</span>'
+                            + '</div>'
+                            + '<div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:6px;">'
+                            + domBadge
+                            + (cv.r.date ? '<span style="font-size:13px; color:#94a3b8;"><i class="fas fa-calendar-alt" style="margin-right:4px; color:#64748b;"></i>' + escMember(cv.r.date) + (cv.r.heure ? ' à ' + escMember(cv.r.heure) : '') + '</span>' : '')
+                            + '</div>'
+                            + (cv.r.adversaire ? '<div style="font-size:13px; color:#e2e8f0; margin-bottom:4px;"><span style="color:#64748b; margin-right:4px;">vs</span><strong>' + escMember(cv.r.adversaire) + '</strong></div>' : '')
+                            + (cv.r.lieu ? '<div style="font-size:12px; color:#64748b;"><i class="fas fa-map-marker-alt" style="margin-right:4px;"></i>' + escMember(cv.r.lieu) + '</div>' : '')
+                            + compositionHtml
+                            + '</div>';
+                    }).join('');
+                    if (convEl) convEl.innerHTML = html3;
+                }
+                checkEquipesBadge(uid);
+                } // fin _renderConvocations
+
+                if (convUids.length) {
+                    Promise.all(convUids.map(function(mUid) {
+                        return window.db_ref.ref('members/' + mUid).once('value').then(function(s) {
+                            var d = s.val() || {};
+                            var ex = membresMap[mUid] || {};
+                            membresMap[mUid] = {
+                                prenom:     d.prenom     || ex.prenom     || '',
+                                nom:        d.nom        || ex.nom        || '',
+                                classement: d.classement || ex.classement || '',
+                                telephone:  d.telephone  || ''
+                            };
+                        }).catch(function() {});
+                    })).then(_renderConvocations);
+                } else {
+                    _renderConvocations();
+                }
+            });
+        });
+    });
+}
+
+// --- Classement FFT ---
+var _CLASSEMENTS_FFT = ['1','2','3','4','5','6','15','15/1','15/2','15/3','15/4','15/5','30','30/1','30/2','30/3','30/4','30/5','40','NC'];
+
+function _classementQualifie(memberClass, cmin, cmax) {
+    if (!cmin && !cmax) return true; // aucune restriction
+    var idx = _CLASSEMENTS_FFT.indexOf(String(memberClass || '').trim());
+    if (idx === -1) return true; // classement inconnu → on laisse passer (coach décide)
+    var minIdx = cmin ? _CLASSEMENTS_FFT.indexOf(cmin) : 0;
+    var maxIdx = cmax ? _CLASSEMENTS_FFT.indexOf(cmax) : _CLASSEMENTS_FFT.length - 1;
+    if (minIdx === -1) minIdx = 0;
+    if (maxIdx === -1) maxIdx = _CLASSEMENTS_FFT.length - 1;
+    return idx >= minIdx && idx <= maxIdx;
+}
+
+window.ouvrirModalInscription = function(champId) {
+    var c = _equipesChampData[champId]; if (!c) return;
+    document.getElementById('modal-inscription-champ-id').value = champId;
+    document.getElementById('modal-inscription-champ-nom').textContent = c.nom;
+    var format = (c.nb_simples || 2) + ' Simple' + (c.nb_simples > 1 ? 's' : '');
+    if (c.nb_doubles > 0) format += ' + ' + c.nb_doubles + ' Double' + (c.nb_doubles > 1 ? 's' : '');
+    document.getElementById('modal-inscription-champ-format').textContent = c.saison + ' — ' + format;
+    document.getElementById('modal-inscription-champ').style.display = '';
+
+    var rencontresEl = document.getElementById('modal-inscription-rencontres');
+    rencontresEl.innerHTML = '<p style="color:#64748b; font-size:12px; text-align:center;"><i class="fas fa-spinner fa-spin"></i> Chargement des équipes...</p>';
+
+    var memberClass = (_cardMemberData && _cardMemberData.classement) || '';
+
+    window.db_ref.ref('equipes').orderByChild('champId').equalTo(champId).once('value', function(snapEq) {
+        var equipes = [];
+        snapEq.forEach(function(eqChild) { equipes.push(Object.assign({}, eqChild.val(), { id: eqChild.key })); });
+        equipes.sort(function(a, b) { return (a.nom || '').localeCompare(b.nom || ''); });
+
+        if (!equipes.length) {
+            rencontresEl.innerHTML = '<div style="background:#0f172a; border-radius:8px; padding:14px; font-size:12px; color:#94a3b8; text-align:center;">'
+                + '<i class="fas fa-info-circle" style="color:#00d2ff; margin-right:6px;"></i>'
+                + 'Aucune équipe définie — le coach vous assignera à une équipe après votre inscription.</div>';
+            return;
+        }
+
+        var html = '';
+        if (memberClass) {
+            html += '<div style="background:#0f172a; border-radius:8px; padding:10px 14px; margin-bottom:12px; font-size:12px; color:#94a3b8;">'
+                + '<i class="fas fa-id-card" style="color:#00d2ff; margin-right:6px;"></i>'
+                + 'Votre classement : <strong style="color:#e2e8f0;">' + escMember(memberClass) + '</strong></div>';
+        }
+
+        var hasAnyEligible = equipes.some(function(eq) {
+            return _classementQualifie(memberClass, eq.classement_min, eq.classement_max);
+        });
+
+        equipes.forEach(function(eq) {
+            var hasRestriction = eq.classement_min || eq.classement_max;
+            var plage = hasRestriction ? escMember((eq.classement_min || '…') + ' → ' + (eq.classement_max || '…')) : '';
+            var qualifie = _classementQualifie(memberClass, eq.classement_min, eq.classement_max);
+
+            if (qualifie) {
+                html += '<label style="display:flex; align-items:center; gap:12px; background:#0f172a; border:1px solid rgba(34,197,94,0.35); border-radius:10px; padding:14px; cursor:pointer; margin-bottom:0;">'
+                    + '<input type="checkbox" class="equipe-inscription-cb" value="' + eq.id + '" checked '
+                    + 'style="width:18px; height:18px; accent-color:#22c55e; cursor:pointer; flex-shrink:0;">'
+                    + '<div style="flex:1;">'
+                    + '<div style="font-weight:bold; color:#e2e8f0; font-size:13px;"><i class="fas fa-shield-alt" style="color:#22c55e; margin-right:6px;"></i>' + escMember(eq.nom) + '</div>'
+                    + (plage ? '<div style="font-size:11px; color:#64748b; margin-top:3px;"><i class="fas fa-trophy" style="margin-right:4px; color:#c9a227;"></i>' + plage + '</div>' : '<div style="font-size:11px; color:#64748b; margin-top:3px;">Ouvert à tous</div>')
+                    + '</div>'
+                    + '</label>';
+            } else {
+                html += '<div style="display:flex; align-items:center; gap:12px; background:#0f172a; border:1px solid rgba(71,85,105,0.25); border-radius:10px; padding:14px; opacity:0.55;">'
+                    + '<i class="fas fa-lock" style="color:#475569; font-size:16px; flex-shrink:0;"></i>'
+                    + '<div>'
+                    + '<div style="font-weight:bold; color:#64748b; font-size:13px;">' + escMember(eq.nom) + '</div>'
+                    + (plage ? '<div style="font-size:11px; color:#475569; margin-top:3px;">Classement requis : ' + plage + '</div>' : '')
+                    + '</div>'
+                    + '</div>';
+            }
+        });
+
+        if (hasAnyEligible) {
+            html += '<button onclick="window.confirmerInscriptionsEquipes(\'' + champId + '\')" '
+                + 'style="width:100%; margin-top:4px; background:linear-gradient(135deg,#22c55e,#16a34a); color:white; border:none; padding:12px; border-radius:10px; font-weight:bold; cursor:pointer; font-size:13px;">'
+                + '<i class="fas fa-check" style="margin-right:8px;"></i>Confirmer mes inscriptions</button>';
+        } else {
+            html += '<div style="background:#0f172a; border-radius:8px; padding:12px; font-size:12px; color:#64748b; text-align:center; margin-top:4px;">'
+                + '<i class="fas fa-info-circle" style="margin-right:6px; color:#00d2ff;"></i>Votre classement ne correspond à aucune équipe. Contactez le coach.</div>';
+        }
+
+        rencontresEl.innerHTML = html;
+    });
+};
+
+window.confirmerInscriptionsEquipes = function(champId) {
+    var uid = _cardMemberData ? _cardMemberData._uid : null;
+    if (!champId || !uid) return;
+    var checkboxes = document.querySelectorAll('.equipe-inscription-cb:checked');
+    var equipeIds = {};
+    checkboxes.forEach(function(cb) { equipeIds[cb.value] = true; });
+    if (!Object.keys(equipeIds).length) {
+        window.showNotification && window.showNotification('Cochez au moins une équipe pour vous inscrire.', 'error');
+        return;
+    }
+    var n = Object.keys(equipeIds).length;
+    var data = {
+        prenom: _cardMemberData.prenom || '',
+        nom: _cardMemberData.nom || '',
+        classement: _cardMemberData.classement || '',
+        equipeIds: equipeIds,
+        valide: false,
+        createdAt: Date.now()
+    };
+    window.db_ref.ref('inscriptions_equipe/' + champId + '/' + uid).set(data).then(function() {
+        window.showNotification && window.showNotification('Inscription enregistrée dans ' + n + ' équipe' + (n > 1 ? 's' : '') + ' !', 'success');
+        document.getElementById('modal-inscription-champ').style.display = 'none';
+        _equipesLoaded = false;
+        loadEquipesMember(uid);
+    });
+};
+
+window.annulerInscription = async function(champId, uid) {
+    if (!window.confirmDialog) {
+        if (!confirm('Se désinscrire de ce championnat ?')) return;
+    } else {
+        var ok = await window.confirmDialog.show({ title: 'Se désinscrire', message: 'Retirer votre inscription à ce championnat ?', type: 'danger', confirmText: 'Confirmer', cancelText: 'Annuler' });
+        if (!ok) return;
+    }
+    window.db_ref.ref('inscriptions_equipe/' + champId + '/' + uid).remove().then(function() {
+        window.showNotification && window.showNotification('Désinscription effectuée.', 'success');
+        _equipesLoaded = false;
+        loadEquipesMember(uid);
+    });
+};
+
+window.validerDisponibilites = function(champId, uid) {
+    window.db_ref.ref('inscriptions_equipe/' + champId + '/' + uid).update({
+        disponibilitesValidees: true,
+        disponibilitesValideeAt: Date.now()
+    }).then(function() {
+        window.showNotification && window.showNotification('Disponibilités envoyées au coach !', 'success');
+        _equipesLoaded = false;
+        loadEquipesMember(uid);
+    });
+};
+
+window.toggleDisponibilite = function(champId, uid, rencontreId, valeur) {
+    var ref = window.db_ref.ref('inscriptions_equipe/' + champId + '/' + uid + '/disponibilites/' + rencontreId);
+    ref.set(valeur).then(function() {
+        // Réinitialiser la confirmation — le membre devra re-valider
+        window.db_ref.ref('inscriptions_equipe/' + champId + '/' + uid + '/disponibilitesValidees').set(false);
+        window.showNotification && window.showNotification('Disponibilité mise à jour — pensez à valider vos choix.', 'info');
+        _equipesLoaded = false;
+        loadEquipesMember(uid);
+    });
+};
+
+function checkEquipesBadge(uid) {
+    var seenAt = parseInt(localStorage.getItem('usm_equipes_seen_at') || '0', 10);
+    window.db_ref.ref('notifications_equipe').orderByChild('uid').equalTo(uid).once('value', function(snap) {
+        var hasNew = false;
+        snap.forEach(function(child) {
+            var n = child.val();
+            if (!n.lue && n.createdAt > seenAt) hasNew = true;
+        });
+        var badge = document.getElementById('equipes-badge');
+        if (badge) badge.style.display = hasNew ? 'block' : 'none';
     });
 }
 
