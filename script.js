@@ -822,8 +822,24 @@ document.addEventListener('DOMContentLoaded', () => {
             window.deleteItem = (section, index) => {
                 window.location.href = `/admin-panel.html?section=${encodeURIComponent(section)}&del=${index}`;
             };
-            window.moveItem = (section, index, dir) => {
-                window.location.href = `/admin-panel.html?section=${encodeURIComponent(section)}`;
+            window.moveItem = async (section, index, dir) => {
+                try {
+                    const snap = await db_ref.ref(section).once('value');
+                    const list = snap.val() || [];
+                    let newIndex;
+                    if (dir === 'up') {
+                        newIndex = (section === 'news' || section === 'event') ? index + 1 : index - 1;
+                    } else {
+                        newIndex = (section === 'news' || section === 'event') ? index - 1 : index + 1;
+                    }
+                    if (newIndex < 0 || newIndex >= list.length) return;
+                    const temp = list[index];
+                    list[index] = list[newIndex];
+                    list[newIndex] = temp;
+                    await db_ref.ref(section).set(list);
+                } catch (e) {
+                    console.error('Erreur déplacement:', e);
+                }
             };
             return;
         }
