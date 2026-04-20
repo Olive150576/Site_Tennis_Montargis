@@ -201,9 +201,21 @@ document.addEventListener('DOMContentLoaded', () => {
         history.pushState({ modal: modalId }, '', window.location.pathname);
     };
 
+    // Stoppe toutes les iframes YouTube dans une modale
+    function stopYoutubeInModal(modalId) {
+        const modal = document.getElementById(modalId);
+        if (!modal) return;
+        modal.querySelectorAll('iframe[src*="youtube.com"]').forEach(iframe => {
+            const src = iframe.src;
+            iframe.src = '';
+            iframe.src = src;
+        });
+    }
+
     // Fonction pour fermer la modale courante
     window.closeCurrentModal = () => {
         if (window.currentOpenModal) {
+            stopYoutubeInModal(window.currentOpenModal);
             const modal = document.getElementById(window.currentOpenModal);
             if (modal) {
                 modal.classList.add('hidden');
@@ -217,6 +229,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('popstate', (event) => {
         // Si une modale est ouverte, la fermer
         if (window.currentOpenModal) {
+            stopYoutubeInModal(window.currentOpenModal);
             const modal = document.getElementById(window.currentOpenModal);
             if (modal && !modal.classList.contains('hidden')) {
                 modal.classList.add('hidden');
