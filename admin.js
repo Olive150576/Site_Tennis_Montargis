@@ -762,6 +762,32 @@ window.logout = () => {
     auth.signOut().then(() => location.reload()); // Simple reload to clear admin state
 };
 
+// --- YOUTUBE HELPERS ---
+function getYoutubeId(url) {
+    const m = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/);
+    return m ? m[1] : null;
+}
+function isYoutubeEmbed(url) {
+    return url && url.includes('youtube.com/embed/');
+}
+function youtubeThumbnail(url) {
+    const id = url.split('/embed/')[1]?.split('?')[0];
+    return id ? `https://img.youtube.com/vi/${id}/mqdefault.jpg` : '';
+}
+
+window.addYoutubeUrl = () => {
+    const input = document.getElementById('youtube-url-input');
+    const url = (input?.value || '').trim();
+    if (!url) return;
+    const id = getYoutubeId(url);
+    if (!id) { alert('Lien YouTube invalide. Vérifiez l\'URL.'); return; }
+    const embedUrl = `https://www.youtube.com/embed/${id}`;
+    if (!window.tempImages) window.tempImages = [];
+    window.tempImages.push(embedUrl);
+    window.renderExistingImages();
+    input.value = '';
+};
+
 // --- HELPER FUNCTIONS ---
 window.resetAdminForm = () => {
     const form = document.getElementById('universal-form');
@@ -782,10 +808,21 @@ window.renderExistingImages = () => {
     window.tempImages.forEach((url, i) => {
         const div = document.createElement('div');
         div.style.position = 'relative';
-        div.innerHTML = `
-            <img src="${url}" style="width:80px; height:80px; object-fit:cover; border-radius:5px; border:1px solid #334155;">
-            <button onclick="removeTempImage(${i})" style="position:absolute; top:-5px; right:-5px; background:red; color:white; border:none; border-radius:50%; width:20px; height:20px; font-size:12px; cursor:pointer;">&times;</button>
-        `;
+        if (isYoutubeEmbed(url)) {
+            const thumb = youtubeThumbnail(url);
+            div.innerHTML = `
+                <div style="position:relative; width:80px; height:80px; border-radius:5px; overflow:hidden; border:2px solid #ff0000;">
+                    <img src="${thumb}" style="width:100%; height:100%; object-fit:cover;">
+                    <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.4);color:#fff;font-size:18px;">▶</div>
+                </div>
+                <button onclick="removeTempImage(${i})" style="position:absolute; top:-5px; right:-5px; background:red; color:white; border:none; border-radius:50%; width:20px; height:20px; font-size:12px; cursor:pointer;">&times;</button>
+            `;
+        } else {
+            div.innerHTML = `
+                <img src="${url}" style="width:80px; height:80px; object-fit:cover; border-radius:5px; border:1px solid #334155;">
+                <button onclick="removeTempImage(${i})" style="position:absolute; top:-5px; right:-5px; background:red; color:white; border:none; border-radius:50%; width:20px; height:20px; font-size:12px; cursor:pointer;">&times;</button>
+            `;
+        }
         container.appendChild(div);
     });
 };

@@ -843,6 +843,14 @@
                         <small style="color:#94a3b8;">(JPG, PNG, WebP - Max 5 Mo par image - <strong style="color:#00d2ff;">Jusqu'à 5 images</strong>)</small>
                     </label>
                     <input type="file" id="input-file" multiple accept="image/*" style="color:white; cursor:pointer;">
+                    <div style="margin-top:15px; display:flex; gap:8px; align-items:center;">
+                        <input type="url" id="youtube-url-input" placeholder="🎬 Ou coller un lien YouTube…"
+                            style="flex:1; background:#1e293b; border:1px solid #475569; color:white; padding:10px 14px; border-radius:8px; font-size:14px;">
+                        <button type="button" onclick="window.addYoutubeUrl()"
+                            style="background:linear-gradient(135deg,#ff0000,#cc0000); color:white; border:none; padding:10px 16px; border-radius:8px; cursor:pointer; font-weight:bold; white-space:nowrap;">
+                            ＋ YouTube
+                        </button>
+                    </div>
                     <div id="upload-progress-container" style="display:none; margin-top:20px;">
                         <div style="background:#1e293b; border-radius:10px; overflow:hidden; height:8px;">
                             <div id="upload-progress-bar" style="width:0%; height:100%; background:linear-gradient(90deg, #00d2ff, #e3ff00); transition:width 0.3s;"></div>
