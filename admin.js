@@ -764,8 +764,18 @@ window.logout = () => {
 
 // --- YOUTUBE HELPERS ---
 function getYoutubeId(url) {
-    const m = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/);
-    return m ? m[1] : null;
+    const patterns = [
+        /[?&]v=([A-Za-z0-9_-]{11})/,           // watch?v=
+        /\/embed\/([A-Za-z0-9_-]{11})/,          // /embed/
+        /\/shorts\/([A-Za-z0-9_-]{11})/,          // /shorts/
+        /youtu\.be\/([A-Za-z0-9_-]{11})/,         // youtu.be/
+        /\/v\/([A-Za-z0-9_-]{11})/                // /v/
+    ];
+    for (const p of patterns) {
+        const m = url.match(p);
+        if (m) return m[1];
+    }
+    return null;
 }
 function isYoutubeEmbed(url) {
     return url && url.includes('youtube.com/embed/');
