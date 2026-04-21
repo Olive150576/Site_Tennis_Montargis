@@ -2512,12 +2512,34 @@ function _renderJoueursListe(showAll) {
     listeEl.innerHTML = html;
 }
 
+// Helper : crée une notification pour un membre (non bloquant)
+function _notifierMembre(uid, champId, type, message) {
+    return db_ref.ref('notifications_equipe').push({
+        uid: uid, champId: champId || null, type: type, message: message,
+        lue: false, createdAt: Date.now()
+    }).catch(function(err) { console.warn('Notif non envoyée :', err); });
+}
+
+// Helper : récupère le nom du championnat (ou renvoie '' en cas d'erreur)
+function _getChampNom(champId) {
+    return db_ref.ref('championnats_equipe/' + champId + '/nom').once('value')
+        .then(function(s) { return s.val() || ''; })
+        .catch(function() { return ''; });
+}
+
 // Validation inline depuis le modal de sélection des joueurs
 window.validerInscriptionInline = function(champId, uid) {
-    db_ref.ref('inscriptions_equipe/' + champId + '/' + uid).update({ valide: true }).then(function() {
+    db_ref.ref('inscriptions_equipe/' + champId + '/' + uid).update({
+        valide: true, statut: 'validee', validatedAt: Date.now(),
+        motifRefus: null, refusedAt: null
+    }).then(function() {
         if (_joueursModalData.inscrits[uid]) _joueursModalData.inscrits[uid].valide = true;
         _renderJoueursListe(_joueursModalData.showAll);
-        window.showNotification && window.showNotification('Inscription validée.', 'success');
+        _getChampNom(champId).then(function(nom) {
+            _notifierMembre(uid, champId, 'inscription_validee',
+                'Votre inscription' + (nom ? ' au championnat « ' + nom + ' »' : '') + ' a été validée par le coach.');
+        });
+        window.showNotification && window.showNotification('Inscription validée (membre notifié).', 'success');
     });
 };
 
@@ -2953,18 +2975,33 @@ function _loadInscritsPanel(champId) {
                 var m = members[uid] || {};
                 var nom = ((m.prenom || '') + ' ' + (m.nom || '')).trim() || uid;
                 var valide = data && data.valide;
+                var refuse = data && data.statut === 'refuse';
+                var motif = data && data.motifRefus;
                 var disposValidees = data && data.disponibilitesValidees;
                 var disposDate = (data && data.disponibilitesValideeAt) ? new Date(data.disponibilitesValideeAt).toLocaleDateString('fr-FR') : '';
+
+                var statutHtml;
+                if (refuse) {
+                    statutHtml = '<span style="font-size:11px; color:#ef4444; white-space:nowrap;"><i class="fas fa-times-circle"></i> Refusée</span>';
+                } else if (valide) {
+                    statutHtml = '<span style="font-size:11px; color:#22c55e; white-space:nowrap;"><i class="fas fa-check-circle"></i> Inscr. validée</span>';
+                } else {
+                    statutHtml = '<span style="font-size:11px; color:#f59e0b; white-space:nowrap;"><i class="fas fa-clock"></i> En attente</span>';
+                }
+
                 rows += '<div style="display:flex; align-items:center; justify-content:space-between; padding:8px 4px; border-bottom:1px solid #1e293b44; gap:10px; flex-wrap:wrap;">'
                     + '<span style="font-size:12px; color:#e2e8f0; flex:1;">' + escHtml(nom) + '</span>'
                     + '<div style="display:flex; flex-direction:column; align-items:flex-end; gap:3px;">'
-                    + '<span style="font-size:11px; color:' + (valide ? '#22c55e' : '#f59e0b') + '; white-space:nowrap;">' + (valide ? '<i class="fas fa-check-circle"></i> Inscr. validée' : '<i class="fas fa-clock"></i> En attente') + '</span>'
+                    + statutHtml
                     + '<span style="font-size:10px; color:' + (disposValidees ? '#22c55e' : '#64748b') + '; white-space:nowrap;">' + (disposValidees ? '<i class="fas fa-calendar-check"></i> Dispos confirmées' + (disposDate ? ' ' + disposDate : '') : '<i class="fas fa-hourglass-half"></i> Dispos non confirmées') + '</span>'
                     + '</div>'
                     + '<div style="display:flex; gap:5px;">'
-                    + (!valide ? '<button onclick="window.validerInscriptionAdmin(\'' + champId + '\',\'' + uid + '\')" style="background:#22c55e22; color:#22c55e; border:1px solid #22c55e44; padding:4px 10px; border-radius:5px; cursor:pointer; font-size:11px;" title="Valider inscription"><i class="fas fa-check"></i></button>' : '')
-                    + '<button onclick="window.supprimerInscription(\'' + champId + '\',\'' + uid + '\')" style="background:#ef444422; color:#ef4444; border:1px solid #ef444444; padding:4px 10px; border-radius:5px; cursor:pointer; font-size:11px;" title="Supprimer"><i class="fas fa-trash"></i></button>'
-                    + '</div></div>';
+                    + (!valide && !refuse ? '<button onclick="window.validerInscriptionAdmin(\'' + champId + '\',\'' + uid + '\')" style="background:#22c55e22; color:#22c55e; border:1px solid #22c55e44; padding:4px 10px; border-radius:5px; cursor:pointer; font-size:11px;" title="Valider inscription"><i class="fas fa-check"></i></button>' : '')
+                    + (!refuse ? '<button onclick="window.refuserInscription(\'' + champId + '\',\'' + uid + '\')" style="background:#f59e0b22; color:#f59e0b; border:1px solid #f59e0b44; padding:4px 10px; border-radius:5px; cursor:pointer; font-size:11px;" title="Refuser avec motif"><i class="fas fa-ban"></i></button>' : '')
+                    + '<button onclick="window.supprimerInscription(\'' + champId + '\',\'' + uid + '\')" style="background:#ef444422; color:#ef4444; border:1px solid #ef444444; padding:4px 10px; border-radius:5px; cursor:pointer; font-size:11px;" title="Supprimer définitivement"><i class="fas fa-trash"></i></button>'
+                    + '</div>'
+                    + (refuse && motif ? '<div style="flex-basis:100%; font-size:11px; color:#94a3b8; padding:6px 8px; background:#ef444411; border-left:2px solid #ef4444; border-radius:4px; margin-top:2px;"><i class="fas fa-comment-alt" style="margin-right:4px; color:#ef4444;"></i><strong style="color:#ef4444;">Motif :</strong> ' + escHtml(motif) + '</div>' : '')
+                    + '</div>';
             });
         }
         panel.innerHTML = '<div style="font-size:11px; color:#64748b; margin-bottom:8px; font-weight:bold; text-transform:uppercase; letter-spacing:0.5px; display:flex; justify-content:space-between; align-items:center;">'
@@ -2978,18 +3015,59 @@ function _loadInscritsPanel(champId) {
 }
 
 window.validerInscriptionAdmin = function(champId, uid) {
-    db_ref.ref('inscriptions_equipe/' + champId + '/' + uid).update({ valide: true }).then(function() {
-        window.showNotification && window.showNotification('Inscription validée.', 'success');
+    db_ref.ref('inscriptions_equipe/' + champId + '/' + uid).update({
+        valide: true, statut: 'validee', validatedAt: Date.now(),
+        motifRefus: null, refusedAt: null
+    }).then(function() {
+        _getChampNom(champId).then(function(nom) {
+            _notifierMembre(uid, champId, 'inscription_validee',
+                'Votre inscription' + (nom ? ' au championnat « ' + nom + ' »' : '') + ' a été validée par le coach.');
+        });
+        window.showNotification && window.showNotification('Inscription validée (membre notifié).', 'success');
         _loadInscritsPanel(champId);
     }).catch(function(err) {
         window.showNotification && window.showNotification('Erreur validation inscription : ' + (err.message || err), 'error');
     });
 };
 
+// Refuser une inscription AVEC motif (garde l'entrée, le membre voit la raison)
+window.refuserInscription = async function(champId, uid) {
+    var motif = await window.confirmDialog.prompt({
+        title: 'Refuser l\'inscription',
+        message: 'Indiquez au membre la raison du refus. Ce texte lui sera visible dans son espace.',
+        placeholder: 'Ex : classement hors limites de l\'équipe, équipe déjà complète, etc.',
+        confirmText: 'Refuser', cancelText: 'Annuler',
+        type: 'danger', required: true, maxLength: 500
+    });
+    if (motif === null) return;
+    try {
+        await db_ref.ref('inscriptions_equipe/' + champId + '/' + uid).update({
+            valide: false, statut: 'refuse', motifRefus: motif, refusedAt: Date.now()
+        });
+        // Retirer le joueur des équipes auxquelles il aurait pu être déjà affecté
+        var snapEq = await db_ref.ref('equipes').orderByChild('champId').equalTo(champId).once('value');
+        var ops = [];
+        snapEq.forEach(function(child) {
+            if (child.val() && child.val().joueurs && child.val().joueurs[uid]) {
+                ops.push(db_ref.ref('equipes/' + child.key + '/joueurs/' + uid).remove());
+            }
+        });
+        await Promise.all(ops);
+        _getChampNom(champId).then(function(nom) {
+            _notifierMembre(uid, champId, 'inscription_refusee',
+                'Votre inscription' + (nom ? ' au championnat « ' + nom + ' »' : '') + ' a été refusée par le coach. Motif : ' + motif);
+        });
+        window.showNotification && window.showNotification('Inscription refusée (membre notifié).', 'success');
+        _loadInscritsPanel(champId);
+    } catch(err) {
+        window.showNotification && window.showNotification('Erreur refus inscription : ' + (err.message || err), 'error');
+    }
+};
+
 window.supprimerInscription = async function(champId, uid) {
     var ok = await window.confirmDialog.show({
         title: 'Supprimer l\'inscription',
-        message: 'Supprimer définitivement l\'inscription de ce membre pour ce championnat ?',
+        message: 'Supprimer définitivement l\'inscription de ce membre (sans motif) ? Utilisez plutôt « Refuser » si vous voulez laisser un message au membre.',
         type: 'danger', confirmText: 'Supprimer', cancelText: 'Annuler'
     });
     if (!ok) return;

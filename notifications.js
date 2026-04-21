@@ -203,6 +203,80 @@ class ConfirmDialog {
     close(confirmed) {
         this.modal.classList.remove('show');
     }
+
+    /**
+     * Affiche un dialogue avec champ texte (textarea)
+     * @param {Object} options
+     * @param {string} options.title
+     * @param {string} options.message
+     * @param {string} options.placeholder
+     * @param {string} options.confirmText
+     * @param {string} options.cancelText
+     * @param {boolean} options.required - Si true, vide refuse la confirmation
+     * @param {string} options.type - 'warning' ou 'danger'
+     * @param {number} options.maxLength - Longueur max (défaut 500)
+     * @returns {Promise<string|null>} texte saisi, ou null si annulé
+     */
+    prompt(options = {}) {
+        var self = this;
+        return new Promise(function(resolve) {
+            var title = options.title || 'Saisir une valeur';
+            var message = options.message || '';
+            var placeholder = options.placeholder || '';
+            var confirmText = options.confirmText || 'Valider';
+            var cancelText = options.cancelText || 'Annuler';
+            var required = options.required !== false;
+            var type = options.type || 'warning';
+            var maxLen = options.maxLength || 500;
+
+            // Construire le HTML en mode "prompt"
+            var icons = {
+                warning: '<i class="fas fa-exclamation-triangle"></i>',
+                danger: '<i class="fas fa-trash-alt"></i>',
+                info: '<i class="fas fa-info-circle"></i>'
+            };
+            self.icon.innerHTML = icons[type] || icons.warning;
+            self.icon.className = 'confirm-icon ' + type;
+            self.title.textContent = title;
+
+            // On injecte un textarea à la place du simple message
+            self.message.innerHTML = (message ? '<div style="margin-bottom:10px; color:#94a3b8; font-size:13px;">' + message + '</div>' : '')
+                + '<textarea id="confirm-prompt-input" maxlength="' + maxLen + '" placeholder="' + (placeholder || '').replace(/"/g, '&quot;') + '" '
+                + 'style="width:100%; min-height:90px; padding:10px; background:#0f172a; color:#e2e8f0; border:1px solid #334155; '
+                + 'border-radius:8px; font-family:inherit; font-size:14px; resize:vertical; box-sizing:border-box;"></textarea>';
+
+            self.confirmBtn.textContent = confirmText;
+            self.cancelBtn.textContent = cancelText;
+            self.modal.classList.add('show');
+
+            var input = document.getElementById('confirm-prompt-input');
+            setTimeout(function() { try { input && input.focus(); } catch(e) {} }, 80);
+
+            var handleConfirm = function() {
+                var val = (input && input.value || '').trim();
+                if (required && !val) {
+                    input && input.classList.add('err');
+                    input && (input.style.borderColor = '#ef4444');
+                    input && input.focus();
+                    return; // on ne ferme pas
+                }
+                self.close(true);
+                resolve(val);
+                cleanup();
+            };
+            var handleCancel = function() {
+                self.close(false);
+                resolve(null);
+                cleanup();
+            };
+            var cleanup = function() {
+                self.confirmBtn.removeEventListener('click', handleConfirm);
+                self.cancelBtn.removeEventListener('click', handleCancel);
+            };
+            self.confirmBtn.addEventListener('click', handleConfirm);
+            self.cancelBtn.addEventListener('click', handleCancel);
+        });
+    }
 }
 
 // Instance globale

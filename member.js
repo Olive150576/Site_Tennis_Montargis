@@ -1871,21 +1871,29 @@ function loadEquipesMember(uid) {
                 } else {
                     var html = '';
                     champsOuverts.forEach(function(c) {
-                        var inscrit = !!mesInscriptions[c.id];
+                        var myIns = mesInscriptions[c.id];
+                        var inscrit = !!myIns;
+                        var refuse = myIns && myIns.statut === 'refuse';
                         var format = (c.nb_simples || 2) + ' Simple' + (c.nb_simples > 1 ? 's' : '');
                         if (c.nb_doubles > 0) format += ' + ' + c.nb_doubles + ' Double' + (c.nb_doubles > 1 ? 's' : '');
-                        html += '<div style="background:#1e293b; border:1px solid ' + (inscrit ? 'rgba(34,197,94,0.4)' : 'rgba(225,29,72,0.3)') + '; border-radius:12px; padding:16px;">'
+                        var borderColor = refuse ? 'rgba(239,68,68,0.4)' : (inscrit ? 'rgba(34,197,94,0.4)' : 'rgba(225,29,72,0.3)');
+                        var badge;
+                        if (refuse) {
+                            badge = '<span style="background:#ef444422; color:#ef4444; border:1px solid #ef444444; border-radius:20px; padding:4px 12px; font-size:12px;"><i class="fas fa-times-circle" style="margin-right:4px;"></i>Refusée</span>';
+                        } else if (inscrit) {
+                            badge = '<span style="background:#22c55e22; color:#22c55e; border:1px solid #22c55e44; border-radius:20px; padding:4px 12px; font-size:12px;"><i class="fas fa-check-circle" style="margin-right:4px;"></i>Inscrit(e)</span>';
+                        } else {
+                            badge = '<button onclick="window.ouvrirModalInscription(\'' + c.id + '\')" style="background:linear-gradient(135deg,#e11d48,#9f1239); color:white; border:none; padding:8px 16px; border-radius:8px; font-weight:bold; cursor:pointer; font-size:12px;"><i class="fas fa-plus" style="margin-right:5px;"></i>S\'inscrire</button>';
+                        }
+                        html += '<div style="background:#1e293b; border:1px solid ' + borderColor + '; border-radius:12px; padding:16px;">'
                             + '<div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px; margin-bottom:10px;">'
                             + '<div><div style="font-weight:bold; color:#e2e8f0; font-size:14px;">' + escMember(c.nom) + '</div>'
                             + '<div style="font-size:12px; color:#94a3b8; margin-top:3px;">' + escMember(c.saison) + ' — ' + escMember(format) + '</div>'
                             + (c.description ? '<div style="font-size:12px; color:#64748b; margin-top:4px;">' + escMember(c.description) + '</div>' : '')
-                            + '</div>'
-                            + (inscrit
-                                ? '<span style="background:#22c55e22; color:#22c55e; border:1px solid #22c55e44; border-radius:20px; padding:4px 12px; font-size:12px;"><i class="fas fa-check-circle" style="margin-right:4px;"></i>Inscrit(e)</span>'
-                                : '<button onclick="window.ouvrirModalInscription(\'' + c.id + '\')" style="background:linear-gradient(135deg,#e11d48,#9f1239); color:white; border:none; padding:8px 16px; border-radius:8px; font-weight:bold; cursor:pointer; font-size:12px;"><i class="fas fa-plus" style="margin-right:5px;"></i>S\'inscrire</button>')
-                            + '</div>';
+                            + '</div>' + badge + '</div>';
                         if (inscrit) {
-                            html += '<button onclick="window.annulerInscription(\'' + c.id + '\',\'' + uid + '\')" style="background:#0f172a; color:#94a3b8; border:1px solid #33415544; padding:6px 12px; border-radius:6px; cursor:pointer; font-size:11px;"><i class="fas fa-times" style="margin-right:4px;"></i>Se désinscrire</button>';
+                            var lbl = refuse ? 'Retirer l\'inscription refusée' : 'Se désinscrire';
+                            html += '<button onclick="window.annulerInscription(\'' + c.id + '\',\'' + uid + '\')" style="background:#0f172a; color:#94a3b8; border:1px solid #33415544; padding:6px 12px; border-radius:6px; cursor:pointer; font-size:11px;"><i class="fas fa-times" style="margin-right:4px;"></i>' + lbl + '</button>';
                         }
                         html += '</div>';
                     });
@@ -1905,9 +1913,26 @@ function loadEquipesMember(uid) {
                         // Rencontres depuis l'équipe assignée (pas depuis le championnat)
                         var monEquipe = mesEquipesAssignees[champId];
 
-                        html2 += '<div style="background:#1e293b; border:1px solid rgba(201,162,39,0.3); border-radius:12px; padding:16px; margin-bottom:8px;">'
+                        var insRefuse = ins.statut === 'refuse';
+                        var insBorder = insRefuse ? 'rgba(239,68,68,0.4)' : 'rgba(201,162,39,0.3)';
+                        var statutLigne;
+                        if (insRefuse) {
+                            statutLigne = ' — <span style="color:#ef4444;"><i class="fas fa-times-circle"></i> Refusée par le coach</span>';
+                        } else if (ins.valide) {
+                            statutLigne = ' — <span style="color:#22c55e;"><i class="fas fa-check-circle"></i> Validé par le coach</span>';
+                        } else {
+                            statutLigne = ' — <span style="color:#f59e0b;"><i class="fas fa-clock"></i> En attente de validation</span>';
+                        }
+                        html2 += '<div style="background:#1e293b; border:1px solid ' + insBorder + '; border-radius:12px; padding:16px; margin-bottom:8px;">'
                             + '<div style="font-weight:bold; color:#c9a227; margin-bottom:4px;">' + escMember(c.nom) + '</div>'
-                            + '<div style="font-size:12px; color:#94a3b8; margin-bottom:12px;">' + escMember(c.saison) + (ins.valide ? ' — <span style="color:#22c55e;"><i class="fas fa-check-circle"></i> Validé par le coach</span>' : ' — <span style="color:#f59e0b;"><i class="fas fa-clock"></i> En attente de validation</span>') + '</div>';
+                            + '<div style="font-size:12px; color:#94a3b8; margin-bottom:12px;">' + escMember(c.saison) + statutLigne + '</div>';
+                        if (insRefuse) {
+                            html2 += '<div style="background:#ef444411; border-left:3px solid #ef4444; border-radius:6px; padding:10px 12px; margin-bottom:12px;">'
+                                + '<div style="font-size:11px; color:#ef4444; font-weight:bold; margin-bottom:4px; text-transform:uppercase; letter-spacing:0.5px;"><i class="fas fa-comment-alt" style="margin-right:4px;"></i>Motif du coach</div>'
+                                + '<div style="font-size:13px; color:#e2e8f0; white-space:pre-wrap; word-break:break-word;">' + escMember(ins.motifRefus || '(aucun motif renseigné)') + '</div>'
+                                + '<button onclick="window.annulerInscription(\'' + champId + '\',\'' + uid + '\')" style="margin-top:10px; background:#ef444422; color:#ef4444; border:1px solid #ef444444; padding:6px 14px; border-radius:6px; cursor:pointer; font-size:12px;"><i class="fas fa-trash" style="margin-right:5px;"></i>Retirer cette inscription</button>'
+                                + '</div>';
+                        }
 
                         // Équipes où le membre s'est inscrit (nouveau format equipeIds ou ancien equipeId)
                         var registeredEquipeIds = ins.equipeIds || {};

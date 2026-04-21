@@ -130,11 +130,20 @@
       ".write": "auth != null && root.child('admins').child(auth.uid).exists()",
       "$champId": {
         "$uid": {
-          ".write": "auth != null && (auth.uid === $uid || root.child('admins').child(auth.uid).exists())",
+          ".write": "auth != null && (root.child('admins').child(auth.uid).exists() || (auth.uid === $uid && (!newData.exists() || !data.exists() || data.child('statut').val() !== 'refuse')))",
           "valide": {
             ".validate": "newData.val() === false || root.child('admins').child(auth.uid).exists()"
           },
           "statut": {
+            ".validate": "root.child('admins').child(auth.uid).exists() || !newData.exists()"
+          },
+          "motifRefus": {
+            ".validate": "root.child('admins').child(auth.uid).exists() || !newData.exists()"
+          },
+          "refusedAt": {
+            ".validate": "root.child('admins').child(auth.uid).exists() || !newData.exists()"
+          },
+          "validatedAt": {
             ".validate": "root.child('admins').child(auth.uid).exists() || !newData.exists()"
           }
         }
