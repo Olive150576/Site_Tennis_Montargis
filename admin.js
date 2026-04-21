@@ -2496,8 +2496,12 @@ function _renderJoueursListe(showAll) {
             statutHtml = '<span style="background:#47556922; color:#64748b; border:1px solid #47556944; border-radius:10px; padding:1px 7px; font-size:10px; margin-left:6px;">Non inscrit</span>';
         }
 
-        html += '<label style="display:flex; align-items:center; gap:12px; padding:10px 12px; background:' + (estInscrit ? '#1e293b' : '#0f172a') + '; border-radius:8px; cursor:pointer; border:1px solid ' + (estValide ? '#22c55e33' : estInscrit ? '#f59e0b33' : '#1e293b') + ';">'
-            + '<input type="checkbox" value="' + m.uid + '" ' + checked + ' style="width:18px; height:18px; accent-color:#e11d48; flex-shrink:0;">'
+        var disabledAttr = estValide ? '' : 'disabled';
+        var cursorStyle = estValide ? 'pointer' : 'not-allowed';
+        var opacity = estValide ? '1' : '0.6';
+        var titleAttr = estValide ? '' : ' title="Le membre doit être inscrit ET validé avant d\'être assigné à l\'équipe"';
+        html += '<label' + titleAttr + ' style="display:flex; align-items:center; gap:12px; padding:10px 12px; background:' + (estInscrit ? '#1e293b' : '#0f172a') + '; border-radius:8px; cursor:' + cursorStyle + '; border:1px solid ' + (estValide ? '#22c55e33' : estInscrit ? '#f59e0b33' : '#1e293b') + '; opacity:' + opacity + ';">'
+            + '<input type="checkbox" value="' + m.uid + '" ' + checked + ' ' + disabledAttr + ' style="width:18px; height:18px; accent-color:#e11d48; flex-shrink:0;">'
             + '<div style="flex:1; min-width:0;">'
             + '<div style="color:' + (estInscrit ? '#e2e8f0' : '#94a3b8') + '; font-size:13px; display:flex; align-items:center; flex-wrap:wrap; gap:4px;">'
             + escHtml(m.prenom) + ' ' + escHtml(m.nom) + statutHtml
@@ -2552,7 +2556,29 @@ window.saveJoueursEquipe = function() {
     var champId = document.getElementById('modal-joueurs-champ-id').value;
     var checkboxes = document.querySelectorAll('#modal-joueurs-liste input[type=checkbox]');
     var joueurs = {};
-    checkboxes.forEach(function(cb) { if (cb.checked) joueurs[cb.value] = true; });
+    var nonValides = [];
+    var inscrits = _joueursModalData.inscrits || {};
+    checkboxes.forEach(function(cb) {
+        if (!cb.checked) return;
+        var uid = cb.value;
+        var insc = inscrits[uid];
+        if (!insc || !insc.valide) {
+            nonValides.push(uid);
+            return;
+        }
+        joueurs[uid] = true;
+    });
+    if (nonValides.length > 0) {
+        var noms = nonValides.map(function(uid) {
+            var i = inscrits[uid] || {};
+            return (i.prenom || '') + ' ' + (i.nom || '') || uid;
+        }).join(', ');
+        window.showNotification && window.showNotification(
+            'Impossible d\'ajouter à l\'équipe : ' + noms + ' — inscription non validée. Validez d\'abord l\'inscription.',
+            'error'
+        );
+        return;
+    }
     db_ref.ref('equipes/' + equipeId + '/joueurs').set(joueurs).then(function() {
         window.showNotification && window.showNotification('Composition de l\'équipe enregistrée.', 'success');
         document.getElementById('modal-joueurs-equipe').style.display = 'none';
