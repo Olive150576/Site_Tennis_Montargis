@@ -2512,12 +2512,30 @@ function _renderJoueursListe(showAll) {
     listeEl.innerHTML = html;
 }
 
-// Helper : crée une notification pour un membre (non bloquant)
+// Helper : crée une notification in-app pour un membre (non bloquant)
 function _notifierMembre(uid, champId, type, message) {
     return db_ref.ref('notifications_equipe').push({
         uid: uid, champId: champId || null, type: type, message: message,
         lue: false, createdAt: Date.now()
-    }).catch(function(err) { console.warn('Notif non envoyée :', err); });
+    }).catch(function(err) { console.warn('Notif in-app non envoyée :', err); });
+}
+
+// Helper : envoie une push Web ciblée à un membre (non bloquant)
+function _pushMembre(uid, title, body, url) {
+    try {
+        var sendPush = firebase.functions().httpsCallable('sendMemberPush');
+        sendPush({ uid: uid, title: title, body: body, url: url || 'https://tennismontargis.fr/espace-membre.html' })
+            .then(function(res) {
+                if (res.data && res.data.sent > 0) console.log('[push] envoyé à', uid, ':', res.data.sent, 'appareil(s)');
+            })
+            .catch(function(err) { console.warn('[push] échec pour', uid, ':', err.message || err); });
+    } catch(e) { console.warn('[push] firebase.functions indisponible :', e); }
+}
+
+// Helper : notif in-app + push Web (non bloquant)
+function _notifierEtPusher(uid, champId, type, message, pushTitle) {
+    _notifierMembre(uid, champId, type, message);
+    _pushMembre(uid, pushTitle || 'USM Tennis Montargis', message);
 }
 
 // Helper : récupère le nom du championnat (ou renvoie '' en cas d'erreur)
@@ -2536,8 +2554,8 @@ window.validerInscriptionInline = function(champId, uid) {
         if (_joueursModalData.inscrits[uid]) _joueursModalData.inscrits[uid].valide = true;
         _renderJoueursListe(_joueursModalData.showAll);
         _getChampNom(champId).then(function(nom) {
-            _notifierMembre(uid, champId, 'inscription_validee',
-                'Votre inscription' + (nom ? ' au championnat « ' + nom + ' »' : '') + ' a été validée par le coach.');
+            var msg = 'Votre inscription' + (nom ? ' au championnat « ' + nom + ' »' : '') + ' a été validée par le coach.';
+            _notifierEtPusher(uid, champId, 'inscription_validee', msg, '✅ Inscription validée');
         });
         window.showNotification && window.showNotification('Inscription validée (membre notifié).', 'success');
     });
@@ -2757,18 +2775,12 @@ window.validerEtNotifierConvocation = function() {
         return db_ref.ref('equipes/' + equipeId + '/convocations/' + rencontreId).set({
             positions: positions, validee: true, notifie: true, updatedAt: Date.now()
         }).then(function() {
-            // 2. Envoyer les notifications (erreurs non bloquantes)
-            var notifPromises = Object.keys(positions).map(function(pos) {
-                var uid = positions[pos]; if (!uid) return Promise.resolve();
-                return db_ref.ref('notifications_equipe').push({
-                    uid: uid, champId: champId, equipeId: equipeId, rencontreId: rencontreId,
-                    equipeNom: eq.nom || '',
-                    type: 'convoque',
-                    message: 'Vous êtes convoqué(e) pour ' + (eq.nom || 'l\'équipe') + ' — ' + dateLabel + ' — Poste : ' + (posLabels[pos] || pos),
-                    lue: false, createdAt: Date.now()
-                }).catch(function() {});  // notification non bloquante
+            // 2. Notif in-app + push Web pour chaque joueur convoqué (non bloquant)
+            Object.keys(positions).forEach(function(pos) {
+                var uid = positions[pos]; if (!uid) return;
+                var msg = 'Vous êtes convoqué(e) pour ' + (eq.nom || 'l\'équipe') + ' — ' + dateLabel + ' — Poste : ' + (posLabels[pos] || pos);
+                _notifierEtPusher(uid, champId, 'convoque', msg, '🎾 Convocation ' + (eq.nom || 'équipe'));
             });
-            return Promise.all(notifPromises);
         });
     }).then(function() {
         window.showNotification && window.showNotification('Convocation validée et joueurs notifiés !', 'success');
@@ -3020,8 +3032,8 @@ window.validerInscriptionAdmin = function(champId, uid) {
         motifRefus: null, refusedAt: null
     }).then(function() {
         _getChampNom(champId).then(function(nom) {
-            _notifierMembre(uid, champId, 'inscription_validee',
-                'Votre inscription' + (nom ? ' au championnat « ' + nom + ' »' : '') + ' a été validée par le coach.');
+            var msg = 'Votre inscription' + (nom ? ' au championnat « ' + nom + ' »' : '') + ' a été validée par le coach.';
+            _notifierEtPusher(uid, champId, 'inscription_validee', msg, '✅ Inscription validée');
         });
         window.showNotification && window.showNotification('Inscription validée (membre notifié).', 'success');
         _loadInscritsPanel(champId);
@@ -3054,8 +3066,8 @@ window.refuserInscription = async function(champId, uid) {
         });
         await Promise.all(ops);
         _getChampNom(champId).then(function(nom) {
-            _notifierMembre(uid, champId, 'inscription_refusee',
-                'Votre inscription' + (nom ? ' au championnat « ' + nom + ' »' : '') + ' a été refusée par le coach. Motif : ' + motif);
+            var msg = 'Votre inscription' + (nom ? ' au championnat « ' + nom + ' »' : '') + ' a été refusée par le coach. Motif : ' + motif;
+            _notifierEtPusher(uid, champId, 'inscription_refusee', msg, '❌ Inscription refusée');
         });
         window.showNotification && window.showNotification('Inscription refusée (membre notifié).', 'success');
         _loadInscritsPanel(champId);

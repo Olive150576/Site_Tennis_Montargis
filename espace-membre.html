@@ -256,11 +256,13 @@
     <script defer src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script defer src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script defer src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
+    <script defer src="https://www.gstatic.com/firebasejs/8.10.1/firebase-functions.js"></script>
     <script defer src="firebase-init.min.js"></script>
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script defer src="member.min.js?v=3"></script>
+    <script defer src="notifications.min.js"></script>
+    <script defer src="member.min.js?v=4"></script>
     <script defer src="member-auth.min.js"></script>
 </head>
 
@@ -706,6 +708,11 @@
             <div id="mtab-equipes" class="member-tab-content hidden">
                 <div class="member-section-title">
                     <i class="fas fa-shield-alt"></i> Championnats en Équipe
+                </div>
+
+                <!-- Bouton notifications push convocations -->
+                <div id="equipes-push-container" style="margin-bottom:18px; text-align:center;">
+                    <p style="color:#64748b; font-size:12px;"><i class="fas fa-spinner fa-spin"></i></p>
                 </div>
 
                 <!-- Section A : Championnats ouverts à l'inscription -->

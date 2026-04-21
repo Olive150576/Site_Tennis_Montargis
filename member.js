@@ -519,7 +519,10 @@ window.switchMemberTab = function(tab) {
     if (tab === 'equipes' && !_equipesLoaded) {
         _equipesLoaded = true;
         var uid = _cardMemberData ? _cardMemberData._uid : null;
-        if (uid) loadEquipesMember(uid);
+        if (uid) {
+            loadEquipesMember(uid);
+            if (window.initMemberPushBtn) window.initMemberPushBtn(uid);
+        }
         // Masquer le badge
         var badge = document.getElementById('equipes-badge');
         if (badge) badge.style.display = 'none';
@@ -2337,6 +2340,114 @@ function checkEquipesBadge(uid) {
         if (badge) badge.style.display = hasNew ? 'block' : 'none';
     });
 }
+
+// ============================================================
+// NOTIFICATIONS PUSH ÉQUIPES — abonnement ciblé par uid
+// ============================================================
+
+var VAPID_PUBLIC_KEY_MEMBER = 'BE_V9DmFlRDbPfnWrrtY4xneo1xP9tOtf7-mj7qLFjCM3A-36aiXORjlQDpEynZLdsKEH-P9UsAl48TvrT2dXXQ';
+
+/** Sauvegarde l'endpoint push dans push_subscriptions_membres/{uid}/{tokenHash} */
+function saveMemberSubscription(uid, subscription) {
+    var data = subscription.toJSON();
+    var tokenHash = btoa(data.endpoint).replace(/[^a-zA-Z0-9]/g, '').substring(0, 28);
+    return window.db_ref.ref('push_subscriptions_membres/' + uid + '/' + tokenHash).set({
+        token: data.endpoint, keys: data.keys, subscribedAt: Date.now()
+    });
+}
+
+/** Supprime l'endpoint push de push_subscriptions_membres/{uid} */
+function removeMemberSubscription(uid, subscription) {
+    var tokenHash = btoa(subscription.endpoint).replace(/[^a-zA-Z0-9]/g, '').substring(0, 28);
+    return window.db_ref.ref('push_subscriptions_membres/' + uid + '/' + tokenHash).remove();
+}
+
+/** S'abonne aux push convocations pour ce membre */
+window.subscribeMemberPush = async function(uid) {
+    var toUint8 = window.urlBase64ToUint8Array;
+    if (!toUint8 || !window.isPushSupported || !window.isPushSupported()) {
+        window.showNotification && window.showNotification('Votre navigateur ne supporte pas les notifications push.', 'error');
+        return;
+    }
+    try {
+        var permission = await Notification.requestPermission();
+        if (permission !== 'granted') {
+            window.showNotification && window.showNotification('Permission refusée — vous pouvez l\'activer dans les paramètres du navigateur.', 'warning');
+            return;
+        }
+        var reg = await navigator.serviceWorker.ready;
+        var sub = await reg.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: toUint8(VAPID_PUBLIC_KEY_MEMBER)
+        });
+        await saveMemberSubscription(uid, sub);
+        window.showNotification && window.showNotification('Notifications convocations activées !', 'success');
+        _updateMemberPushBtn(uid);
+    } catch (err) {
+        console.error('[subscribeMemberPush]', err);
+        window.showNotification && window.showNotification('Impossible d\'activer les notifications : ' + (err.message || err), 'error');
+    }
+};
+
+/** Se désabonne des push convocations */
+window.unsubscribeMemberPush = async function(uid) {
+    try {
+        var reg = await navigator.serviceWorker.ready;
+        var sub = await reg.pushManager.getSubscription();
+        if (sub) {
+            await removeMemberSubscription(uid, sub);
+            await sub.unsubscribe();
+        }
+        window.showNotification && window.showNotification('Notifications convocations désactivées.', 'info');
+        _updateMemberPushBtn(uid);
+    } catch (err) {
+        console.error('[unsubscribeMemberPush]', err);
+    }
+};
+
+/** Met à jour l'état du bouton push dans l'onglet équipes */
+async function _updateMemberPushBtn(uid) {
+    var btn = document.getElementById('member-equipes-push-btn');
+    if (!btn) return;
+    if (!window.isPushSupported || !window.isPushSupported()) {
+        btn.style.display = 'none'; return;
+    }
+    var perm = Notification.permission;
+    if (perm === 'denied') {
+        btn.innerHTML = '<i class="fas fa-bell-slash" style="margin-right:6px;"></i>Notifications bloquées';
+        btn.style.background = 'rgba(100,116,139,0.2)'; btn.style.color = '#64748b';
+        btn.disabled = true; return;
+    }
+    try {
+        var reg = await navigator.serviceWorker.ready;
+        var sub = await reg.pushManager.getSubscription();
+        if (sub) {
+            btn.innerHTML = '<i class="fas fa-bell" style="margin-right:6px;"></i>Notifications activées';
+            btn.style.background = 'rgba(34,197,94,0.15)'; btn.style.color = '#22c55e';
+            btn.style.borderColor = 'rgba(34,197,94,0.4)';
+            btn.disabled = false;
+            btn.onclick = function() { window.unsubscribeMemberPush(uid); };
+        } else {
+            btn.innerHTML = '<i class="fas fa-bell" style="margin-right:6px;"></i>Activer notifications convocations';
+            btn.style.background = 'rgba(0,210,255,0.1)'; btn.style.color = '#00d2ff';
+            btn.style.borderColor = 'rgba(0,210,255,0.3)';
+            btn.disabled = false;
+            btn.onclick = function() { window.subscribeMemberPush(uid); };
+        }
+    } catch(e) { btn.style.display = 'none'; }
+}
+
+/** Insère le bouton push dans l'onglet équipes après chargement */
+window.initMemberPushBtn = function(uid) {
+    var container = document.getElementById('equipes-push-container');
+    if (!container) return;
+    if (!window.isPushSupported || !window.isPushSupported()) { container.style.display = 'none'; return; }
+    container.innerHTML = '<button id="member-equipes-push-btn" '
+        + 'style="border:1px solid rgba(0,210,255,0.3); border-radius:8px; padding:8px 16px; cursor:pointer; '
+        + 'font-size:12px; font-family:inherit; transition:all .2s;">'
+        + '<i class="fas fa-spinner fa-spin" style="margin-right:6px;"></i>Chargement...</button>';
+    _updateMemberPushBtn(uid);
+};
 
 // Affiche le badge rouge si des messages existent (appelé au chargement)
 function checkClubMessagesBadge() {

@@ -140,6 +140,78 @@ exports.sendNotification = functions.https.onCall(async (data, context) => {
 });
 
 /**
+ * Cloud Function pour envoyer une push Web à un membre spécifique (par uid)
+ * Stockage : push_subscriptions_membres/{uid}/{tokenHash}
+ * Appelée par l'admin lors d'une convocation ou validation d'inscription
+ */
+exports.sendMemberPush = functions.https.onCall(async (data, context) => {
+    if (!context.auth) {
+        throw new functions.https.HttpsError('unauthenticated', 'Vous devez être connecté.');
+    }
+    const adminSnap = await admin.database().ref(`admins/${context.auth.uid}`).once('value');
+    if (!adminSnap.exists()) {
+        throw new functions.https.HttpsError('permission-denied', 'Accès réservé aux administrateurs.');
+    }
+
+    const { uid, title, body, url } = data;
+    if (!uid || !title || !body) {
+        throw new functions.https.HttpsError('invalid-argument', 'uid, title et body sont requis.');
+    }
+
+    const vapidPrivateKey = functions.config().vapid?.private_key || process.env.VAPID_PRIVATE_KEY;
+    if (!vapidPrivateKey) {
+        console.error('[sendMemberPush] Clé VAPID privée non configurée');
+        return { success: false, sent: 0, message: 'Clé VAPID manquante (configuration serveur).' };
+    }
+
+    webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, vapidPrivateKey);
+
+    // Lire les abonnements push de ce membre
+    const subsSnap = await admin.database().ref(`push_subscriptions_membres/${uid}`).once('value');
+    if (!subsSnap.exists()) {
+        console.log(`[sendMemberPush] Aucun abonnement push pour uid=${uid}`);
+        return { success: true, sent: 0, message: 'Membre non abonné aux push.' };
+    }
+
+    const payload = JSON.stringify({
+        title,
+        body: body.length > 120 ? body.substring(0, 117) + '...' : body,
+        icon: '/icon-192.png',
+        badge: '/icon-192.png',
+        url: url || 'https://tennismontargis.fr/espace-membre.html'
+    });
+
+    const options = { TTL: 60 * 60 * 48, urgency: 'high' }; // 48h, priorité haute
+
+    let sent = 0;
+    const toRemove = [];
+
+    const subsData = subsSnap.val();
+    const promises = Object.entries(subsData).map(async ([tokenHash, sub]) => {
+        if (!sub.token || !sub.keys) { toRemove.push(tokenHash); return; }
+        try {
+            await webpush.sendNotification({ endpoint: sub.token, keys: sub.keys }, payload, options);
+            sent++;
+        } catch (err) {
+            console.error(`[sendMemberPush] Échec envoi ${tokenHash}:`, err.statusCode);
+            if (err.statusCode === 410 || err.statusCode === 404) toRemove.push(tokenHash);
+        }
+    });
+
+    await Promise.all(promises);
+
+    // Nettoyage tokens invalides
+    if (toRemove.length > 0) {
+        const updates = {};
+        toRemove.forEach(k => { updates[k] = null; });
+        await admin.database().ref(`push_subscriptions_membres/${uid}`).update(updates);
+    }
+
+    console.log(`[sendMemberPush] uid=${uid} → ${sent} push envoyées, ${toRemove.length} nettoyés`);
+    return { success: true, sent, cleaned: toRemove.length };
+});
+
+/**
  * Cloud Function pour attribuer le custom claim "admin" dans Firebase Auth
  * Utilisé pour restreindre la suppression dans Firebase Storage aux admins uniquement
  */

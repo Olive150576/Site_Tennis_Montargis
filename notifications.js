@@ -620,5 +620,16 @@ window.subscribeToNotifications = subscribeToNotifications;
 window.unsubscribeFromNotifications = unsubscribeFromNotifications;
 window.updateNotificationButton = updateNotificationButton;
 window.isPushSupported = isPushSupported;
+window.urlBase64ToUint8Array = urlBase64ToUint8Array;
+
+// Compat : window.showNotification(msg, type) utilisé dans member.js / admin.js
+// type : 'success' | 'error' | 'warning' | 'info'
+if (!window.showNotification) {
+    window.showNotification = function(msg, type) {
+        if (!window.toast) return;
+        var t = (type === 'error') ? 'error' : (type === 'success') ? 'success' : (type === 'warning') ? 'warning' : 'info';
+        window.toast[t]('', msg || '', 4500);
+    };
+}
 
 console.log('✓ Système Push notifications chargé');
