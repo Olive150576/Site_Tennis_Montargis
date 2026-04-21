@@ -1978,11 +1978,10 @@ function loadEquipesMember(uid) {
                                             var isDispo = dispos[dispoKey];
                                             var convRid = eq.convocations && eq.convocations[rid];
                                             var isConvoque = convRid && convRid.validee && (Object.values(convRid.positions || {}).indexOf(uid) !== -1);
-                                            var vuParCoach = isConvoque || (ins.valide && isDispo === true);
                                             html2 += '<div style="display:flex; align-items:center; justify-content:space-between; padding:8px 12px; background:#0f172a; border-radius:8px; flex-wrap:wrap; gap:8px;">'
                                                 + dateInfo
                                                 + '<div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">'
-                                                + (vuParCoach ? '<span style="background:#c9a22722; color:#c9a227; border:1px solid #c9a22766; border-radius:6px; padding:3px 8px; font-size:10px; white-space:nowrap;"><i class="fas fa-star" style="margin-right:3px;"></i>Convoqué(e)</span>' : '')
+                                                + (isConvoque ? '<span style="background:#c9a22722; color:#c9a227; border:1px solid #c9a22766; border-radius:6px; padding:3px 8px; font-size:10px; white-space:nowrap;"><i class="fas fa-shield-alt" style="margin-right:3px;"></i>Dans la compo</span>' : '')
                                                 + '<button onclick="window.toggleDisponibilite(\'' + champId + '\',\'' + uid + '\',\'' + dispoKey + '\',true)" style="background:' + (isDispo === true ? '#22c55e' : '#1e293b') + '; color:' + (isDispo === true ? 'white' : '#22c55e') + '; border:1px solid #22c55e44; padding:5px 10px; border-radius:6px; cursor:pointer; font-size:11px;"><i class="fas fa-check"></i> Dispo</button>'
                                                 + '<button onclick="window.toggleDisponibilite(\'' + champId + '\',\'' + uid + '\',\'' + dispoKey + '\',false)" style="background:' + (isDispo === false ? '#ef4444' : '#1e293b') + '; color:' + (isDispo === false ? 'white' : '#ef4444') + '; border:1px solid #ef444444; padding:5px 10px; border-radius:6px; cursor:pointer; font-size:11px;"><i class="fas fa-times"></i> Indispo</button>'
                                                 + '</div></div>';
