@@ -1588,12 +1588,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 ${isFeatured ? `<div class="featured-badge">À la une</div>` : ''}
                 <div class="news-card-inner">
                     ${formattedDate ? `<div style="position:absolute; top:10px; left:10px; background:rgba(0,0,0,0.6); color:white; padding:4px 10px; border-radius:10px; font-size:0.75rem; backdrop-filter:blur(5px); border:1px solid rgba(255,255,255,0.1); z-index:5;">${escapeHtml(formattedDate)}</div>` : ''}
-                    ${item.images && item.images[0] ? `
-                        <div class="news-img-wrapper" style="position:relative;">
-                            <img src="${escapeHtml(item.images[0])}" alt="${escapeHtml(item.title || '')}" loading="lazy">
+                    ${item.images && item.images[0] ? (() => {
+                        const firstMedia = item.images[0];
+                        const isYT = firstMedia.includes('youtube.com/embed/');
+                        const ytId = isYT ? firstMedia.split('/embed/')[1]?.split('?')[0] : null;
+                        return `<div class="news-img-wrapper" style="position:relative;">
+                            ${isYT
+                                ? `<div style="position:relative;"><img src="https://img.youtube.com/vi/${ytId}/hqdefault.jpg" alt="${escapeHtml(item.title || '')}" loading="lazy" style="width:100%;display:block;"><div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.35);"><svg width="54" height="54" viewBox="0 0 68 48"><path d="M66.5 7.8C65.7 4.8 63.3 2.4 60.3 1.6 55 0 34 0 34 0S13 0 7.7 1.6C4.7 2.4 2.3 4.8 1.5 7.8 0 13.1 0 24 0 24s0 10.9 1.5 16.2c.8 3 3.2 5.4 6.2 6.2C13 48 34 48 34 48s21 0 26.3-1.6c3-.8 5.4-3.2 6.2-6.2C68 34.9 68 24 68 24s0-10.9-1.5-16.2z" fill="red"/><path d="M45 24 27 14v20" fill="white"/></svg></div></div>`
+                                : `<img src="${escapeHtml(firstMedia)}" alt="${escapeHtml(item.title || '')}" loading="lazy">`}
                             ${item.images.length > 1 ? `<div style="position:absolute; bottom:10px; right:10px; background:rgba(0,0,0,0.7); color:white; padding:5px 10px; border-radius:15px; font-size:0.8rem;"><i class="fas fa-images"></i> +${item.images.length - 1}</div>` : ''}
-                        </div>
-                    ` : ''}
+                        </div>`;
+                    })() : ''}
                     <div class="news-content" style="padding:20px; flex-grow:1; display:flex; flex-direction:column;">
                         <h3 style="font-family:'Orbitron'; font-size:1.1rem; margin-bottom:10px; color:white; line-height:1.4;">${escapeHtml(item.title || '')}</h3>
                         <p style="font-size:0.9rem; color:#94a3b8; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; margin-bottom:15px; flex-grow:1;">${formatText(item.desc || '')}</p>
@@ -1630,10 +1635,13 @@ document.addEventListener('DOMContentLoaded', () => {
             galleryContent.classList.add('two-images');
         }
 
-        // Échapper les URLs des images
-        galleryContent.innerHTML = item.images?.map(url => {
+        // Échapper les URLs des images / vidéos YouTube
+        galleryContent.innerHTML = item.images?.map((url, idx) => {
+            if (url.includes('youtube.com/embed/')) {
+                return `<div class="gallery-item gallery-item-yt"><iframe src="${escapeHtml(url)}?rel=0" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="width:100%;aspect-ratio:16/9;border-radius:10px;display:block;"></iframe></div>`;
+            }
             const safeUrl = escapeHtml(url);
-            return `<div class="gallery-item"><img src="${safeUrl}" onclick="window.open('${safeUrl}', '_blank')" alt="Image"></div>`;
+            return `<div class="gallery-item"><img src="${safeUrl}" onclick="openLightbox(${idx})" alt="Image"></div>`;
         }).join('') || '';
 
         document.getElementById('gallery-modal').classList.remove('hidden');
