@@ -55,9 +55,28 @@
         "prenom":     { ".read": true },
         "nom":        { ".read": true },
         "actif":      { ".read": true },
-        "classement": { ".read": true },
+        "classement": {
+          ".read": true,
+          ".write": "auth != null && auth.uid === $uid",
+          ".validate": "newData.isString() && newData.val().matches(/^(1|2|3|4|5|6|15|15\\/1|15\\/2|15\\/3|15\\/4|15\\/5|30|30\\/1|30\\/2|30\\/3|30\\/4|30\\/5|40|NC|)$/)"
+        },
         "categorie":  { ".read": true },
         "licence":    { ".read": true },
+        "email": {
+          ".write": "auth != null && auth.uid === $uid",
+          ".validate": "newData.isString() && newData.val().length < 150 && (newData.val() === '' || newData.val().matches(/^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$/))"
+        },
+        "telephone": {
+          ".write": "auth != null && auth.uid === $uid",
+          ".validate": "newData.isString() && newData.val().length < 20 && (newData.val() === '' || newData.val().matches(/^[0-9+ .()-]{6,20}$/))"
+        },
+        "classementHistory": {
+          ".read": "auth != null && root.child('admins').child(auth.uid).exists()",
+          ".write": "auth != null && auth.uid === $uid",
+          "$entryId": {
+            ".validate": "newData.hasChildren(['from', 'to', 'at']) && newData.child('at').isNumber()"
+          }
+        },
         "photoURL": {
           ".read": true,
           ".write": "auth != null && auth.uid === $uid",

@@ -97,6 +97,113 @@ window.savePhoto = function() {
     }, 'image/jpeg', 0.92);
 };
 
+// --- Édition coordonnées (email / téléphone / classement) ---
+window.toggleProfilEdit = function(show) {
+    var emailInput = document.getElementById('mp-email-input');
+    if (!emailInput) return;
+    var editing = show !== undefined ? show : emailInput.style.display === 'none';
+
+    ['email', 'telephone', 'classement'].forEach(function(field) {
+        var valueEl = document.getElementById('mp-' + field);
+        var inputEl = document.getElementById('mp-' + field + '-input');
+        if (!valueEl || !inputEl) return;
+        valueEl.style.display = editing ? 'none' : '';
+        inputEl.style.display = editing ? 'block' : 'none';
+    });
+
+    if (editing && _cardMemberData) {
+        document.getElementById('mp-email-input').value = _cardMemberData.email || '';
+        document.getElementById('mp-telephone-input').value = _cardMemberData.telephone || '';
+        var sel = document.getElementById('mp-classement-input');
+        if (sel && !sel.options.length) {
+            sel.innerHTML = '<option value="">—</option>' + _CLASSEMENTS_FFT.map(function(c) {
+                return '<option value="' + c + '">' + c + '</option>';
+            }).join('');
+        }
+        if (sel) sel.value = _cardMemberData.classement || '';
+    }
+
+    var actions = document.getElementById('mp-edit-actions');
+    if (actions) actions.style.display = editing ? 'flex' : 'none';
+    var btn = document.getElementById('mp-edit-toggle-btn');
+    if (btn) btn.style.display = editing ? 'none' : 'inline-flex';
+    var status = document.getElementById('mp-save-status');
+    if (status) status.textContent = '';
+};
+
+window.saveProfilCoordonnees = function() {
+    if (!window.auth.currentUser || !_cardMemberData) return;
+    var targetUid = _cardMemberData._uid || window.auth.currentUser.uid;
+    var status = document.getElementById('mp-save-status');
+    var setStatus = function(msg, ok) {
+        if (!status) return;
+        status.textContent = msg;
+        status.style.color = ok ? '#4ade80' : '#f87171';
+    };
+
+    var email = (document.getElementById('mp-email-input').value || '').trim();
+    var telephone = (document.getElementById('mp-telephone-input').value || '').trim();
+    var classement = document.getElementById('mp-classement-input').value || '';
+
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        setStatus('Adresse email invalide.', false);
+        return;
+    }
+    if (telephone && !/^[0-9+ .()-]{6,20}$/.test(telephone)) {
+        setStatus('Numéro de téléphone invalide.', false);
+        return;
+    }
+
+    var classementChanged = classement !== (_cardMemberData.classement || '');
+    var previousClassement = _cardMemberData.classement || '';
+
+    // On n'envoie que les champs réellement modifiés : un ancien format
+    // (créé côté admin, non filtré par ces nouvelles règles) resoumis sans
+    // changement ne doit pas faire échouer la validation des autres champs.
+    var updates = {};
+    if (email !== (_cardMemberData.email || '')) updates.email = email;
+    if (telephone !== (_cardMemberData.telephone || '')) updates.telephone = telephone;
+    if (classementChanged) updates.classement = classement;
+
+    if (!Object.keys(updates).length) {
+        window.toggleProfilEdit(false);
+        return;
+    }
+
+    var btn = document.getElementById('mp-save-btn');
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enregistrement...'; }
+
+    window.db_ref.ref('members/' + targetUid).update(updates).then(function() {
+        // Trace l'historique quand un membre modifie lui-même son classement
+        // (le classement conditionne l'éligibilité aux équipes de championnat)
+        if (classementChanged && !_cardMemberData._isAdmin) {
+            window.db_ref.ref('members/' + targetUid + '/classementHistory').push({
+                from: previousClassement,
+                to: classement,
+                at: firebase.database.ServerValue.TIMESTAMP
+            });
+        }
+
+        _cardMemberData.email = email;
+        _cardMemberData.telephone = telephone;
+        _cardMemberData.classement = classement;
+
+        var setTxt = function(id, val) { var el = document.getElementById(id); if (el) el.textContent = val || '—'; };
+        setTxt('mp-email', email);
+        setTxt('mp-telephone', telephone);
+        setTxt('mp-classement', classement);
+        setTxt('vip-card-classement', classement);
+
+        window.toggleProfilEdit(false);
+        setStatus('Coordonnées mises à jour ✓', true);
+    }).catch(function(err) {
+        window.showErrorMessage && window.showErrorMessage(err, 'profil');
+        setStatus('Erreur lors de l\'enregistrement.', false);
+    }).finally(function() {
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-save"></i> Enregistrer'; }
+    });
+};
+
 window.initMemberDashboard = function(memberData) {
     _cardMemberData = memberData;
 

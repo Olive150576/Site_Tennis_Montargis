@@ -2388,6 +2388,22 @@ section#contact-section.animate-in { transition-delay: 0.1s; }
 
 .mic-value { color: #ffffff; font-size: 1rem; font-weight: 600; word-break: break-word; }
 
+.mic-edit-input {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 215, 0, 0.4);
+    border-radius: 8px;
+    color: #ffffff;
+    font-family: inherit;
+    font-size: 0.95rem;
+    font-weight: 600;
+    padding: 7px 10px;
+    box-sizing: border-box;
+    outline: none;
+}
+
+.mic-edit-input:focus { border-color: #ffd700; }
+
 /* ── BOUTONS RAPIDES ─────────────────────────────────── */
 .member-quick-links { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 10px; }
 
