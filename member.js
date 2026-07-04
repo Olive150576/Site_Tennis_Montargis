@@ -2283,7 +2283,7 @@ function loadEquipesMember(uid) {
 }
 
 // --- Classement FFT ---
-var _CLASSEMENTS_FFT = ['1','2','3','4','5','6','15','15/1','15/2','15/3','15/4','15/5','30','30/1','30/2','30/3','30/4','30/5','40','NC'];
+var _CLASSEMENTS_FFT = ['-15','-4/6','-2/6','0','1/6','2/6','3/6','4/6','5/6','15','15/1','15/2','15/3','15/4','15/5','30','30/1','30/2','30/3','30/4','30/5','40','NC'];
 
 function _classementQualifie(memberClass, cmin, cmax) {
     if (!cmin && !cmax) return true; // aucune restriction
