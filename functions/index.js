@@ -1,8 +1,35 @@
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 const webpush = require('web-push');
+const nodemailer = require('nodemailer');
 
 admin.initializeApp();
+
+function escapeHtml(str) {
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
+// Envoi d'email via SMTP Gmail (mot de passe d'application).
+// Configuré via: firebase functions:config:set gmail.user="..." gmail.pass="..."
+// ou via functions/.env (GMAIL_USER / GMAIL_APP_PASSWORD).
+let _mailTransporter = null;
+function getMailTransporter() {
+    if (_mailTransporter) return _mailTransporter;
+    const gmailUser = functions.config().gmail?.user || process.env.GMAIL_USER;
+    const gmailPass = functions.config().gmail?.pass || process.env.GMAIL_APP_PASSWORD;
+    if (!gmailUser || !gmailPass) {
+        throw new functions.https.HttpsError('failed-precondition', 'Configuration email serveur incomplète.');
+    }
+    _mailTransporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: { user: gmailUser, pass: gmailPass }
+    });
+    return _mailTransporter;
+}
 
 // Configuration VAPID pour Web Push
 // La clé privée doit être configurée via: firebase functions:config:set vapid.private_key="VOTRE_CLE_PRIVEE"
@@ -399,7 +426,7 @@ exports.createNewsWebhook = functions.https.onRequest(async (req, res) => {
 });
 
 /**
- * Cloud Function pour envoyer le formulaire de contact via EmailJS (côté serveur)
+ * Cloud Function pour envoyer le formulaire de contact par email (SMTP direct)
  * La clé API n'est plus exposée dans le code client
  */
 exports.sendContactEmail = functions.https.onCall(async (data, context) => {
@@ -417,39 +444,37 @@ exports.sendContactEmail = functions.https.onCall(async (data, context) => {
         throw new functions.https.HttpsError('invalid-argument', 'Message invalide.');
     }
 
-    const EMAILJS_SERVICE_ID  = 'service_79xjawi';
-    const EMAILJS_TEMPLATE_ID = 'template_fcd7xgn';
-    const EMAILJS_USER_ID     = functions.config().emailjs?.user_id || process.env.EMAILJS_USER_ID || 's6g88S5JA8ppy1GKg';
+    const cleanName    = name.trim();
+    const cleanEmail   = email.trim();
+    const cleanMessage = message.trim();
 
-    const payload = JSON.stringify({
-        service_id:      EMAILJS_SERVICE_ID,
-        template_id:     EMAILJS_TEMPLATE_ID,
-        user_id:         EMAILJS_USER_ID,
-        template_params: {
-            name:      name.trim(),
-            email:     email.trim(),
-            message:   message.trim(),
-            reply_to:  email.trim()
-        }
-    });
+    const transporter = getMailTransporter();
+    const gmailUser    = functions.config().gmail?.user || process.env.GMAIL_USER;
 
-    const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    payload
-    });
+    const infoSnap  = await admin.database().ref('info/email').once('value');
+    const destEmail = infoSnap.val() || gmailUser;
 
-    if (!response.ok) {
-        const errText = await response.text();
-        console.error('EmailJS error:', response.status, errText);
+    try {
+        await transporter.sendMail({
+            from:    `"Site USM Tennis Montargis" <${gmailUser}>`,
+            to:      destEmail,
+            replyTo: cleanEmail,
+            subject: `Nouveau message de contact — ${cleanName}`,
+            text:    `Nom : ${cleanName}\nEmail : ${cleanEmail}\n\n${cleanMessage}`,
+            html:    `<p><strong>Nom :</strong> ${escapeHtml(cleanName)}</p>`
+                   + `<p><strong>Email :</strong> ${escapeHtml(cleanEmail)}</p>`
+                   + `<p><strong>Message :</strong></p><p>${escapeHtml(cleanMessage).replace(/\n/g, '<br>')}</p>`
+        });
+    } catch (err) {
+        console.error('Erreur envoi email SMTP:', err);
         throw new functions.https.HttpsError('internal', 'Échec envoi email.');
     }
 
     // Sauvegarder dans Firebase DB
     await admin.database().ref('contacts').push({
-        name:      name.trim(),
-        email:     email.trim(),
-        message:   message.trim(),
+        name:      cleanName,
+        email:     cleanEmail,
+        message:   cleanMessage,
         date:      new Date().toISOString(),
         timestamp: Date.now()
     });
