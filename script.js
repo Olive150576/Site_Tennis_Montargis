@@ -1209,8 +1209,20 @@ document.addEventListener('DOMContentLoaded', () => {
             const email   = document.getElementById('contact-email').value.trim();
             const message = document.getElementById('contact-message').value.trim();
 
-            // Validation basique côté client avant envoi
+            // Validation côté client avant envoi (mêmes règles que la Cloud Function)
             if (!name || !email || !message) throw new Error('Veuillez remplir tous les champs.');
+            if (name.length < 2) {
+                window.showWarningMessage('Nom trop court', 'Veuillez indiquer votre nom complet.');
+                return;
+            }
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                window.showWarningMessage('Email invalide', 'Veuillez vérifier votre adresse email.');
+                return;
+            }
+            if (message.length < 5) {
+                window.showWarningMessage('Message trop court', 'Votre message doit contenir au moins 5 caractères.');
+                return;
+            }
 
             // Appel Cloud Function (valide + envoie email + sauvegarde DB côté serveur)
             const sendContact = firebase.functions().httpsCallable('sendContactEmail');

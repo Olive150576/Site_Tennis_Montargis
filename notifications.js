@@ -316,6 +316,11 @@ window.showErrorMessage = function(error, context = '') {
 
     let userMessage = errorMessages[error.code] || errorMessages[error.message];
 
+    // Erreur de validation renvoyée par une Cloud Function : son message est déjà user-friendly
+    if (!userMessage && (error.code === 'functions/invalid-argument' || error.code === 'invalid-argument') && error.message) {
+        userMessage = error.message;
+    }
+
     if (!userMessage) {
         // Message générique si code inconnu
         userMessage = 'Une erreur est survenue. Si le problème persiste, contactez le support.';
