@@ -2286,6 +2286,23 @@ function loadEquipesMember(uid) {
                     if (disposEl) disposEl.innerHTML = html;
                 }
 
+                // Bannière en tête d'onglet : un championnat ouvert auquel le membre n'est pas encore inscrit
+                var bannerEl = document.getElementById('equipes-banner-inscriptions');
+                if (bannerEl) {
+                    var champsNonInscrits = champsOuverts.filter(function(c) { return !mesInscriptions[c.id]; });
+                    if (champsNonInscrits.length) {
+                        bannerEl.style.display = 'block';
+                        bannerEl.innerHTML = '<button onclick="document.getElementById(\'equipes-section-inscrire\').scrollIntoView({behavior:\'smooth\'})" '
+                            + 'style="width:100%; background:rgba(225,29,72,0.1); border:1px solid rgba(225,29,72,0.45); border-radius:12px; padding:12px 16px; cursor:pointer; color:#e2e8f0; font-family:inherit; font-size:13px; text-align:left; display:flex; align-items:center; gap:10px;">'
+                            + '<i class="fas fa-door-open" style="color:#e11d48; font-size:16px; flex-shrink:0;"></i>'
+                            + '<span style="flex:1;"><strong style="color:#e11d48;">Inscriptions ouvertes :</strong> ' + champsNonInscrits.map(function(c) { return escMember(c.nom); }).join(', ') + '</span>'
+                            + '<i class="fas fa-arrow-down" style="color:#e11d48; flex-shrink:0;"></i></button>';
+                    } else {
+                        bannerEl.style.display = 'none';
+                        bannerEl.innerHTML = '';
+                    }
+                }
+
                 // ---- Section B : mes inscriptions ----
                 var inscritChampIds = Object.keys(mesInscriptions);
                 if (!inscritChampIds.length) {

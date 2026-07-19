@@ -262,7 +262,7 @@
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script defer src="notifications.min.js"></script>
-    <script defer src="member.min.js?v=13"></script>
+    <script defer src="member.min.js?v=14"></script>
     <script defer src="member-auth.min.js"></script>
 </head>
 
@@ -365,89 +365,6 @@
                     </div>
                 </div>
 
-                <!-- ── PARTENAIRES + TÉLÉCHARGEMENTS côte à côte ── -->
-                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(290px, 1fr)); gap:16px; margin-top:0; align-items:stretch;">
-
-                    <!-- PREMIER (mobile: en haut) : Partenaires -->
-                    <div style="background:rgba(10,22,40,0.7); border:1px solid rgba(255,215,0,0.22); border-radius:16px; padding:18px; display:flex; flex-direction:column;">
-                        <div style="display:flex; align-items:center; gap:8px; margin-bottom:14px; color:rgba(255,215,0,0.8); font-size:0.72rem; font-weight:700; letter-spacing:2px; text-transform:uppercase;">
-                            <i class="fas fa-handshake"></i> Nos partenaires &amp; vos avantages
-                        </div>
-                        <div id="member-sponsors-grid" class="member-sponsors-grid" style="flex:1;">
-                            <div class="member-empty-state">
-                                <i class="fas fa-handshake"></i>
-                                <p>Chargement des partenaires...</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- DEUXIÈME (mobile: en bas) : Téléchargements -->
-                    <div style="background:rgba(10,22,40,0.7); border:1px solid rgba(255,215,0,0.22); border-radius:16px; padding:18px; display:flex; flex-direction:column;">
-                        <div style="display:flex; align-items:center; gap:8px; margin-bottom:14px; color:rgba(255,215,0,0.8); font-size:0.72rem; font-weight:700; letter-spacing:2px; text-transform:uppercase;">
-                            <i class="fas fa-download"></i> Téléchargements
-                        </div>
-                        <div style="display:grid; gap:10px;">
-
-                            <!-- Carte bancaire recto / verso -->
-                            <div style="background:rgba(0,210,255,0.05); border:1px solid rgba(0,210,255,0.18); border-radius:12px; padding:14px 16px;">
-                                <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
-                                    <i class="fas fa-credit-card" style="color:#00d2ff; font-size:16px; flex-shrink:0;"></i>
-                                    <div>
-                                        <div style="color:white; font-weight:600; font-size:13px;">Carte de membre</div>
-                                        <div style="color:#475569; font-size:11px; margin-top:1px;">Format carte bancaire · À imprimer</div>
-                                    </div>
-                                </div>
-                                <div style="display:flex; gap:8px; margin-bottom:8px;">
-                                    <button class="vip-dl-btn" style="flex:1; margin:0; padding:9px 8px; font-size:0.82rem;" onclick="window.downloadMemberCardRecto()">
-                                        <i class="fas fa-id-card"></i> Recto
-                                    </button>
-                                    <button class="vip-dl-btn" style="flex:1; margin:0; padding:9px 8px; font-size:0.82rem; background:linear-gradient(135deg,rgba(255,215,0,0.1),rgba(180,150,0,0.06)); border-color:rgba(255,215,0,0.35); color:#ffd700;" onclick="window.downloadMemberCardVerso()">
-                                        <i class="fas fa-qrcode"></i> Verso
-                                    </button>
-                                </div>
-                                <button class="vip-dl-btn" style="width:100%; margin:0; padding:10px 8px; font-size:0.82rem; background:linear-gradient(135deg,rgba(220,38,38,0.15),rgba(180,20,20,0.08)); border-color:rgba(220,38,38,0.45); color:#f87171;" onclick="window.downloadMemberCardPDF(this)">
-                                    <i class="fas fa-file-pdf"></i> Version PDF (recto + verso)
-                                </button>
-                            </div>
-
-                            <!-- Carte mobile -->
-                            <div style="background:rgba(255,215,0,0.05); border:1px solid rgba(255,215,0,0.18); border-radius:12px; padding:14px 16px;">
-                                <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
-                                    <i class="fas fa-mobile-alt" style="color:#ffd700; font-size:16px; flex-shrink:0;"></i>
-                                    <div>
-                                        <div style="color:white; font-weight:600; font-size:13px;">Carte mobile</div>
-                                        <div style="color:#475569; font-size:11px; margin-top:1px;">Format portrait · Toutes les infos + QR code</div>
-                                    </div>
-                                </div>
-                                <button class="vip-dl-btn" style="width:100%; margin:0; font-size:0.82rem;" onclick="window.downloadMemberCardMobile()">
-                                    <i class="fas fa-download"></i> Télécharger
-                                </button>
-                            </div>
-
-                            <!-- Fonds d'écran -->
-                            <div style="background:rgba(129,140,248,0.05); border:1px solid rgba(129,140,248,0.18); border-radius:12px; padding:14px 16px;">
-                                <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
-                                    <i class="fas fa-image" style="color:#a5b4fc; font-size:16px; flex-shrink:0;"></i>
-                                    <div>
-                                        <div style="color:white; font-weight:600; font-size:13px;">Fonds d'écran</div>
-                                        <div style="color:#475569; font-size:11px; margin-top:1px;">Personnalise ton écran de veille</div>
-                                    </div>
-                                </div>
-                                <div style="display:flex; gap:8px;">
-                                    <button class="vip-dl-btn" style="flex:1; margin:0; padding:9px 8px; font-size:0.82rem; background:linear-gradient(135deg,rgba(100,116,139,0.18),rgba(71,85,105,0.1)); border-color:rgba(148,163,184,0.35); color:#cbd5e1;" onclick="window.downloadMemberWallpaper()">
-                                        <i class="fas fa-mobile-alt"></i> Mobile
-                                    </button>
-                                    <button class="vip-dl-btn" style="flex:1; margin:0; padding:9px 8px; font-size:0.82rem; background:linear-gradient(135deg,rgba(79,70,229,0.18),rgba(55,48,163,0.1)); border-color:rgba(129,140,248,0.35); color:#a5b4fc;" onclick="window.downloadMemberWallpaperDesktop()">
-                                        <i class="fas fa-desktop"></i> Bureau
-                                    </button>
-                                </div>
-                            </div>
-
-                        </div>
-                    </div>
-
-                </div>
-
                 <div class="member-section-title" style="justify-content:space-between;">
                     <span><i class="fas fa-user-circle"></i> Mes informations</span>
                     <button id="mp-edit-toggle-btn" onclick="window.toggleProfilEdit()" style="background:rgba(255,215,0,0.12); border:1px solid rgba(255,215,0,0.4); color:#ffd700; padding:6px 14px; border-radius:8px; font-size:0.78rem; cursor:pointer; font-family:inherit; display:inline-flex; align-items:center; gap:6px; letter-spacing:0;">
@@ -509,6 +426,101 @@
                         <i class="fas fa-key"></i> Changer mon mot de passe
                     </button>
                 </div>
+
+                <style>#profil-avantages-details summary::-webkit-details-marker, #profil-telechargements-details summary::-webkit-details-marker{display:none}</style>
+                <details id="profil-avantages-details" style="background:rgba(10,22,40,0.7); border:1px solid rgba(255,215,0,0.22); border-radius:16px; margin-bottom:14px;">
+                    <summary style="list-style:none; cursor:pointer; padding:14px 18px; display:flex; align-items:center; justify-content:space-between; gap:10px; color:#ffd700; font-size:0.85rem; font-weight:600;">
+                        <span><i class="fas fa-gift" style="margin-right:8px;"></i>Avantages partenaires <span style="font-size:0.72rem; font-weight:normal; color:#64748b;">— vos réductions chez nos partenaires</span></span>
+                        <i class="fas fa-chevron-down" style="color:#64748b; font-size:0.75rem;"></i>
+                    </summary>
+                    <div style="padding:0 18px 18px;">
+<!-- PREMIER (mobile: en haut) : Partenaires -->
+                    <div style="display:flex; flex-direction:column;">
+                        
+                        <div id="member-sponsors-grid" class="member-sponsors-grid" style="flex:1;">
+                            <div class="member-empty-state">
+                                <i class="fas fa-handshake"></i>
+                                <p>Chargement des partenaires...</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    
+                    </div>
+                </details>
+
+                <details id="profil-telechargements-details" style="background:rgba(10,22,40,0.7); border:1px solid rgba(255,215,0,0.22); border-radius:16px; margin-bottom:14px;">
+                    <summary style="list-style:none; cursor:pointer; padding:14px 18px; display:flex; align-items:center; justify-content:space-between; gap:10px; color:#ffd700; font-size:0.85rem; font-weight:600;">
+                        <span><i class="fas fa-download" style="margin-right:8px;"></i>Téléchargements <span style="font-size:0.72rem; font-weight:normal; color:#64748b;">— carte de membre &amp; fonds d'écran</span></span>
+                        <i class="fas fa-chevron-down" style="color:#64748b; font-size:0.75rem;"></i>
+                    </summary>
+                    <div style="padding:0 18px 18px;">
+<!-- DEUXIÈME (mobile: en bas) : Téléchargements -->
+                    <div style="display:flex; flex-direction:column;">
+                        
+                        <div style="display:grid; gap:10px;">
+
+                            <!-- Carte bancaire recto / verso -->
+                            <div style="background:rgba(0,210,255,0.05); border:1px solid rgba(0,210,255,0.18); border-radius:12px; padding:14px 16px;">
+                                <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+                                    <i class="fas fa-credit-card" style="color:#00d2ff; font-size:16px; flex-shrink:0;"></i>
+                                    <div>
+                                        <div style="color:white; font-weight:600; font-size:13px;">Carte de membre</div>
+                                        <div style="color:#475569; font-size:11px; margin-top:1px;">Format carte bancaire · À imprimer</div>
+                                    </div>
+                                </div>
+                                <div style="display:flex; gap:8px; margin-bottom:8px;">
+                                    <button class="vip-dl-btn" style="flex:1; margin:0; padding:9px 8px; font-size:0.82rem;" onclick="window.downloadMemberCardRecto()">
+                                        <i class="fas fa-id-card"></i> Recto
+                                    </button>
+                                    <button class="vip-dl-btn" style="flex:1; margin:0; padding:9px 8px; font-size:0.82rem; background:linear-gradient(135deg,rgba(255,215,0,0.1),rgba(180,150,0,0.06)); border-color:rgba(255,215,0,0.35); color:#ffd700;" onclick="window.downloadMemberCardVerso()">
+                                        <i class="fas fa-qrcode"></i> Verso
+                                    </button>
+                                </div>
+                                <button class="vip-dl-btn" style="width:100%; margin:0; padding:10px 8px; font-size:0.82rem; background:linear-gradient(135deg,rgba(220,38,38,0.15),rgba(180,20,20,0.08)); border-color:rgba(220,38,38,0.45); color:#f87171;" onclick="window.downloadMemberCardPDF(this)">
+                                    <i class="fas fa-file-pdf"></i> Version PDF (recto + verso)
+                                </button>
+                            </div>
+
+                            <!-- Carte mobile -->
+                            <div style="background:rgba(255,215,0,0.05); border:1px solid rgba(255,215,0,0.18); border-radius:12px; padding:14px 16px;">
+                                <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+                                    <i class="fas fa-mobile-alt" style="color:#ffd700; font-size:16px; flex-shrink:0;"></i>
+                                    <div>
+                                        <div style="color:white; font-weight:600; font-size:13px;">Carte mobile</div>
+                                        <div style="color:#475569; font-size:11px; margin-top:1px;">Format portrait · Toutes les infos + QR code</div>
+                                    </div>
+                                </div>
+                                <button class="vip-dl-btn" style="width:100%; margin:0; font-size:0.82rem;" onclick="window.downloadMemberCardMobile()">
+                                    <i class="fas fa-download"></i> Télécharger
+                                </button>
+                            </div>
+
+                            <!-- Fonds d'écran -->
+                            <div style="background:rgba(129,140,248,0.05); border:1px solid rgba(129,140,248,0.18); border-radius:12px; padding:14px 16px;">
+                                <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+                                    <i class="fas fa-image" style="color:#a5b4fc; font-size:16px; flex-shrink:0;"></i>
+                                    <div>
+                                        <div style="color:white; font-weight:600; font-size:13px;">Fonds d'écran</div>
+                                        <div style="color:#475569; font-size:11px; margin-top:1px;">Personnalise ton écran de veille</div>
+                                    </div>
+                                </div>
+                                <div style="display:flex; gap:8px;">
+                                    <button class="vip-dl-btn" style="flex:1; margin:0; padding:9px 8px; font-size:0.82rem; background:linear-gradient(135deg,rgba(100,116,139,0.18),rgba(71,85,105,0.1)); border-color:rgba(148,163,184,0.35); color:#cbd5e1;" onclick="window.downloadMemberWallpaper()">
+                                        <i class="fas fa-mobile-alt"></i> Mobile
+                                    </button>
+                                    <button class="vip-dl-btn" style="flex:1; margin:0; padding:9px 8px; font-size:0.82rem; background:linear-gradient(135deg,rgba(79,70,229,0.18),rgba(55,48,163,0.1)); border-color:rgba(129,140,248,0.35); color:#a5b4fc;" onclick="window.downloadMemberWallpaperDesktop()">
+                                        <i class="fas fa-desktop"></i> Bureau
+                                    </button>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+
+                    </div>
+                </details>
             </div>
 
             <!-- Carte membre imprimable (hors écran, capturée par html2canvas) -->
@@ -739,12 +751,30 @@
                     <i class="fas fa-shield-alt"></i> Championnats en Équipe
                 </div>
 
-                <!-- Bouton notifications push convocations -->
-                <div id="equipes-push-container" style="margin-bottom:18px; text-align:center;">
-                    <p style="color:#64748b; font-size:12px;"><i class="fas fa-spinner fa-spin"></i></p>
+                <!-- Bannière : nouvelle inscription possible (remplie par JS si pertinent) -->
+                <div id="equipes-banner-inscriptions" style="display:none; margin-bottom:18px;"></div>
+
+                <!-- Mes convocations : l'action prioritaire, en premier -->
+                <div id="equipes-section-convocations" style="margin-bottom:28px;">
+                    <h4 style="color:#00d2ff; font-size:14px; margin-bottom:12px; display:flex; align-items:center; gap:8px;">
+                        <i class="fas fa-bell"></i> Mes convocations
+                    </h4>
+                    <div id="equipes-mes-convocations" style="display:grid; gap:14px;">
+                        <p style="color:#64748b; font-size:13px; text-align:center;">Aucune convocation.</p>
+                    </div>
                 </div>
 
-                <!-- Section A : Championnats ouverts à l'inscription -->
+                <!-- Mon équipe : dispos, coéquipiers, discussion -->
+                <div id="equipes-section-mes-champs" style="margin-bottom:28px;">
+                    <h4 style="color:#c9a227; font-size:14px; margin-bottom:12px; display:flex; align-items:center; gap:8px;">
+                        <i class="fas fa-clipboard-check"></i> Mon équipe &amp; mes disponibilités
+                    </h4>
+                    <div id="equipes-mes-champs" style="display:grid; gap:14px;">
+                        <p style="color:#64748b; font-size:13px; text-align:center;">Aucune inscription pour l'instant.</p>
+                    </div>
+                </div>
+
+                <!-- Championnats ouverts à l'inscription (ponctuel, en dernier) -->
                 <div id="equipes-section-inscrire" style="margin-bottom:28px;">
                     <h4 style="color:#e11d48; font-size:14px; margin-bottom:12px; display:flex; align-items:center; gap:8px;">
                         <i class="fas fa-door-open"></i> Championnats ouverts aux inscriptions
@@ -754,24 +784,9 @@
                     </div>
                 </div>
 
-                <!-- Section B : Mes inscriptions -->
-                <div id="equipes-section-mes-champs" style="margin-bottom:28px;">
-                    <h4 style="color:#c9a227; font-size:14px; margin-bottom:12px; display:flex; align-items:center; gap:8px;">
-                        <i class="fas fa-clipboard-check"></i> Mes inscriptions
-                    </h4>
-                    <div id="equipes-mes-champs" style="display:grid; gap:14px;">
-                        <p style="color:#64748b; font-size:13px; text-align:center;">Aucune inscription pour l'instant.</p>
-                    </div>
-                </div>
-
-                <!-- Section C : Mes convocations -->
-                <div id="equipes-section-convocations">
-                    <h4 style="color:#00d2ff; font-size:14px; margin-bottom:12px; display:flex; align-items:center; gap:8px;">
-                        <i class="fas fa-bell"></i> Mes convocations
-                    </h4>
-                    <div id="equipes-mes-convocations" style="display:grid; gap:14px;">
-                        <p style="color:#64748b; font-size:13px; text-align:center;">Aucune convocation.</p>
-                    </div>
+                <!-- Bouton notifications push convocations -->
+                <div id="equipes-push-container" style="margin-bottom:10px; text-align:center;">
+                    <p style="color:#64748b; font-size:12px;"><i class="fas fa-spinner fa-spin"></i></p>
                 </div>
             </div>
 
