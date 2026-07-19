@@ -131,6 +131,11 @@
         ".validate": "newData.hasChildren(['token', 'subscribedAt']) && newData.child('token').isString() && newData.child('token').val().length > 50 && newData.child('token').val().length < 500 && newData.child('subscribedAt').isString() && newData.child('subscribedAt').val().length < 30 && !newData.hasChild('script') && !newData.hasChild('html')"
       }
     },
+    "calendrier": {
+      ".read": "auth != null && (root.child('admins').child(auth.uid).exists() || root.child('coaches').child(auth.uid).exists() || root.child('members').child(auth.uid).child('actif').val() === true)",
+      ".write": "auth != null && root.child('admins').child(auth.uid).exists()",
+      ".indexOn": ["date"]
+    },
     "club_messages": {
       ".read": "auth != null && (root.child('admins').child(auth.uid).exists() || root.child('members').child(auth.uid).child('actif').val() === true)",
       ".write": "auth != null && root.child('admins').child(auth.uid).exists()",

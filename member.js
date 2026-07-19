@@ -338,10 +338,6 @@ window.initMemberDashboard = function(memberData) {
         renderVipQR();
     }
 
-    // --- Année en cours dans l'onglet club ---
-    const yearEl = document.getElementById('member-tournaments-year');
-    if (yearEl) yearEl.textContent = new Date().getFullYear();
-
     // --- Charger infos club (tel/email) et afficher boutons de contact dans le header ---
     window.db_ref.ref('info').once('value', snap => {
         if (snap.exists()) {
@@ -355,59 +351,12 @@ window.initMemberDashboard = function(memberData) {
             }
         }
     });
-    loadMemberTournaments();
     loadMemberSponsors();
     loadPartenaireProfile();
     checkClubMessagesBadge();
     var _uid = memberData._uid;
     if (_uid) checkEquipesBadge(_uid);
 };
-
-// --- Chargement des tournois depuis /tournaments/ ---
-function loadMemberTournaments() {
-    const grid = document.getElementById('member-tournaments-grid');
-    if (!grid) return;
-
-    grid.innerHTML = Array(3).fill('<div class="member-skeleton-card"><div class="skeleton-img" style="height:140px; border-radius:8px; margin-bottom:12px;"></div><div class="skeleton-line medium"></div><div class="skeleton-line full"></div><div class="skeleton-line short"></div></div>').join('');
-
-    window.db_ref.ref('tournaments').once('value', snap => {
-        const data = snap.val();
-        if (!data) {
-            grid.innerHTML = '<div class="member-empty-state"><i class="fas fa-calendar-times"></i><p>Aucun tournoi programmé pour l\'instant.</p></div>';
-            return;
-        }
-        const items = Array.isArray(data) ? data : Object.values(data);
-        const visible = items.filter(t => t && !t.draft).reverse();
-
-        if (visible.length === 0) {
-            grid.innerHTML = '<div class="member-empty-state"><i class="fas fa-calendar-times"></i><p>Aucun tournoi programmé pour l\'instant.</p></div>';
-            return;
-        }
-
-        grid.innerHTML = visible.map(t => renderTournamentCard(t)).join('');
-    });
-}
-
-function renderTournamentCard(t) {
-    const imgHtml = (t.images && t.images[0])
-        ? `<img class="member-tournament-img" src="${escMember(t.images[0])}" alt="${escMember(t.title)}" loading="lazy">`
-        : `<div class="member-tournament-img-placeholder"><i class="fas fa-trophy"></i></div>`;
-
-    const prixHtml = t.prix
-        ? `<div class="member-tournament-prix"><i class="fas fa-tag"></i>${escMember(t.prix)}</div>`
-        : '';
-
-    return `
-    <div class="member-tournament-card">
-        ${imgHtml}
-        <div class="member-tournament-body">
-            <div class="member-tournament-date"><i class="fas fa-calendar"></i>${escMember(t.date || '')}</div>
-            <div class="member-tournament-title">${escMember(t.title || '')}</div>
-            <div class="member-tournament-desc">${escMember(t.desc || '')}</div>
-            ${prixHtml}
-        </div>
-    </div>`;
-}
 
 // --- Chargement des sponsors depuis /sponsors/ ---
 function loadMemberSponsors() {
@@ -603,9 +552,9 @@ window.savePartenaireProfile = function() {
 
 // --- Navigation onglets ---
 var _annuaireLoaded = false;
-var _messagesLoaded = false;
+var _calendrierLoaded = false;
 window.switchMemberTab = function(tab) {
-    ['profil', 'partenaires', 'club', 'infos', 'equipes'].forEach(t => {
+    ['profil', 'partenaires', 'calendrier', 'equipes'].forEach(t => {
         const content = document.getElementById(`mtab-${t}`);
         const btn = document.getElementById(`mtab-btn-${t}`);
         if (content) content.classList.toggle('hidden', t !== tab);
@@ -615,10 +564,11 @@ window.switchMemberTab = function(tab) {
         _annuaireLoaded = true;
         loadAnnuairePartenaires();
     }
-    if (tab === 'infos' && !_messagesLoaded) {
-        _messagesLoaded = true;
+    if (tab === 'calendrier' && !_calendrierLoaded) {
+        _calendrierLoaded = true;
         loadClubMessages();
-        // Mémoriser la date de lecture dans localStorage
+        loadCalendrierMember();
+        // Mémoriser la date de lecture des messages dans localStorage
         localStorage.setItem('usm_infos_seen_at', String(Date.now()));
         var badge = document.getElementById('infos-badge');
         if (badge) badge.style.display = 'none';
@@ -1895,6 +1845,11 @@ function loadClubMessages() {
             return;
         }
 
+        // Compteur dans le bandeau repliable du Calendrier + ouverture auto si message urgent
+        var countEl = document.getElementById('calendrier-messages-count');
+        if (countEl) countEl.textContent = '(' + msgs.length + ')';
+        if (msgs.some(function(m) { return m.type === 'urgent'; })) window.toggleMessagesBureau && window.toggleMessagesBureau(true);
+
         var typeLabels = { info: 'Information', warning: 'Avertissement', urgent: 'Urgent' };
         var typeIcons  = { info: 'fa-info-circle', warning: 'fa-exclamation-triangle', urgent: 'fa-exclamation-circle' };
 
@@ -1914,6 +1869,188 @@ function loadClubMessages() {
             '</div>';
         }).join('');
     });
+}
+
+// =====================================================================
+// CALENDRIER DU CLUB (côté membre)
+// =====================================================================
+
+var _CAL_TYPES_M = {
+    tournoi:   { label: 'Tournois',   icon: 'fa-trophy',     color: '#c9a227' },
+    sortie:    { label: 'Sorties',    icon: 'fa-bus',        color: '#f97316' },
+    evenement: { label: 'Événements', icon: 'fa-star',       color: '#00d2ff' },
+    reunion:   { label: 'Réunions',   icon: 'fa-bullhorn',   color: '#8b5cf6' },
+    match:     { label: 'Matchs',     icon: 'fa-shield-alt', color: '#e11d48' },
+    autre:     { label: 'Autres',     icon: 'fa-calendar',   color: '#64748b' }
+};
+var _MOIS_FR = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+var _calEntries = [];
+var _calFiltres = {}; // type -> actif
+
+window.toggleMessagesBureau = function(forceOpen) {
+    var bloc = document.getElementById('member-messages-list');
+    var chevron = document.getElementById('calendrier-messages-chevron');
+    if (!bloc) return;
+    var ouvrir = forceOpen === true || bloc.style.display === 'none';
+    bloc.style.display = ouvrir ? 'block' : 'none';
+    if (chevron) chevron.className = 'fas fa-chevron-' + (ouvrir ? 'up' : 'down');
+};
+
+function _calFmtDateM(iso) {
+    if (!iso) return '';
+    var p = String(iso).split('-');
+    return p.length === 3 ? p[2] + '/' + p[1] + '/' + p[0] : iso;
+}
+
+function loadCalendrierMember() {
+    var listEl = document.getElementById('calendrier-liste');
+    if (!listEl) return;
+    var uid = _cardMemberData ? _cardMemberData._uid : null;
+
+    Promise.all([
+        window.db_ref.ref('calendrier').once('value'),
+        window.db_ref.ref('equipes').once('value')
+    ]).then(function(snaps) {
+        _calEntries = [];
+
+        // Entrées gérées par l'admin
+        snaps[0].forEach(function(child) {
+            var e = child.val(); if (!e || !e.date) return;
+            _calEntries.push({
+                date: e.date, dateFin: e.dateFin || '', heure: e.heure || '',
+                type: _CAL_TYPES_M[e.type] ? e.type : 'autre',
+                titre: e.titre || '', lieu: e.lieu || '', prix: e.prix || '',
+                description: e.description || '', image: e.image || '', isMyMatch: false
+            });
+        });
+
+        // Matchs d'équipes (automatiques)
+        snaps[1].forEach(function(eqChild) {
+            var eq = eqChild.val(); if (!eq) return;
+            var isMyTeam = !!(uid && eq.joueurs && eq.joueurs[uid]);
+            Object.values(eq.rencontres || {}).forEach(function(r) {
+                if (!r.date) return;
+                _calEntries.push({
+                    date: r.date, dateFin: '', heure: r.heure || '',
+                    type: 'match',
+                    titre: (eq.nom || 'Équipe') + (r.adversaire ? ' vs ' + r.adversaire : ''),
+                    lieu: r.lieu || '', prix: '', description: '', image: '',
+                    isMyMatch: isMyTeam, domicile: !!r.domicile
+                });
+            });
+        });
+
+        _calEntries.sort(function(a, b) { return a.date.localeCompare(b.date) || (a.heure || '').localeCompare(b.heure || ''); });
+
+        // Filtres : uniquement les types réellement présents, tous actifs par défaut
+        var typesPresents = [];
+        _calEntries.forEach(function(e) { if (typesPresents.indexOf(e.type) === -1) typesPresents.push(e.type); });
+        var filtresEl = document.getElementById('calendrier-filtres');
+        if (filtresEl) {
+            if (typesPresents.length > 1) {
+                filtresEl.innerHTML = typesPresents.map(function(ty) {
+                    var t = _CAL_TYPES_M[ty];
+                    if (_calFiltres[ty] === undefined) _calFiltres[ty] = true;
+                    return '<button id="cal-filtre-' + ty + '" onclick="window.toggleCalFiltre(\'' + ty + '\')" '
+                        + 'style="border-radius:20px; padding:6px 14px; font-size:12px; cursor:pointer; font-family:inherit; transition:all .15s;">'
+                        + '<i class="fas ' + t.icon + '" style="margin-right:5px;"></i>' + t.label + '</button>';
+                }).join('');
+                typesPresents.forEach(_updateCalFiltreBtn);
+            } else {
+                filtresEl.innerHTML = '';
+            }
+        }
+
+        _renderCalendrierListe();
+    }).catch(function(err) {
+        listEl.innerHTML = '<div class="member-empty-state"><i class="fas fa-exclamation-triangle"></i><p>Erreur de chargement : ' + escMember(err.message || String(err)) + '</p></div>';
+    });
+}
+
+function _updateCalFiltreBtn(ty) {
+    var btn = document.getElementById('cal-filtre-' + ty);
+    if (!btn) return;
+    var t = _CAL_TYPES_M[ty];
+    var actif = _calFiltres[ty] !== false;
+    btn.style.background = actif ? t.color + '22' : '#0f172a';
+    btn.style.color = actif ? t.color : '#475569';
+    btn.style.border = '1px solid ' + (actif ? t.color + '55' : '#33415555');
+    btn.style.opacity = actif ? '1' : '0.6';
+}
+
+window.toggleCalFiltre = function(ty) {
+    _calFiltres[ty] = _calFiltres[ty] === false;
+    _updateCalFiltreBtn(ty);
+    _renderCalendrierListe();
+};
+
+function _renderCalEntryCard(e) {
+    var t = _CAL_TYPES_M[e.type];
+    var jour = e.date.substring(8, 10);
+    var moisIdx = parseInt(e.date.substring(5, 7), 10) - 1;
+    var moisCourt = (_MOIS_FR[moisIdx] || '').substring(0, 4) + (( _MOIS_FR[moisIdx] || '').length > 4 ? '.' : '');
+    var sousTitre = [];
+    if (e.dateFin) sousTitre.push('jusqu\'au ' + _calFmtDateM(e.dateFin));
+    if (e.heure) sousTitre.push(e.heure);
+    if (e.lieu) sousTitre.push(e.lieu);
+    if (e.prix) sousTitre.push(e.prix);
+    return '<div style="display:flex; gap:14px; background:#1e293b; border:1px solid ' + t.color + '33; border-left:3px solid ' + t.color + '; border-radius:12px; padding:14px 16px;">'
+        + '<div style="text-align:center; flex-shrink:0; min-width:44px;">'
+        + '<div style="font-size:22px; font-weight:900; color:' + t.color + '; line-height:1;">' + jour + '</div>'
+        + '<div style="font-size:10px; color:#64748b; text-transform:uppercase; margin-top:2px;">' + moisCourt + '</div>'
+        + '</div>'
+        + '<div style="flex:1; min-width:0;">'
+        + '<div style="display:flex; align-items:center; gap:7px; flex-wrap:wrap; margin-bottom:3px;">'
+        + '<span style="background:' + t.color + '22; color:' + t.color + '; border:1px solid ' + t.color + '44; border-radius:10px; padding:1px 8px; font-size:10px; white-space:nowrap;"><i class="fas ' + t.icon + '" style="margin-right:3px;"></i>' + (e.type === 'match' ? (e.domicile ? 'Match 🏠' : 'Match 🚌') : t.label.replace(/s$/, '')) + '</span>'
+        + (e.isMyMatch ? '<span style="background:#c9a22722; color:#c9a227; border:1px solid #c9a22755; border-radius:10px; padding:1px 8px; font-size:10px; font-weight:bold; white-space:nowrap;"><i class="fas fa-star" style="margin-right:3px;"></i>Mon match</span>' : '')
+        + '</div>'
+        + '<div style="color:#e2e8f0; font-size:14px; font-weight:600;">' + escMember(e.titre) + '</div>'
+        + (sousTitre.length ? '<div style="color:#94a3b8; font-size:12px; margin-top:3px;">' + escMember(sousTitre.join(' · ')) + '</div>' : '')
+        + (e.description ? '<div style="color:#64748b; font-size:12px; margin-top:5px; white-space:pre-wrap;">' + escMember(e.description) + '</div>' : '')
+        + (e.image ? '<img src="' + escMember(e.image) + '" alt="" loading="lazy" style="max-height:160px; max-width:100%; border-radius:8px; margin-top:8px;">' : '')
+        + '</div></div>';
+}
+
+function _renderCalendrierListe() {
+    var listEl = document.getElementById('calendrier-liste');
+    if (!listEl) return;
+    var todayISO = new Date().toISOString().substring(0, 10);
+    var visibles = _calEntries.filter(function(e) { return _calFiltres[e.type] !== false; });
+
+    if (!visibles.length) {
+        listEl.innerHTML = '<div class="member-empty-state"><i class="fas fa-calendar-times"></i><p>Rien au calendrier pour l\'instant.</p></div>';
+        return;
+    }
+
+    var aVenir = visibles.filter(function(e) { return (e.dateFin || e.date) >= todayISO; });
+    var passes = visibles.filter(function(e) { return (e.dateFin || e.date) < todayISO; }).reverse();
+
+    var html = '';
+    if (!aVenir.length) {
+        html += '<div class="member-empty-state"><i class="fas fa-calendar-check"></i><p>Rien de prévu prochainement.</p></div>';
+    } else {
+        var moisCourant = '';
+        aVenir.forEach(function(e) {
+            var cle = e.date.substring(0, 7);
+            if (cle !== moisCourant) {
+                moisCourant = cle;
+                var moisIdx = parseInt(cle.substring(5, 7), 10) - 1;
+                html += '<div style="color:#00d2ff; font-family:\'Orbitron\'; font-size:0.85rem; margin:22px 0 10px; padding-bottom:6px; border-bottom:1px solid rgba(0,210,255,0.2);">'
+                    + (_MOIS_FR[moisIdx] || '') + ' ' + cle.substring(0, 4) + '</div>';
+            }
+            html += '<div style="margin-bottom:8px;">' + _renderCalEntryCard(e) + '</div>';
+        });
+    }
+
+    if (passes.length) {
+        html += '<details style="margin-top:24px;">'
+            + '<summary style="color:#64748b; font-size:13px; cursor:pointer; padding:10px 0; border-top:1px solid #1e293b;"><i class="fas fa-history" style="margin-right:6px;"></i>Déjà passé (' + passes.length + ')</summary>'
+            + '<div style="display:grid; gap:8px; margin-top:10px; opacity:0.6;">'
+            + passes.map(_renderCalEntryCard).join('')
+            + '</div></details>';
+    }
+
+    listEl.innerHTML = html;
 }
 
 // =====================================================================

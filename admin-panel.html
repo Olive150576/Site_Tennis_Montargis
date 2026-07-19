@@ -75,7 +75,7 @@
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script defer src="notifications.min.js"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-    <script defer src="admin.min.js?v=21"></script>
+    <script defer src="admin.min.js?v=22"></script>
 </head>
 <body>
 
@@ -223,8 +223,8 @@
             <button class="tab-btn" onclick="switchAdmin('members')" style="background:linear-gradient(135deg, #22c55e, #16a34a); color:white;">
                 <i class="fas fa-users"></i> Membres
             </button>
-            <button class="tab-btn" onclick="switchAdmin('tournaments')" style="background:linear-gradient(135deg, #00d2ff, #0099bb); color:white;">
-                <i class="fas fa-trophy"></i> Tournois TMC
+            <button class="tab-btn" onclick="switchAdmin('calendrier')" style="background:linear-gradient(135deg, #00d2ff, #0099bb); color:white;">
+                <i class="fas fa-calendar-alt"></i> Calendrier
             </button>
             <button class="tab-btn" onclick="switchAdmin('club_messages')" style="background:linear-gradient(135deg, #f59e0b, #b45309); color:white;">
                 <i class="fas fa-bullhorn"></i> Messages Club
@@ -234,13 +234,99 @@
             </button>
         </div>
 
-        <!-- SECTION LISTE TOURNOIS -->
-        <div id="tournaments-list-admin" class="hidden" style="background:rgba(2,6,23,0.8); padding:25px; border-radius:15px; border:1px solid rgba(0,210,255,0.3); margin-bottom:30px;">
-            <h3 style="color:#00d2ff; font-family:'Orbitron'; font-size:1rem; margin-bottom:18px; border-bottom:1px solid #334155; padding-bottom:12px;">
-                <i class="fas fa-list" style="margin-right:8px;"></i>Tournois existants — cliquez sur <i class="fas fa-edit"></i> pour modifier
+        <!-- SECTION CALENDRIER DU CLUB -->
+        <div id="calendrier-admin" class="hidden" style="background:rgba(2,6,23,0.8); padding:25px; border-radius:15px; border:1px solid rgba(0,210,255,0.3); margin-bottom:30px;">
+            <h3 style="color:#00d2ff; font-family:'Orbitron'; font-size:1.1rem; margin-bottom:20px; border-bottom:2px solid #334155; padding-bottom:15px;">
+                <i class="fas fa-calendar-alt" style="margin-right:10px;"></i>Calendrier du club
             </h3>
-            <div id="tournaments-admin-list-body">
-                <p style="color:#64748b; font-size:13px;">Chargement...</p>
+            <p style="color:#94a3b8; font-size:13px; margin-bottom:18px;">
+                Tout ce que vous ajoutez ici apparaît dans l'onglet <strong style="color:#00d2ff;">Calendrier</strong> de l'espace membre.
+                Les matchs des équipes s'y ajoutent automatiquement depuis l'onglet Équipes.
+            </p>
+
+            <!-- Formulaire ajout / édition -->
+            <div style="background:rgba(0,210,255,0.05); border:1px solid rgba(0,210,255,0.2); border-radius:12px; padding:20px; margin-bottom:25px;">
+                <h4 id="cal-form-title" style="color:#00d2ff; margin-bottom:16px; font-size:0.95rem;"><i class="fas fa-plus-circle" style="margin-right:8px;"></i>Ajouter au calendrier</h4>
+                <input type="hidden" id="cal-edit-id">
+                <div style="display:grid; grid-template-columns:2fr 1fr; gap:14px; margin-bottom:14px;">
+                    <div>
+                        <label style="color:#94a3b8; font-size:11px; display:block; margin-bottom:4px;">Titre *</label>
+                        <input type="text" id="cal-titre" placeholder="Ex: Tournoi interne, Sortie squash, Assemblée générale…"
+                            style="width:100%; padding:10px; background:#0f172a; border:1px solid #475569; color:white; border-radius:8px; font-size:13px; box-sizing:border-box;">
+                    </div>
+                    <div>
+                        <label style="color:#94a3b8; font-size:11px; display:block; margin-bottom:4px;">Type *</label>
+                        <select id="cal-type" style="width:100%; padding:10px; background:#0f172a; border:1px solid #475569; color:white; border-radius:8px; font-size:13px; box-sizing:border-box;">
+                            <option value="tournoi">🏆 Tournoi</option>
+                            <option value="sortie">🚌 Sortie</option>
+                            <option value="evenement">⭐ Événement</option>
+                            <option value="reunion">📣 Réunion</option>
+                            <option value="autre">📅 Autre</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px; margin-bottom:14px;">
+                    <div>
+                        <label style="color:#94a3b8; font-size:11px; display:block; margin-bottom:4px;">Date *</label>
+                        <input type="date" id="cal-date"
+                            style="width:100%; padding:10px; background:#0f172a; border:1px solid #475569; color:white; border-radius:8px; font-size:13px; box-sizing:border-box;">
+                    </div>
+                    <div>
+                        <label style="color:#94a3b8; font-size:11px; display:block; margin-bottom:4px;">Date de fin (optionnel)</label>
+                        <input type="date" id="cal-date-fin"
+                            style="width:100%; padding:10px; background:#0f172a; border:1px solid #475569; color:white; border-radius:8px; font-size:13px; box-sizing:border-box;">
+                    </div>
+                    <div>
+                        <label style="color:#94a3b8; font-size:11px; display:block; margin-bottom:4px;">Heure (optionnel)</label>
+                        <input type="time" id="cal-heure"
+                            style="width:100%; padding:10px; background:#0f172a; border:1px solid #475569; color:white; border-radius:8px; font-size:13px; box-sizing:border-box;">
+                    </div>
+                </div>
+                <div style="display:grid; grid-template-columns:2fr 1fr; gap:14px; margin-bottom:14px;">
+                    <div>
+                        <label style="color:#94a3b8; font-size:11px; display:block; margin-bottom:4px;">Lieu (optionnel)</label>
+                        <input type="text" id="cal-lieu" placeholder="Ex: Courts USM Montargis"
+                            style="width:100%; padding:10px; background:#0f172a; border:1px solid #475569; color:white; border-radius:8px; font-size:13px; box-sizing:border-box;">
+                    </div>
+                    <div>
+                        <label style="color:#94a3b8; font-size:11px; display:block; margin-bottom:4px;">Prix (optionnel)</label>
+                        <input type="text" id="cal-prix" placeholder="Ex: 10€"
+                            style="width:100%; padding:10px; background:#0f172a; border:1px solid #475569; color:white; border-radius:8px; font-size:13px; box-sizing:border-box;">
+                    </div>
+                </div>
+                <div style="margin-bottom:14px;">
+                    <label style="color:#94a3b8; font-size:11px; display:block; margin-bottom:4px;">Description (optionnel)</label>
+                    <textarea id="cal-description" rows="3" placeholder="Détails, inscriptions, format…"
+                        style="width:100%; padding:10px; background:#0f172a; border:1px solid #475569; color:white; border-radius:8px; font-size:13px; box-sizing:border-box; resize:vertical;"></textarea>
+                </div>
+                <div style="margin-bottom:18px;">
+                    <label style="color:#94a3b8; font-size:11px; display:block; margin-bottom:4px;">Affiche / image (optionnel)</label>
+                    <input type="file" id="cal-image-file" accept="image/*"
+                        style="width:100%; padding:8px; background:#0f172a; border:1px solid #475569; color:#94a3b8; border-radius:8px; font-size:12px; box-sizing:border-box;">
+                    <div id="cal-image-preview" style="margin-top:8px;"></div>
+                </div>
+                <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                    <button onclick="window.saveCalendrierEntry()"
+                        style="background:linear-gradient(135deg,#00d2ff,#0077b6); color:white; border:none; padding:11px 26px; border-radius:8px; font-weight:bold; cursor:pointer; font-size:13px;">
+                        <i class="fas fa-save" style="margin-right:6px;"></i><span id="cal-save-label">Ajouter au calendrier</span>
+                    </button>
+                    <button id="cal-cancel-btn" onclick="window.resetCalendrierForm()" style="display:none; background:#334155; color:#94a3b8; border:none; padding:11px 20px; border-radius:8px; cursor:pointer; font-size:13px;">
+                        Annuler
+                    </button>
+                </div>
+            </div>
+
+            <!-- Liste des entrées -->
+            <div id="calendrier-admin-list" style="display:grid; gap:10px; margin-bottom:25px;">
+                <p style="color:#64748b; text-align:center;">Chargement...</p>
+            </div>
+
+            <!-- Matchs d'équipes (lecture seule) -->
+            <div style="border-top:1px solid #334155; padding-top:18px;">
+                <h4 style="color:#e11d48; font-size:0.9rem; margin-bottom:12px;"><i class="fas fa-shield-alt" style="margin-right:8px;"></i>Matchs d'équipes à venir <span style="color:#64748b; font-weight:normal; font-size:11px;">— automatiques, gérés depuis l'onglet Équipes</span></h4>
+                <div id="calendrier-matchs-list" style="display:grid; gap:8px;">
+                    <p style="color:#64748b; font-size:12px; text-align:center;">Chargement...</p>
+                </div>
             </div>
         </div>
 

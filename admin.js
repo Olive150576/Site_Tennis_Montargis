@@ -445,9 +445,9 @@ window.switchAdmin = (section) => {
     const contactsAdmin = document.getElementById('contacts-admin');
     const membersAdmin = document.getElementById('members-admin');
     const sponsorsListAdmin = document.getElementById('sponsors-list-admin');
-    const tournamentsListAdmin = document.getElementById('tournaments-list-admin');
     const clubMessagesAdmin = document.getElementById('club-messages-admin');
     const equipesAdmin = document.getElementById('equipes-admin');
+    const calendrierAdmin = document.getElementById('calendrier-admin');
 
     // Gérer l'affichage spécial pour les sections documents, contacts, membres et messages
     const hideSpecialSections = () => {
@@ -457,6 +457,7 @@ window.switchAdmin = (section) => {
         if (clubMessagesAdmin) clubMessagesAdmin.classList.add('hidden');
         if (sponsorsListAdmin) sponsorsListAdmin.classList.add('hidden');
         if (equipesAdmin) equipesAdmin.classList.add('hidden');
+        if (calendrierAdmin) calendrierAdmin.classList.add('hidden');
     };
 
     if (section === 'documents') {
@@ -479,6 +480,10 @@ window.switchAdmin = (section) => {
         if (universalForm) universalForm.style.display = 'none';
         hideSpecialSections();
         if (equipesAdmin) { equipesAdmin.classList.remove('hidden'); window.loadChampionnatsAdmin && window.loadChampionnatsAdmin(); }
+    } else if (section === 'calendrier') {
+        if (universalForm) universalForm.style.display = 'none';
+        hideSpecialSections();
+        if (calendrierAdmin) { calendrierAdmin.classList.remove('hidden'); window.loadCalendrierAdmin && window.loadCalendrierAdmin(); }
     } else {
         if (universalForm) universalForm.style.display = 'block';
         hideSpecialSections();
@@ -490,18 +495,10 @@ window.switchAdmin = (section) => {
                 sponsorsListAdmin.classList.add('hidden');
             }
         }
-        if (tournamentsListAdmin) {
-            if (section === 'tournaments') {
-                tournamentsListAdmin.classList.remove('hidden');
-                loadTournamentsAdminList();
-            } else {
-                tournamentsListAdmin.classList.add('hidden');
-            }
-        }
     }
 
     // Les sections suivantes ont leur propre interface — pas de formulaire universel
-    var _specialSections = ['documents','contacts','members','club_messages','equipes'];
+    var _specialSections = ['documents','contacts','members','club_messages','equipes','calendrier'];
     if (_specialSections.indexOf(section) !== -1) return;
 
     if (titleEl) titleEl.innerText = `Gérer : ${section.toUpperCase()}`;
@@ -591,39 +588,191 @@ function loadSponsorsAdminList() {
 }
 window.loadSponsorsAdminList = loadSponsorsAdminList;
 
-// === LISTE DES TOURNOIS POUR L'ADMIN ===
-async function loadTournamentsAdminList() {
-    const body = document.getElementById('tournaments-admin-list-body');
-    if (!body) return;
-    body.innerHTML = '<p style="color:#64748b; font-size:13px;">Chargement...</p>';
+// =====================================================================
+// CALENDRIER DU CLUB (onglet admin dédié)
+// =====================================================================
 
-    const snap = await db_ref.ref('tournaments').once('value');
-    const data = snap.val();
-    if (!data) {
-        body.innerHTML = '<p style="color:#64748b; font-size:13px;">Aucun tournoi enregistré.</p>';
-        return;
-    }
+var _CAL_TYPES = {
+    tournoi:   { label: 'Tournoi',     icon: 'fa-trophy',      color: '#c9a227' },
+    sortie:    { label: 'Sortie',      icon: 'fa-bus',         color: '#f97316' },
+    evenement: { label: 'Événement',   icon: 'fa-star',        color: '#00d2ff' },
+    reunion:   { label: 'Réunion',     icon: 'fa-bullhorn',    color: '#8b5cf6' },
+    match:     { label: 'Match équipe',icon: 'fa-shield-alt',  color: '#e11d48' },
+    autre:     { label: 'Autre',       icon: 'fa-calendar',    color: '#64748b' }
+};
+var _calDataCache = {};
+var _calImageUrl = ''; // URL de l'image conservée en édition (remplacée si nouveau fichier choisi)
 
-    const items = Array.isArray(data) ? data : Object.values(data);
-    body.innerHTML = items.map((t, i) => {
-        if (!t) return '';
-        const isDraft = t.draft ? ' <span style="background:#fb923c;color:white;padding:2px 8px;border-radius:8px;font-size:10px;margin-left:6px;">BROUILLON</span>' : '';
-        return `
-        <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 14px;
-            background:rgba(255,255,255,0.03); border:1px solid rgba(0,210,255,0.12); border-radius:10px; margin-bottom:8px; gap:12px;">
-            <div style="flex:1; min-width:0;">
-                <div style="color:#e2e8f0; font-size:14px; font-weight:600;">${escapeHtml(t.title || '—')}${isDraft}</div>
-                ${t.date ? `<div style="color:#64748b; font-size:12px; margin-top:3px;"><i class="fas fa-calendar" style="margin-right:4px;"></i>${escapeHtml(t.date)}</div>` : ''}
-                ${t.desc ? `<div style="color:#94a3b8; font-size:12px; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:400px;">${escapeHtml(t.desc.substring(0, 80))}${t.desc.length > 80 ? '…' : ''}</div>` : ''}
-            </div>
-            <button onclick="window.editItem('tournaments', ${i})"
-                style="background:rgba(0,210,255,0.1);border:1px solid rgba(0,210,255,0.4);color:#00d2ff;padding:7px 16px;border-radius:8px;cursor:pointer;font-size:12px;white-space:nowrap;flex-shrink:0;">
-                <i class="fas fa-edit"></i> Modifier
-            </button>
-        </div>`;
-    }).join('');
+function _calFmtDate(iso) {
+    if (!iso) return '';
+    var p = String(iso).split('-');
+    return p.length === 3 ? p[2] + '/' + p[1] + '/' + p[0] : iso;
 }
-window.loadTournamentsAdminList = loadTournamentsAdminList;
+
+window.loadCalendrierAdmin = function() {
+    var list = document.getElementById('calendrier-admin-list');
+    if (!list) return;
+    db_ref.ref('calendrier').orderByChild('date').once('value', function(snap) {
+        _calDataCache = {};
+        if (!snap.exists()) {
+            list.innerHTML = '<p style="color:#64748b; text-align:center;">Aucune entrée. Ajoutez le premier événement ci-dessus.</p>';
+        } else {
+            var todayISO = new Date().toISOString().substring(0, 10);
+            var html = '';
+            snap.forEach(function(child) {
+                var e = child.val(); var id = child.key;
+                _calDataCache[id] = Object.assign({}, e, { id: id });
+                var t = _CAL_TYPES[e.type] || _CAL_TYPES.autre;
+                var estPasse = (e.dateFin || e.date) < todayISO;
+                html += '<div style="display:flex; align-items:center; gap:12px; padding:12px 14px; background:rgba(255,255,255,0.03); border:1px solid ' + t.color + '33; border-left:3px solid ' + t.color + '; border-radius:10px;' + (estPasse ? ' opacity:0.5;' : '') + '">'
+                    + '<span style="background:' + t.color + '22; color:' + t.color + '; border:1px solid ' + t.color + '44; border-radius:12px; padding:3px 10px; font-size:11px; white-space:nowrap; flex-shrink:0;"><i class="fas ' + t.icon + '" style="margin-right:4px;"></i>' + t.label + '</span>'
+                    + '<div style="flex:1; min-width:0;">'
+                    + '<div style="color:#e2e8f0; font-size:14px; font-weight:600;">' + escHtml(e.titre || '—') + (estPasse ? ' <span style="color:#64748b; font-size:10px;">(passé)</span>' : '') + '</div>'
+                    + '<div style="color:#64748b; font-size:12px; margin-top:2px;"><i class="fas fa-calendar" style="margin-right:4px;"></i>' + _calFmtDate(e.date)
+                    + (e.dateFin ? ' → ' + _calFmtDate(e.dateFin) : '') + (e.heure ? ' à ' + escHtml(e.heure) : '')
+                    + (e.lieu ? ' · ' + escHtml(e.lieu) : '') + (e.prix ? ' · ' + escHtml(e.prix) : '') + '</div>'
+                    + '</div>'
+                    + '<div style="display:flex; gap:8px; flex-shrink:0;">'
+                    + '<button onclick="window.editCalendrierEntry(\'' + id + '\')" style="background:#0f172a; color:#e2e8f0; border:1px solid #47556944; padding:6px 12px; border-radius:6px; cursor:pointer; font-size:12px;"><i class="fas fa-edit"></i></button>'
+                    + '<button onclick="window.deleteCalendrierEntry(\'' + id + '\')" style="background:#0f172a; color:#ef4444; border:1px solid #ef444444; padding:6px 12px; border-radius:6px; cursor:pointer; font-size:12px;"><i class="fas fa-trash"></i></button>'
+                    + '</div></div>';
+            });
+            list.innerHTML = html;
+        }
+    });
+    _loadCalendrierMatchsAdmin();
+};
+
+// Matchs d'équipes à venir (lecture seule — gérés depuis l'onglet Équipes)
+function _loadCalendrierMatchsAdmin() {
+    var el = document.getElementById('calendrier-matchs-list');
+    if (!el) return;
+    Promise.all([
+        db_ref.ref('equipes').once('value'),
+        db_ref.ref('championnats_equipe').once('value')
+    ]).then(function(snaps) {
+        var champs = {};
+        snaps[1].forEach(function(c) { champs[c.key] = c.val(); });
+        var todayISO = new Date().toISOString().substring(0, 10);
+        var matchs = [];
+        snaps[0].forEach(function(eqChild) {
+            var eq = eqChild.val(); if (!eq) return;
+            Object.values(eq.rencontres || {}).forEach(function(r) {
+                if (!r.date || r.date < todayISO) return;
+                matchs.push({ date: r.date, heure: r.heure || '', eqNom: eq.nom || 'Équipe', adversaire: r.adversaire || '', domicile: !!r.domicile, champNom: (champs[eq.champId] || {}).nom || '' });
+            });
+        });
+        matchs.sort(function(a, b) { return a.date.localeCompare(b.date); });
+        if (!matchs.length) {
+            el.innerHTML = '<p style="color:#64748b; font-size:12px; text-align:center;">Aucun match à venir.</p>';
+            return;
+        }
+        el.innerHTML = matchs.map(function(m) {
+            return '<div style="display:flex; align-items:center; gap:10px; padding:9px 12px; background:rgba(225,29,72,0.05); border:1px solid rgba(225,29,72,0.2); border-radius:8px; font-size:12px;">'
+                + '<span>' + (m.domicile ? '🏠' : '🚌') + '</span>'
+                + '<strong style="color:#e2e8f0;">' + _calFmtDate(m.date) + (m.heure ? ' ' + escHtml(m.heure) : '') + '</strong>'
+                + '<span style="color:#94a3b8;">' + escHtml(m.eqNom) + (m.adversaire ? ' vs ' + escHtml(m.adversaire) : '') + '</span>'
+                + (m.champNom ? '<span style="color:#475569; margin-left:auto;">' + escHtml(m.champNom) + '</span>' : '')
+                + '</div>';
+        }).join('');
+    });
+}
+
+window.saveCalendrierEntry = function() {
+    var titre = (document.getElementById('cal-titre').value || '').trim();
+    var type = document.getElementById('cal-type').value;
+    var date = document.getElementById('cal-date').value;
+    var dateFin = document.getElementById('cal-date-fin').value;
+    var heure = document.getElementById('cal-heure').value;
+    var lieu = (document.getElementById('cal-lieu').value || '').trim();
+    var prix = (document.getElementById('cal-prix').value || '').trim();
+    var description = (document.getElementById('cal-description').value || '').trim();
+    var editId = document.getElementById('cal-edit-id').value;
+    var fileInput = document.getElementById('cal-image-file');
+    var file = fileInput && fileInput.files ? fileInput.files[0] : null;
+
+    if (!titre || !date) { window.showNotification && window.showNotification('Le titre et la date sont obligatoires.', 'error'); return; }
+    if (dateFin && dateFin < date) { window.showNotification && window.showNotification('La date de fin doit être après la date de début.', 'error'); return; }
+
+    var saveBtn = document.getElementById('cal-save-label');
+    if (saveBtn) saveBtn.textContent = 'Enregistrement…';
+
+    var imagePromise = file ? uploadImage(file) : Promise.resolve(_calImageUrl || '');
+    imagePromise.then(function(imageUrl) {
+        var data = {
+            titre: titre, type: type, date: date,
+            dateFin: dateFin || null, heure: heure || null,
+            lieu: lieu || null, prix: prix || null,
+            description: description || null,
+            image: imageUrl || null
+        };
+        if (!editId) data.createdAt = Date.now();
+        var ref = editId ? db_ref.ref('calendrier/' + editId) : db_ref.ref('calendrier').push();
+        return ref.update(data);
+    }).then(function() {
+        window.showNotification && window.showNotification(editId ? 'Entrée mise à jour.' : 'Ajouté au calendrier !', 'success');
+        window.resetCalendrierForm();
+        window.loadCalendrierAdmin();
+    }).catch(function(err) {
+        window.showNotification && window.showNotification('Erreur enregistrement : ' + (err.message || err), 'error');
+        if (saveBtn) saveBtn.textContent = editId ? 'Enregistrer les modifications' : 'Ajouter au calendrier';
+    });
+};
+
+window.editCalendrierEntry = function(id) {
+    var e = _calDataCache[id]; if (!e) return;
+    document.getElementById('cal-edit-id').value = id;
+    document.getElementById('cal-titre').value = e.titre || '';
+    document.getElementById('cal-type').value = e.type || 'autre';
+    document.getElementById('cal-date').value = e.date || '';
+    document.getElementById('cal-date-fin').value = e.dateFin || '';
+    document.getElementById('cal-heure').value = e.heure || '';
+    document.getElementById('cal-lieu').value = e.lieu || '';
+    document.getElementById('cal-prix').value = e.prix || '';
+    document.getElementById('cal-description').value = e.description || '';
+    _calImageUrl = e.image || '';
+    var preview = document.getElementById('cal-image-preview');
+    if (preview) preview.innerHTML = _calImageUrl ? '<img src="' + escHtml(_calImageUrl) + '" style="max-height:80px; border-radius:8px;"> <button onclick="window.removeCalImage()" style="background:none; border:none; color:#ef4444; cursor:pointer; font-size:11px; text-decoration:underline;">Retirer l\'image</button>' : '';
+    document.getElementById('cal-form-title').innerHTML = '<i class="fas fa-edit" style="margin-right:8px;"></i>Modifier l\'entrée';
+    document.getElementById('cal-save-label').textContent = 'Enregistrer les modifications';
+    document.getElementById('cal-cancel-btn').style.display = '';
+    document.getElementById('cal-titre').focus();
+};
+
+window.removeCalImage = function() {
+    _calImageUrl = '';
+    var preview = document.getElementById('cal-image-preview');
+    if (preview) preview.innerHTML = '';
+};
+
+window.resetCalendrierForm = function() {
+    ['cal-edit-id','cal-titre','cal-date','cal-date-fin','cal-heure','cal-lieu','cal-prix','cal-description'].forEach(function(f) {
+        var el = document.getElementById(f); if (el) el.value = '';
+    });
+    document.getElementById('cal-type').value = 'tournoi';
+    var fileInput = document.getElementById('cal-image-file'); if (fileInput) fileInput.value = '';
+    _calImageUrl = '';
+    var preview = document.getElementById('cal-image-preview'); if (preview) preview.innerHTML = '';
+    document.getElementById('cal-form-title').innerHTML = '<i class="fas fa-plus-circle" style="margin-right:8px;"></i>Ajouter au calendrier';
+    document.getElementById('cal-save-label').textContent = 'Ajouter au calendrier';
+    document.getElementById('cal-cancel-btn').style.display = 'none';
+};
+
+window.deleteCalendrierEntry = async function(id) {
+    var e = _calDataCache[id] || {};
+    var ok = await window.confirmDialog.show({
+        title: 'Supprimer du calendrier',
+        message: 'Supprimer « ' + (e.titre || 'cette entrée') + ' » du calendrier ?',
+        type: 'danger', confirmText: 'Supprimer', cancelText: 'Annuler'
+    });
+    if (!ok) return;
+    db_ref.ref('calendrier/' + id).remove().then(function() {
+        window.showNotification && window.showNotification('Entrée supprimée.', 'success');
+        window.loadCalendrierAdmin();
+    }).catch(function(err) {
+        window.showNotification && window.showNotification('Erreur suppression : ' + (err.message || err), 'error');
+    });
+};
 
 window.editItem = async (section, index) => {
     window.switchAdmin(section);
