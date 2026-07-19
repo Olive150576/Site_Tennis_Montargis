@@ -303,6 +303,10 @@ window.showErrorMessage = function(error, context = '') {
         'PERMISSION_DENIED': 'Vous n\'avez pas les permissions nécessaires pour cette action.',
         'auth/user-not-found': 'Aucun compte trouvé avec cet email.',
         'auth/wrong-password': 'Mot de passe incorrect.',
+        'auth/invalid-credential': 'Email ou mot de passe incorrect.',
+        'auth/invalid-login-credentials': 'Email ou mot de passe incorrect.',
+        'auth/too-many-requests': 'Trop de tentatives de connexion. Patientez quelques minutes puis réessayez (ou utilisez « Mot de passe oublié »).',
+        'auth/user-disabled': 'Ce compte a été désactivé.',
         'auth/email-already-in-use': 'Cet email est déjà utilisé.',
         'auth/weak-password': 'Le mot de passe doit contenir au moins 6 caractères.',
         'auth/invalid-email': 'L\'adresse email n\'est pas valide.',
@@ -318,6 +322,11 @@ window.showErrorMessage = function(error, context = '') {
 
     // Erreur de validation renvoyée par une Cloud Function : son message est déjà user-friendly
     if (!userMessage && (error.code === 'functions/invalid-argument' || error.code === 'invalid-argument') && error.message) {
+        userMessage = error.message;
+    }
+
+    // Erreur applicative maison ({ message: '...' } sans code) : afficher le message tel quel
+    if (!userMessage && !error.code && error.message && String(error.message).length < 200) {
         userMessage = error.message;
     }
 
