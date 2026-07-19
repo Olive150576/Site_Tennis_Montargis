@@ -338,6 +338,18 @@ exports.deleteMember = functions.https.onCall(async (data, context) => {
     const { uid } = data;
     if (!uid) throw new functions.https.HttpsError('invalid-argument', 'UID membre requis.');
 
+    // Garde-fou serveur : jamais de suppression d'un compte portant un rôle admin ou coach
+    const [targetAdmin, targetCoach] = await Promise.all([
+        admin.database().ref(`admins/${uid}`).once('value'),
+        admin.database().ref(`coaches/${uid}`).once('value')
+    ]);
+    if (targetAdmin.exists()) {
+        throw new functions.https.HttpsError('failed-precondition', 'Ce compte est administrateur — suppression refusée. Retirez d\'abord son rôle admin.');
+    }
+    if (targetCoach.exists()) {
+        throw new functions.https.HttpsError('failed-precondition', 'Ce compte a l\'accès coach — retirez d\'abord son accès coach avant de le supprimer.');
+    }
+
     // Supprimer les données DB
     await admin.database().ref(`members/${uid}`).remove();
 

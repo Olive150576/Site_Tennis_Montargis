@@ -1739,9 +1739,30 @@ window.toggleMemberActive = async (uid, newStatus) => {
 };
 
 window.deleteMemberAdmin = async (uid, name) => {
+    // Garde-fou : refuser de supprimer un compte qui porte un rôle admin ou coach
+    // (supprimer la fiche membre détruit aussi le compte de connexion partagé)
+    const [adminSnap, coachSnap] = await Promise.all([
+        db_ref.ref('admins/' + uid).once('value').catch(() => null),
+        db_ref.ref('coaches/' + uid).once('value').catch(() => null)
+    ]);
+    if (adminSnap && adminSnap.exists()) {
+        window.showNotification && window.showNotification(
+            'Suppression bloquée : ce compte est un ADMINISTRATEUR. Supprimer sa fiche membre détruirait aussi son accès admin. Retirez d\'abord son rôle admin si c\'est vraiment voulu.',
+            'error'
+        );
+        return;
+    }
+    if (coachSnap && coachSnap.exists()) {
+        window.showNotification && window.showNotification(
+            'Suppression bloquée : ce compte a l\'accès COACH. Retirez d\'abord son accès coach (bouton « Coach ✓ » sur sa fiche), puis supprimez-le.',
+            'error'
+        );
+        return;
+    }
+
     const confirmed = await window.askConfirmation(
         'Supprimer le membre',
-        `Êtes-vous sûr de vouloir supprimer le compte de ${name} ? Cette action est irréversible.`,
+        `Êtes-vous sûr de vouloir supprimer le compte de ${name} ? Son compte de connexion sera aussi détruit. Cette action est irréversible.`,
         'danger'
     );
     if (!confirmed) return;
