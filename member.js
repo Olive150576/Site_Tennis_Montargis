@@ -2030,6 +2030,47 @@ function _calChangerMois(delta) {
     _renderCalendrierListe();
 }
 
+window.calChoisirMois = function(val) {
+    if (!val) return;
+    _calMoisAffiche = val;
+    _renderCalendrierListe();
+};
+
+function _calMoisSuivantDe(ym) {
+    var y = parseInt(ym.substring(0, 4), 10);
+    var m = parseInt(ym.substring(5, 7), 10) + 1;
+    if (m > 12) { m = 1; y++; }
+    return y + '-' + ('0' + m).slice(-2);
+}
+
+// Liste des mois proposés dans le sélecteur : du plus ancien événement (ou aujourd'hui)
+// jusqu'au plus lointain événement, avec au minimum 12 mois devant aujourd'hui
+function _calListeMois() {
+    var moisAuj = new Date().toISOString().substring(0, 7);
+    var minM = moisAuj, maxM = moisAuj;
+    _calEntries.forEach(function(e) {
+        var md = e.date.substring(0, 7);
+        var mf = (e.dateFin || e.date).substring(0, 7);
+        if (md < minM) minM = md;
+        if (mf > maxM) maxM = mf;
+    });
+    var plancher = new Date();
+    plancher.setMonth(plancher.getMonth() + 12);
+    var maxMin = plancher.toISOString().substring(0, 7);
+    if (maxM < maxMin) maxM = maxMin;
+    if (_calMoisAffiche < minM) minM = _calMoisAffiche;
+    if (_calMoisAffiche > maxM) maxM = _calMoisAffiche;
+
+    var liste = [];
+    var cur = minM;
+    var garde = 0;
+    while (cur <= maxM && garde++ < 48) {
+        liste.push(cur);
+        cur = _calMoisSuivantDe(cur);
+    }
+    return liste;
+}
+
 window.calAllerAuJour = function(dayISO) {
     var el = document.getElementById('cal-jour-' + dayISO);
     if (el) {
@@ -2071,11 +2112,19 @@ function _renderCalendrierListe() {
 
     // --- Barre de navigation ---
     var estMoisCourant = _calMoisAffiche === todayISO.substring(0, 7);
+    var optionsMois = _calListeMois().map(function(ym) {
+        var my = ym.substring(0, 4);
+        var mi = parseInt(ym.substring(5, 7), 10) - 1;
+        return '<option value="' + ym + '"' + (ym === _calMoisAffiche ? ' selected' : '') + '>' + _MOIS_FR[mi] + ' ' + my + '</option>';
+    }).join('');
+
     var html = '<div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:14px;">'
         + '<button onclick="window.calMoisPrecedent()" style="background:#1e293b; color:#00d2ff; border:1px solid #33415588; border-radius:8px; padding:8px 14px; cursor:pointer; font-size:14px;"><i class="fas fa-chevron-left"></i></button>'
         + '<div style="text-align:center;">'
-        + '<div style="color:#e2e8f0; font-family:\'Orbitron\'; font-size:1rem;">' + _MOIS_FR[m - 1] + ' ' + y + '</div>'
-        + (!estMoisCourant ? '<button onclick="window.calAujourdhui()" style="background:none; border:none; color:#00d2ff; font-size:11px; cursor:pointer; text-decoration:underline; padding:2px;">Revenir à aujourd\'hui</button>' : '')
+        + '<select onchange="window.calChoisirMois(this.value)" title="Choisir un mois" '
+        + 'style="background:#0f172a; color:#e2e8f0; font-family:\'Orbitron\', sans-serif; font-size:0.95rem; border:1px solid #33415588; border-radius:8px; padding:7px 10px; cursor:pointer; text-align:center; -webkit-appearance:none; appearance:none;">'
+        + optionsMois + '</select>'
+        + (!estMoisCourant ? '<div><button onclick="window.calAujourdhui()" style="background:none; border:none; color:#00d2ff; font-size:11px; cursor:pointer; text-decoration:underline; padding:2px;">Revenir à aujourd\'hui</button></div>' : '')
         + '</div>'
         + '<button onclick="window.calMoisSuivant()" style="background:#1e293b; color:#00d2ff; border:1px solid #33415588; border-radius:8px; padding:8px 14px; cursor:pointer; font-size:14px;"><i class="fas fa-chevron-right"></i></button>'
         + '</div>';
