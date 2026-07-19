@@ -1924,6 +1924,15 @@ var _equipesLoaded = false;
 var _equipesChampData = {};
 var _equipesInscriptionsData = {};
 
+// Libellé lisible d'une clé de poste (simple2 → « Simple 2 », double3_B → « Double 3 — Joueur B »)
+function _posLabelMember(pos) {
+    var m = String(pos).match(/^simple(\d+)$/);
+    if (m) return 'Simple ' + m[1];
+    m = String(pos).match(/^double(\d+)_([AB])$/);
+    if (m) return 'Double ' + m[1] + ' — Joueur ' + m[2];
+    return pos;
+}
+
 function loadEquipesMember(uid) {
     var disposEl = document.getElementById('equipes-champs-dispos');
     var mesChEl = document.getElementById('equipes-mes-champs');
@@ -1939,16 +1948,11 @@ function loadEquipesMember(uid) {
                 var champs = {}; _equipesChampData = {};
                 snapChamps.forEach(function(c) { champs[c.key] = Object.assign({}, c.val(), {id: c.key}); _equipesChampData[c.key] = champs[c.key]; });
 
-                // Équipes où le membre est assigné (champId -> {id, data})
-                var mesEquipesAssignees = {};
                 // Toutes les équipes (equipeId -> data)
                 var allEquipes = {};
                 snapEquipes.forEach(function(eqChild) {
                     var eq = eqChild.val();
                     if (eq) allEquipes[eqChild.key] = eq;
-                    if (eq && eq.champId && eq.joueurs && eq.joueurs[uid]) {
-                        mesEquipesAssignees[eq.champId] = { id: eqChild.key, data: eq };
-                    }
                 });
 
                 // Inscriptions du membre
@@ -1993,7 +1997,7 @@ function loadEquipesMember(uid) {
                         } else if (inscrit) {
                             badge = '<span style="background:#22c55e22; color:#22c55e; border:1px solid #22c55e44; border-radius:20px; padding:4px 12px; font-size:12px;"><i class="fas fa-check-circle" style="margin-right:4px;"></i>Inscrit(e)</span>';
                         } else {
-                            badge = '<button onclick="window.ouvrirModalInscription(\'' + c.id + '\')" style="background:linear-gradient(135deg,#e11d48,#9f1239); color:white; border:none; padding:8px 16px; border-radius:8px; font-weight:bold; cursor:pointer; font-size:12px;"><i class="fas fa-plus" style="margin-right:5px;"></i>S\'inscrire</button>';
+                            badge = '<button onclick="window.inscrireChampionnat(\'' + c.id + '\')" style="background:linear-gradient(135deg,#e11d48,#9f1239); color:white; border:none; padding:8px 16px; border-radius:8px; font-weight:bold; cursor:pointer; font-size:12px;"><i class="fas fa-plus" style="margin-right:5px;"></i>S\'inscrire</button>';
                         }
                         html += '<div style="background:#1e293b; border:1px solid ' + borderColor + '; border-radius:12px; padding:16px;">'
                             + '<div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px; margin-bottom:10px;">'
@@ -2020,8 +2024,6 @@ function loadEquipesMember(uid) {
                         var c = champs[champId]; if (!c) return;
                         var ins = mesInscriptions[champId];
                         var dispos = ins.disponibilites || {};
-                        // Rencontres depuis l'équipe assignée (pas depuis le championnat)
-                        var monEquipe = mesEquipesAssignees[champId];
 
                         var insRefuse = ins.statut === 'refuse';
                         var insBorder = insRefuse ? 'rgba(239,68,68,0.4)' : 'rgba(201,162,39,0.3)';
@@ -2044,78 +2046,57 @@ function loadEquipesMember(uid) {
                                 + '</div>';
                         }
 
-                        // Équipes où le membre s'est inscrit (nouveau format equipeIds ou ancien equipeId)
-                        var registeredEquipeIds = ins.equipeIds || {};
-                        if (ins.equipeId && !ins.equipeIds) registeredEquipeIds[ins.equipeId] = true;
-
-                        // Toutes les équipes de ce championnat, triées par nom
-                        var equipesduChamp = Object.entries(allEquipes)
-                            .filter(function(e) { return e[1].champId === champId; })
+                        // Mes équipes (assignées par le coach) pour ce championnat
+                        var mesEquipes = Object.entries(allEquipes)
+                            .filter(function(e) { return e[1].champId === champId && e[1].joueurs && e[1].joueurs[uid]; })
                             .sort(function(a, b) { return (a[1].nom || '').localeCompare(b[1].nom || ''); });
 
-                        if (!equipesduChamp.length) {
-                            html2 += '<p style="color:#64748b; font-size:12px;"><i class="fas fa-clock" style="margin-right:4px;"></i>Aucune équipe dans ce championnat pour l\'instant.</p>';
+                        if (insRefuse) {
+                            // rien de plus : le motif est déjà affiché au-dessus
+                        } else if (!ins.valide) {
+                            html2 += '<div style="background:#0f172a; border-radius:8px; padding:12px 14px; font-size:12px; color:#94a3b8;">'
+                                + '<i class="fas fa-hourglass-half" style="color:#f59e0b; margin-right:6px;"></i>'
+                                + 'Votre inscription est en attente de validation. Le coach vous placera ensuite dans une équipe.</div>';
+                        } else if (!mesEquipes.length) {
+                            html2 += '<div style="background:#0f172a; border-radius:8px; padding:12px 14px; font-size:12px; color:#94a3b8;">'
+                                + '<i class="fas fa-user-clock" style="color:#00d2ff; margin-right:6px;"></i>'
+                                + 'Inscription validée ! Le coach va vous placer dans une équipe — vous serez notifié(e).</div>';
                         } else {
-                            html2 += '<div style="font-size:12px; color:#94a3b8; margin-bottom:10px;"><i class="fas fa-calendar-alt" style="margin-right:4px;"></i>Calendrier de toutes les équipes :</div>';
-                            equipesduChamp.forEach(function(eEntry) {
+                            mesEquipes.forEach(function(eEntry) {
                                 var equipeId = eEntry[0]; var eq = eEntry[1];
-                                var isMyTeam = monEquipe && monEquipe.id === equipeId;
-                                var isInscrit = !!registeredEquipeIds[equipeId];
                                 var rencontres = Object.entries(eq.rencontres || {})
                                     .sort(function(a, b) { return (a[1].date || '').localeCompare(b[1].date || ''); });
-                                // En-tête équipe : gold si mon équipe (assignée), cyan si inscrit, gris sinon
-                                var eqColor = isMyTeam ? '#c9a227' : isInscrit ? '#00d2ff' : '#475569';
-                                html2 += '<div style="margin-bottom:12px; opacity:' + (isInscrit ? '1' : '0.55') + ';">';
-                                html2 += '<div style="font-size:12px; color:' + eqColor + '; font-weight:bold; margin-bottom:6px;">'
+                                html2 += '<div style="margin-bottom:12px;">';
+                                html2 += '<div style="font-size:12px; color:#c9a227; font-weight:bold; margin-bottom:6px;">'
                                     + '<i class="fas fa-shield-alt" style="margin-right:4px;"></i>' + escMember(eq.nom)
-                                    + (isMyTeam ? ' <span style="background:#c9a22722; color:#c9a227; border:1px solid #c9a22744; border-radius:10px; padding:1px 7px; font-size:10px; margin-left:5px;">Mon équipe</span>' : '')
-                                    + (isInscrit && !isMyTeam ? ' <span style="background:#00d2ff22; color:#00d2ff; border:1px solid #00d2ff44; border-radius:10px; padding:1px 7px; font-size:10px; margin-left:5px;">Inscrit(e)</span>' : '')
-                                    + (!isInscrit ? ' <span style="background:#47556922; color:#64748b; border:1px solid #47556944; border-radius:10px; padding:1px 7px; font-size:10px; margin-left:5px;">Non inscrit(e)</span>' : '')
+                                    + ' <span style="background:#c9a22722; color:#c9a227; border:1px solid #c9a22744; border-radius:10px; padding:1px 7px; font-size:10px; margin-left:5px;">Mon équipe</span>'
+                                    + (eq.niveau ? ' <span style="color:#64748b; font-weight:normal; font-size:11px;">' + escMember(eq.niveau) + '</span>' : '')
                                     + '</div>';
                                 if (!rencontres.length) {
-                                    html2 += '<p style="color:#475569; font-size:12px; padding:4px 0 4px 16px;">Aucune rencontre planifiée</p>';
+                                    html2 += '<p style="color:#475569; font-size:12px; padding:4px 0 4px 16px;">Aucune rencontre planifiée pour l\'instant.</p>';
                                 } else {
+                                    html2 += '<div style="font-size:11px; color:#64748b; margin-bottom:6px;">Indiquez vos disponibilités — elles sont enregistrées immédiatement et visibles par le coach :</div>';
                                     html2 += '<div style="display:grid; gap:6px;">';
                                     rencontres.forEach(function(rEntry) {
                                         var rid = rEntry[0]; var r = rEntry[1];
                                         var domLabel = r.domicile ? '🏠' : '🚌';
-                                        var dateInfo = '<div style="font-size:12px; color:' + (isInscrit ? '#e2e8f0' : '#64748b') + ';">' + domLabel + ' ' + escMember(r.date) + ' ' + escMember(r.heure || '') + (r.adversaire ? ' — vs ' + escMember(r.adversaire) : '') + '</div>';
-                                        if (isInscrit) {
-                                            var dispoKey = equipeId + '_' + rid;
-                                            var isDispo = dispos[dispoKey];
-                                            var convRid = eq.convocations && eq.convocations[rid];
-                                            var isConvoque = convRid && convRid.validee && (Object.values(convRid.positions || {}).indexOf(uid) !== -1);
-                                            html2 += '<div style="display:flex; align-items:center; justify-content:space-between; padding:8px 12px; background:#0f172a; border-radius:8px; flex-wrap:wrap; gap:8px;">'
-                                                + dateInfo
-                                                + '<div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">'
-                                                + (isConvoque ? '<span style="background:#c9a22722; color:#c9a227; border:1px solid #c9a22766; border-radius:6px; padding:3px 8px; font-size:10px; white-space:nowrap;"><i class="fas fa-shield-alt" style="margin-right:3px;"></i>Dans la compo</span>' : '')
-                                                + '<button onclick="window.toggleDisponibilite(\'' + champId + '\',\'' + uid + '\',\'' + dispoKey + '\',true)" style="background:' + (isDispo === true ? '#22c55e' : '#1e293b') + '; color:' + (isDispo === true ? 'white' : '#22c55e') + '; border:1px solid #22c55e44; padding:5px 10px; border-radius:6px; cursor:pointer; font-size:11px;"><i class="fas fa-check"></i> Dispo</button>'
-                                                + '<button onclick="window.toggleDisponibilite(\'' + champId + '\',\'' + uid + '\',\'' + dispoKey + '\',false)" style="background:' + (isDispo === false ? '#ef4444' : '#1e293b') + '; color:' + (isDispo === false ? 'white' : '#ef4444') + '; border:1px solid #ef444444; padding:5px 10px; border-radius:6px; cursor:pointer; font-size:11px;"><i class="fas fa-times"></i> Indispo</button>'
-                                                + '</div></div>';
-                                        } else {
-                                            html2 += '<div style="padding:7px 12px; background:#0f172a; border-radius:8px;">' + dateInfo + '</div>';
-                                        }
+                                        var dateInfo = '<div style="font-size:12px; color:#e2e8f0;">' + domLabel + ' ' + escMember(r.date) + ' ' + escMember(r.heure || '') + (r.adversaire ? ' — vs ' + escMember(r.adversaire) : '') + '</div>';
+                                        var dispoKey = equipeId + '_' + rid;
+                                        var isDispo = dispos[dispoKey];
+                                        var convRid = eq.convocations && eq.convocations[rid];
+                                        var isConvoque = convRid && convRid.validee && (Object.values(convRid.positions || {}).indexOf(uid) !== -1);
+                                        html2 += '<div style="display:flex; align-items:center; justify-content:space-between; padding:8px 12px; background:#0f172a; border-radius:8px; flex-wrap:wrap; gap:8px;">'
+                                            + dateInfo
+                                            + '<div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">'
+                                            + (isConvoque ? '<span style="background:#c9a22722; color:#c9a227; border:1px solid #c9a22766; border-radius:6px; padding:3px 8px; font-size:10px; white-space:nowrap;"><i class="fas fa-shield-alt" style="margin-right:3px;"></i>Convoqué(e)</span>' : '')
+                                            + '<button onclick="window.toggleDisponibilite(\'' + champId + '\',\'' + uid + '\',\'' + dispoKey + '\',true)" style="background:' + (isDispo === true ? '#22c55e' : '#1e293b') + '; color:' + (isDispo === true ? 'white' : '#22c55e') + '; border:1px solid #22c55e44; padding:5px 10px; border-radius:6px; cursor:pointer; font-size:11px;"><i class="fas fa-check"></i> Dispo</button>'
+                                            + '<button onclick="window.toggleDisponibilite(\'' + champId + '\',\'' + uid + '\',\'' + dispoKey + '\',false)" style="background:' + (isDispo === false ? '#ef4444' : '#1e293b') + '; color:' + (isDispo === false ? 'white' : '#ef4444') + '; border:1px solid #ef444444; padding:5px 10px; border-radius:6px; cursor:pointer; font-size:11px;"><i class="fas fa-times"></i> Indispo</button>'
+                                            + '</div></div>';
                                     });
                                     html2 += '</div>';
                                 }
                                 html2 += '</div>';
                             });
-                        }
-
-                        // Bouton de validation des disponibilités
-                        if (ins.disponibilitesValidees) {
-                            var valDate = ins.disponibilitesValideeAt ? new Date(ins.disponibilitesValideeAt).toLocaleDateString('fr-FR') : '';
-                            html2 += '<div style="background:#22c55e18; border:1px solid #22c55e44; border-radius:8px; padding:10px 14px; margin-top:14px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">'
-                                + '<i class="fas fa-check-circle" style="color:#22c55e; font-size:15px; flex-shrink:0;"></i>'
-                                + '<span style="font-size:12px; color:#22c55e; flex:1;">Disponibilités confirmées au coach' + (valDate ? ' le ' + valDate : '') + '</span>'
-                                + '<button onclick="window.validerDisponibilites(\'' + champId + '\',\'' + uid + '\')" '
-                                + 'style="background:#0f172a; color:#22c55e; border:1px solid #22c55e44; padding:5px 12px; border-radius:6px; cursor:pointer; font-size:11px; white-space:nowrap;">'
-                                + '<i class="fas fa-redo" style="margin-right:4px;"></i>Mettre à jour</button>'
-                                + '</div>';
-                        } else {
-                            html2 += '<button onclick="window.validerDisponibilites(\'' + champId + '\',\'' + uid + '\')" '
-                                + 'style="width:100%; margin-top:14px; background:linear-gradient(135deg,#e11d48,#9f1239); color:white; border:none; padding:12px; border-radius:8px; font-weight:bold; cursor:pointer; font-size:13px;">'
-                                + '<i class="fas fa-paper-plane" style="margin-right:8px;"></i>Valider mes disponibilités au coach</button>';
                         }
                         html2 += '</div>';
                     });
@@ -2132,12 +2113,12 @@ function loadEquipesMember(uid) {
                     Object.entries(eq.convocations).forEach(function(entry) {
                         var rencontreId = entry[0]; var conv = entry[1];
                         if (!conv.validee) return;
-                        var posLabels = { simple1:'Simple 1', simple2:'Simple 2', simple3:'Simple 3', double1_A:'Double 1 — Joueur A', double1_B:'Double 1 — Joueur B', double2_A:'Double 2 — Joueur A', double2_B:'Double 2 — Joueur B' };
                         var myPos = null;
-                        Object.entries(conv.positions || {}).forEach(function(p) { if (p[1] === uid) myPos = posLabels[p[0]] || p[0]; });
+                        Object.entries(conv.positions || {}).forEach(function(p) { if (p[1] === uid) myPos = _posLabelMember(p[0]); });
                         if (!myPos) return;
                         var r = (eq.rencontres && eq.rencontres[rencontreId]) || {};
-                        convocations.push({ equipeNom: eq.nom, champNom: (champs[champId] || {}).nom, champId: champId, r: r, myPos: myPos, positions: conv.positions || {} });
+                        var myRep = (conv.reponses && conv.reponses[uid]) ? conv.reponses[uid].statut : null;
+                        convocations.push({ equipeNom: eq.nom, champNom: (champs[champId] || {}).nom, champId: champId, equipeId: eqId, rencontreId: rencontreId, r: r, myPos: myPos, positions: conv.positions || {}, myRep: myRep });
                     });
                 });
 
@@ -2158,9 +2139,16 @@ function loadEquipesMember(uid) {
                             ? '<span style="display:inline-flex; align-items:center; gap:5px; background:#22c55e18; color:#22c55e; border:1px solid #22c55e44; border-radius:20px; padding:3px 10px; font-size:12px; font-weight:600;"><span style="font-size:18px; line-height:1;">🏠</span>Domicile</span>'
                             : '<span style="display:inline-flex; align-items:center; gap:5px; background:#f59e0b18; color:#f59e0b; border:1px solid #f59e0b44; border-radius:20px; padding:3px 10px; font-size:12px; font-weight:600;"><span style="font-size:18px; line-height:1;">🚌</span>Extérieur</span>';
 
-                        // --- Composition de l'équipe ---
-                        var posOrder = ['simple1','simple2','simple3','double1_A','double2_A','double3_A'];
-                        var posShortLabels = { simple1:'S1', simple2:'S2', simple3:'S3', double1_A:'D1', double2_A:'D2', double3_A:'D3' };
+                        // --- Composition de l'équipe (ordre dérivé des positions réellement remplies) ---
+                        var posOrder = [];
+                        Object.keys(cv.positions).forEach(function(pk) {
+                            var base = pk.replace(/_B$/, '_A');
+                            if (posOrder.indexOf(base) === -1) posOrder.push(base);
+                        });
+                        posOrder.sort(function(a, b) {
+                            var rank = function(p) { return (p.indexOf('double') === 0 ? '2' : '1') + p; };
+                            return rank(a).localeCompare(rank(b));
+                        });
 
                         // Partenaire en double (si le membre est en double)
                         var partenaireHtml = '';
@@ -2211,7 +2199,7 @@ function loadEquipesMember(uid) {
                                 var name = (((m.prenom||'') + ' ' + (m.nom||'')).trim()) || '?';
                                 var cls = m.classement ? ' (' + m.classement + ')' : '';
                                 var tel = m.telephone || '';
-                                lignes.push({ label: posShortLabels[pos], text: escMember(name + cls), tel: tel, isMe: posUid === uid, isDouble: false });
+                                lignes.push({ label: 'S' + (pos.match(/\d+/) || ['?'])[0], text: escMember(name + cls), tel: tel, isMe: posUid === uid, isDouble: false });
                             }
                         });
 
@@ -2241,7 +2229,24 @@ function loadEquipesMember(uid) {
                                 + '</div>';
                         }
 
-                        return '<div style="background:linear-gradient(135deg,rgba(225,29,72,0.1),rgba(0,210,255,0.05)); border:1px solid rgba(225,29,72,0.4); border-radius:12px; padding:16px;">'
+                        // --- Réponse à la convocation ---
+                        var isConf = cv.myRep === 'confirme';
+                        var isDecl = cv.myRep === 'decline';
+                        var reponseHtml = '<div style="border-top:1px solid rgba(255,255,255,0.08); margin-top:12px; padding-top:12px;">'
+                            + '<div style="font-size:10px; color:#475569; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;">Votre réponse</div>'
+                            + '<div style="display:flex; gap:8px; flex-wrap:wrap;">'
+                            + '<button onclick="window.repondreConvocation(\'' + cv.equipeId + '\',\'' + cv.rencontreId + '\',\'confirme\')" '
+                            + 'style="flex:1; min-width:140px; background:' + (isConf ? '#22c55e' : '#1e293b') + '; color:' + (isConf ? 'white' : '#22c55e') + '; border:1px solid #22c55e55; padding:10px 14px; border-radius:8px; cursor:pointer; font-size:12px; font-weight:bold;">'
+                            + '<i class="fas fa-check" style="margin-right:5px;"></i>' + (isConf ? 'Présence confirmée' : 'Je confirme ma présence') + '</button>'
+                            + '<button onclick="window.repondreConvocation(\'' + cv.equipeId + '\',\'' + cv.rencontreId + '\',\'decline\')" '
+                            + 'style="flex:1; min-width:140px; background:' + (isDecl ? '#ef4444' : '#1e293b') + '; color:' + (isDecl ? 'white' : '#ef4444') + '; border:1px solid #ef444455; padding:10px 14px; border-radius:8px; cursor:pointer; font-size:12px; font-weight:bold;">'
+                            + '<i class="fas fa-times" style="margin-right:5px;"></i>' + (isDecl ? 'Désistement envoyé' : 'Je ne peux pas') + '</button>'
+                            + '</div>'
+                            + (!cv.myRep ? '<p style="font-size:11px; color:#64748b; margin:8px 0 0;">Merci de répondre pour que le coach sache sur qui compter.</p>' : '')
+                            + (isDecl ? '<p style="font-size:11px; color:#f59e0b; margin:8px 0 0;"><i class="fas fa-info-circle" style="margin-right:4px;"></i>Le coach est informé et pourra vous remplacer. Prévenez-le aussi directement si possible.</p>' : '')
+                            + '</div>';
+
+                        return '<div style="background:linear-gradient(135deg,rgba(225,29,72,0.1),rgba(0,210,255,0.05)); border:1px solid ' + (isDecl ? 'rgba(239,68,68,0.5)' : isConf ? 'rgba(34,197,94,0.45)' : 'rgba(225,29,72,0.4)') + '; border-radius:12px; padding:16px;">'
                             + '<div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">'
                             + '<i class="fas fa-bell" style="color:#e11d48; font-size:16px;"></i>'
                             + '<span style="font-weight:bold; color:#e2e8f0;">' + escMember(cv.equipeNom) + '</span>'
@@ -2254,6 +2259,7 @@ function loadEquipesMember(uid) {
                             + (cv.r.adversaire ? '<div style="font-size:13px; color:#e2e8f0; margin-bottom:4px;"><span style="color:#64748b; margin-right:4px;">vs</span><strong>' + escMember(cv.r.adversaire) + '</strong></div>' : '')
                             + (cv.r.lieu ? '<div style="font-size:12px; color:#64748b;"><i class="fas fa-map-marker-alt" style="margin-right:4px;"></i>' + escMember(cv.r.lieu) + '</div>' : '')
                             + compositionHtml
+                            + reponseHtml
                             + '</div>';
                     }).join('');
                     if (convEl) convEl.innerHTML = html3;
@@ -2285,139 +2291,56 @@ function loadEquipesMember(uid) {
 // --- Classement FFT ---
 var _CLASSEMENTS_FFT = ['-15','-4/6','-2/6','0','1/6','2/6','3/6','4/6','5/6','15','15/1','15/2','15/3','15/4','15/5','30','30/1','30/2','30/3','30/4','30/5','40','NC'];
 
-function _classementQualifie(memberClass, cmin, cmax) {
-    if (!cmin && !cmax) return true; // aucune restriction
-    var idx = _CLASSEMENTS_FFT.indexOf(String(memberClass || '').trim());
-    if (idx === -1) return true; // classement inconnu → on laisse passer (coach décide)
-    var minIdx = cmin ? _CLASSEMENTS_FFT.indexOf(cmin) : 0;
-    var maxIdx = cmax ? _CLASSEMENTS_FFT.indexOf(cmax) : _CLASSEMENTS_FFT.length - 1;
-    if (minIdx === -1) minIdx = 0;
-    if (maxIdx === -1) maxIdx = _CLASSEMENTS_FFT.length - 1;
-    return idx >= minIdx && idx <= maxIdx;
-}
-
-window.ouvrirModalInscription = function(champId) {
+// Inscription en 1 clic : le membre s'inscrit au championnat, le coach compose les équipes
+window.inscrireChampionnat = async function(champId) {
     var c = _equipesChampData[champId]; if (!c) return;
-    document.getElementById('modal-inscription-champ-id').value = champId;
-    document.getElementById('modal-inscription-champ-nom').textContent = c.nom;
-    var format = (c.nb_simples || 2) + ' Simple' + (c.nb_simples > 1 ? 's' : '');
-    if (c.nb_doubles > 0) format += ' + ' + c.nb_doubles + ' Double' + (c.nb_doubles > 1 ? 's' : '');
-    document.getElementById('modal-inscription-champ-format').textContent = c.saison + ' — ' + format;
-    document.getElementById('modal-inscription-champ').style.display = '';
-
-    var rencontresEl = document.getElementById('modal-inscription-rencontres');
-    rencontresEl.innerHTML = '<p style="color:#64748b; font-size:12px; text-align:center;"><i class="fas fa-spinner fa-spin"></i> Chargement des équipes...</p>';
-
-    var memberClass = (_cardMemberData && _cardMemberData.classement) || '';
-
-    window.db_ref.ref('equipes').orderByChild('champId').equalTo(champId).once('value', function(snapEq) {
-        var equipes = [];
-        snapEq.forEach(function(eqChild) { equipes.push(Object.assign({}, eqChild.val(), { id: eqChild.key })); });
-        equipes.sort(function(a, b) { return (a.nom || '').localeCompare(b.nom || ''); });
-
-        if (!equipes.length) {
-            rencontresEl.innerHTML = '<div style="background:#0f172a; border-radius:8px; padding:14px; font-size:12px; color:#94a3b8; text-align:center;">'
-                + '<i class="fas fa-info-circle" style="color:#00d2ff; margin-right:6px;"></i>'
-                + 'Aucune équipe définie — le coach vous assignera à une équipe après votre inscription.</div>';
-            return;
-        }
-
-        var html = '';
-        if (memberClass) {
-            html += '<div style="background:#0f172a; border-radius:8px; padding:10px 14px; margin-bottom:12px; font-size:12px; color:#94a3b8;">'
-                + '<i class="fas fa-id-card" style="color:#00d2ff; margin-right:6px;"></i>'
-                + 'Votre classement : <strong style="color:#e2e8f0;">' + escMember(memberClass) + '</strong></div>';
-        }
-
-        var hasAnyEligible = equipes.some(function(eq) {
-            return _classementQualifie(memberClass, eq.classement_min, eq.classement_max);
-        });
-
-        equipes.forEach(function(eq) {
-            var hasRestriction = eq.classement_min || eq.classement_max;
-            var plage = hasRestriction ? escMember((eq.classement_min || '…') + ' → ' + (eq.classement_max || '…')) : '';
-            var qualifie = _classementQualifie(memberClass, eq.classement_min, eq.classement_max);
-
-            if (qualifie) {
-                html += '<label style="display:flex; align-items:center; gap:12px; background:#0f172a; border:1px solid rgba(34,197,94,0.35); border-radius:10px; padding:14px; cursor:pointer; margin-bottom:0;">'
-                    + '<input type="checkbox" class="equipe-inscription-cb" value="' + eq.id + '" checked '
-                    + 'style="width:18px; height:18px; accent-color:#22c55e; cursor:pointer; flex-shrink:0;">'
-                    + '<div style="flex:1;">'
-                    + '<div style="font-weight:bold; color:#e2e8f0; font-size:13px;"><i class="fas fa-shield-alt" style="color:#22c55e; margin-right:6px;"></i>' + escMember(eq.nom) + '</div>'
-                    + (plage ? '<div style="font-size:11px; color:#64748b; margin-top:3px;"><i class="fas fa-trophy" style="margin-right:4px; color:#c9a227;"></i>' + plage + '</div>' : '<div style="font-size:11px; color:#64748b; margin-top:3px;">Ouvert à tous</div>')
-                    + '</div>'
-                    + '</label>';
-            } else {
-                html += '<div style="display:flex; align-items:center; gap:12px; background:#0f172a; border:1px solid rgba(71,85,105,0.25); border-radius:10px; padding:14px; opacity:0.55;">'
-                    + '<i class="fas fa-lock" style="color:#475569; font-size:16px; flex-shrink:0;"></i>'
-                    + '<div>'
-                    + '<div style="font-weight:bold; color:#64748b; font-size:13px;">' + escMember(eq.nom) + '</div>'
-                    + (plage ? '<div style="font-size:11px; color:#475569; margin-top:3px;">Classement requis : ' + plage + '</div>' : '')
-                    + '</div>'
-                    + '</div>';
-            }
-        });
-
-        if (hasAnyEligible) {
-            html += '<button onclick="window.confirmerInscriptionsEquipes(\'' + champId + '\')" '
-                + 'style="width:100%; margin-top:4px; background:linear-gradient(135deg,#22c55e,#16a34a); color:white; border:none; padding:12px; border-radius:10px; font-weight:bold; cursor:pointer; font-size:13px;">'
-                + '<i class="fas fa-check" style="margin-right:8px;"></i>Confirmer mes inscriptions</button>';
-        } else {
-            html += '<div style="background:#0f172a; border-radius:8px; padding:12px; font-size:12px; color:#64748b; text-align:center; margin-top:4px;">'
-                + '<i class="fas fa-info-circle" style="margin-right:6px; color:#00d2ff;"></i>Votre classement ne correspond à aucune équipe. Contactez le coach.</div>';
-        }
-
-        rencontresEl.innerHTML = html;
-    });
-};
-
-window.confirmerInscriptionsEquipes = function(champId) {
     var uid = _cardMemberData ? _cardMemberData._uid : null;
-    if (!champId || !uid) return;
-    var checkboxes = document.querySelectorAll('.equipe-inscription-cb:checked');
-    var equipeIds = {};
-    checkboxes.forEach(function(cb) { equipeIds[cb.value] = true; });
-    if (!Object.keys(equipeIds).length) {
-        window.showNotification && window.showNotification('Cochez au moins une équipe pour vous inscrire.', 'error');
-        return;
+    if (!uid) return;
+
+    var message = 'Vous inscrire au championnat « ' + c.nom + ' » ?\n\nLe coach validera votre inscription et vous placera dans une équipe. Vous pourrez ensuite indiquer vos disponibilités.';
+    var ok;
+    if (window.confirmDialog && window.confirmDialog.show) {
+        ok = await window.confirmDialog.show({ title: 'S\'inscrire au championnat', message: message, type: 'info', confirmText: 'Je m\'inscris', cancelText: 'Annuler' });
+    } else {
+        ok = confirm(message);
     }
-    var n = Object.keys(equipeIds).length;
+    if (!ok) return;
+
     var data = {
         prenom: _cardMemberData.prenom || '',
         nom: _cardMemberData.nom || '',
         classement: _cardMemberData.classement || '',
-        equipeIds: equipeIds,
         valide: false,
         createdAt: Date.now()
     };
     window.db_ref.ref('inscriptions_equipe/' + champId + '/' + uid).set(data).then(function() {
-        window.showNotification && window.showNotification('Inscription enregistrée dans ' + n + ' équipe' + (n > 1 ? 's' : '') + ' !', 'success');
-        document.getElementById('modal-inscription-champ').style.display = 'none';
+        window.showNotification && window.showNotification('Inscription envoyée — le coach va la valider.', 'success');
         _equipesLoaded = false;
         loadEquipesMember(uid);
+    }).catch(function(err) {
+        window.showNotification && window.showNotification('Erreur lors de l\'inscription : ' + (err.message || err), 'error');
     });
 };
 
 window.annulerInscription = async function(champId, uid) {
+    var msg = 'Retirer votre inscription à ce championnat ? Vous serez aussi retiré(e) de votre équipe.';
     if (!window.confirmDialog) {
-        if (!confirm('Se désinscrire de ce championnat ?')) return;
+        if (!confirm(msg)) return;
     } else {
-        var ok = await window.confirmDialog.show({ title: 'Se désinscrire', message: 'Retirer votre inscription à ce championnat ?', type: 'danger', confirmText: 'Confirmer', cancelText: 'Annuler' });
+        var ok = await window.confirmDialog.show({ title: 'Se désinscrire', message: msg, type: 'danger', confirmText: 'Confirmer', cancelText: 'Annuler' });
         if (!ok) return;
     }
     window.db_ref.ref('inscriptions_equipe/' + champId + '/' + uid).remove().then(function() {
+        // Se retirer aussi des effectifs des équipes de ce championnat (autorisé par les règles)
+        window.db_ref.ref('equipes').orderByChild('champId').equalTo(champId).once('value', function(snapEq) {
+            snapEq.forEach(function(child) {
+                var eq = child.val();
+                if (eq && eq.joueurs && eq.joueurs[uid]) {
+                    window.db_ref.ref('equipes/' + child.key + '/joueurs/' + uid).remove().catch(function() {});
+                }
+            });
+        });
         window.showNotification && window.showNotification('Désinscription effectuée.', 'success');
-        _equipesLoaded = false;
-        loadEquipesMember(uid);
-    });
-};
-
-window.validerDisponibilites = function(champId, uid) {
-    window.db_ref.ref('inscriptions_equipe/' + champId + '/' + uid).update({
-        disponibilitesValidees: true,
-        disponibilitesValideeAt: Date.now()
-    }).then(function() {
-        window.showNotification && window.showNotification('Disponibilités envoyées au coach !', 'success');
         _equipesLoaded = false;
         loadEquipesMember(uid);
     });
@@ -2426,11 +2349,29 @@ window.validerDisponibilites = function(champId, uid) {
 window.toggleDisponibilite = function(champId, uid, rencontreId, valeur) {
     var ref = window.db_ref.ref('inscriptions_equipe/' + champId + '/' + uid + '/disponibilites/' + rencontreId);
     ref.set(valeur).then(function() {
-        // Réinitialiser la confirmation — le membre devra re-valider
-        window.db_ref.ref('inscriptions_equipe/' + champId + '/' + uid + '/disponibilitesValidees').set(false);
-        window.showNotification && window.showNotification('Disponibilité mise à jour — pensez à valider vos choix.', 'info');
+        window.showNotification && window.showNotification(valeur ? 'Disponibilité enregistrée ✓' : 'Indisponibilité enregistrée — le coach le verra.', 'success');
         _equipesLoaded = false;
         loadEquipesMember(uid);
+    }).catch(function(err) {
+        window.showNotification && window.showNotification('Erreur enregistrement : ' + (err.message || err), 'error');
+    });
+};
+
+// Réponse du membre à une convocation validée (confirme / decline)
+window.repondreConvocation = function(equipeId, rencontreId, statut) {
+    var uid = _cardMemberData ? _cardMemberData._uid : null;
+    if (!uid) return;
+    window.db_ref.ref('equipes/' + equipeId + '/convocations/' + rencontreId + '/reponses/' + uid).set({
+        statut: statut, at: Date.now()
+    }).then(function() {
+        window.showNotification && window.showNotification(
+            statut === 'confirme' ? 'Présence confirmée — merci !' : 'Désistement enregistré — le coach en est informé.',
+            statut === 'confirme' ? 'success' : 'info'
+        );
+        _equipesLoaded = false;
+        loadEquipesMember(uid);
+    }).catch(function(err) {
+        window.showNotification && window.showNotification('Erreur : ' + (err.message || err), 'error');
     });
 };
 
