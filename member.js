@@ -572,6 +572,16 @@ window.savePartenaireProfile = function() {
     });
 };
 
+// --- Aide de l'espace membre ---
+window.showMemberHelp = function() {
+    var m = document.getElementById('member-help-modal');
+    if (m) m.style.display = 'block';
+};
+window.closeMemberHelp = function() {
+    var m = document.getElementById('member-help-modal');
+    if (m) m.style.display = 'none';
+};
+
 // --- Navigation onglets ---
 var _annuaireLoaded = false;
 var _calendrierLoaded = false;

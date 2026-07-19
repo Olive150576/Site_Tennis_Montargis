@@ -75,7 +75,7 @@
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script defer src="notifications.min.js"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-    <script defer src="admin.min.js?v=24"></script>
+    <script defer src="admin.min.js?v=25"></script>
 </head>
 <body>
 
@@ -155,6 +155,34 @@
             <div class="help-li"><strong>Annoncer un événement aux membres :</strong> Espace membre → Calendrier → Ajouter (avec la vraie date !)</div>
             <div class="help-li"><strong>Lancer un championnat :</strong> Équipes → créer le championnat + équipes → les membres s'inscrivent → « Gérer les joueurs » (cocher = valider + assigner) → importer le calendrier FFT → composer et envoyer les convocations</div>
             <div class="help-li"><strong>Donner l'accès coach :</strong> Membres → fiche du membre → bouton « Accès coach »</div>
+        </div>
+    </div>
+
+    <!-- MODAL AIDE COACH (affiché à la place du guide admin quand l'utilisateur est coach) -->
+    <div id="help-modal-coach" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:5000; padding:30px 15px; overflow-y:auto;">
+        <div style="max-width:640px; margin:0 auto; background:#0f172a; border:1px solid rgba(201,162,39,0.5); border-radius:16px; padding:28px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                <h3 style="color:#c9a227; font-family:'Orbitron'; font-size:1rem; margin:0;"><i class="fas fa-question-circle" style="margin-right:8px;"></i>Guide du coach — Équipes</h3>
+                <button onclick="window.closeHelpModal()" style="background:#334155; color:white; border:none; padding:8px 16px; border-radius:8px; cursor:pointer;">✕</button>
+            </div>
+            <p style="color:#64748b; font-size:12px; margin:0 0 6px;">Votre panneau gère tout le circuit des championnats par équipes, de la création à la convocation. Les joueurs suivent tout depuis leur espace membre.</p>
+
+            <div class="help-h" style="color:#c9a227;"><i class="fas fa-route"></i> Le circuit d'un championnat, dans l'ordre</div>
+            <div class="help-li"><strong>1. Créer</strong> — sous-onglet Championnats : nom, saison, format (simples/doubles), nombre d'équipes avec leurs plages de classement. Les inscriptions sont ouvertes automatiquement.</div>
+            <div class="help-li"><strong>2. Les joueurs s'inscrivent</strong> — depuis leur espace membre, en un clic. Vous les voyez arriver via le bouton « Inscrits » du championnat.</div>
+            <div class="help-li"><strong>3. Composer les équipes</strong> — sous-onglet Équipes → « Gérer les joueurs » : cocher un joueur « En attente » <strong style="color:#22c55e;">valide son inscription ET l'assigne</strong> en une action — il est notifié automatiquement.</div>
+            <div class="help-li"><strong>4. Le calendrier</strong> — bouton « Calendrier » de chaque équipe : saisie manuelle ou <strong>import du fichier Excel FFT</strong> (les rencontres de Montargis sont détectées automatiquement).</div>
+            <div class="help-li"><strong>5. Les disponibilités</strong> — chaque rencontre du kanban affiche « ✓ dispos · ✗ indispos · ? sans réponse » avec les prénoms, remplis par les joueurs depuis leur espace.</div>
+            <div class="help-li"><strong>6. Convoquer</strong> — « Composer » sur la rencontre : les menus indiquent qui est dispo. « Brouillon » sauvegarde sans notifier ; « <strong style="color:#e11d48;">Valider &amp; Notifier</strong> » envoie la convocation à chaque joueur.</div>
+            <div class="help-li"><strong>7. Suivre les réponses</strong> — la tuile affiche « X/Y confirmés » ; un désistement apparaît <strong style="color:#ef4444;">en rouge avec le nom</strong> — pensez à recomposer si besoin.</div>
+
+            <div class="help-h" style="color:#00d2ff;"><i class="fas fa-comments"></i> Discussion d'équipe</div>
+            <div class="help-li">Le bouton 💬 de chaque équipe ouvre sa discussion (covoiturage, intendance…). Vos messages portent le badge doré « Coach ». Vous pouvez supprimer n'importe quel message si nécessaire.</div>
+
+            <div class="help-h" style="color:#94a3b8;"><i class="fas fa-lightbulb"></i> Bon à savoir</div>
+            <div class="help-li">« Fermer les inscriptions » masque le championnat des inscriptions côté membre — les données restent intactes, et c'est réversible.</div>
+            <div class="help-li">« Refuser » une inscription demande un motif que le joueur verra ; « Supprimer » retire tout sans message.</div>
+            <div class="help-li">Supprimer un championnat efface aussi ses équipes, inscriptions, convocations et discussions — définitivement.</div>
         </div>
     </div>
 

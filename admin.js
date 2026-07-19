@@ -1032,6 +1032,12 @@ window.removeTempImage = (index) => {
 })();
 
 window.showAdminHelp = () => {
+    // Le coach a son propre guide, centré sur le circuit des équipes
+    if (window.isCurrentUserCoach) {
+        const coachModal = document.getElementById('help-modal-coach');
+        if (coachModal) coachModal.style.display = 'block';
+        return;
+    }
     const modal = document.getElementById('help-modal');
     if (modal) {
         modal.classList.add('show');
@@ -1043,11 +1049,18 @@ window.closeHelpModal = () => {
     if (modal) {
         modal.classList.remove('show');
     }
+    const coachModal = document.getElementById('help-modal-coach');
+    if (coachModal) coachModal.style.display = 'none';
 };
 
 // Fermer le modal aide si clic à l'extérieur
 document.getElementById('help-modal')?.addEventListener('click', (e) => {
     if (e.target.id === 'help-modal') {
+        window.closeHelpModal();
+    }
+});
+document.getElementById('help-modal-coach')?.addEventListener('click', (e) => {
+    if (e.target.id === 'help-modal-coach') {
         window.closeHelpModal();
     }
 });

@@ -262,7 +262,7 @@
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script defer src="notifications.min.js"></script>
-    <script defer src="member.min.js?v=14"></script>
+    <script defer src="member.min.js?v=15"></script>
     <script defer src="member-auth.min.js"></script>
 </head>
 
@@ -305,12 +305,47 @@
                     <h2 class="member-greeting" id="member-greeting" data-clarity-mask="true">Bonjour !</h2>
                 </div>
                 <div id="club-contact-btns" style="display:none; gap:8px; align-items:center; flex-wrap:wrap;"></div>
+                <button class="member-back-btn" onclick="window.showMemberHelp()" title="Comment fonctionne mon espace membre ?" style="border-color:rgba(0,210,255,0.35); color:#00d2ff;">
+                    <i class="fas fa-question-circle"></i> Aide
+                </button>
                 <a href="/" class="member-back-btn">
                     <i class="fas fa-arrow-left"></i> Site
                 </a>
                 <button class="member-logout-btn" onclick="window.memberLogout()">
                     <i class="fas fa-sign-out-alt"></i> Déconnexion
                 </button>
+            </div>
+
+            <!-- MODAL AIDE MEMBRE -->
+            <div id="member-help-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.88); z-index:9500; padding:30px 15px; overflow-y:auto;" onclick="if(event.target===this)window.closeMemberHelp()">
+                <div style="max-width:620px; margin:0 auto; background:#0f172a; border:1px solid rgba(0,210,255,0.4); border-radius:16px; padding:26px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                        <h3 style="color:#00d2ff; font-family:'Orbitron'; font-size:0.95rem; margin:0;"><i class="fas fa-question-circle" style="margin-right:8px;"></i>Mon espace membre, mode d'emploi</h3>
+                        <button onclick="window.closeMemberHelp()" style="background:#334155; color:white; border:none; padding:7px 14px; border-radius:8px; cursor:pointer;">✕</button>
+                    </div>
+
+                    <div style="color:#00d2ff; font-size:12px; font-weight:bold; letter-spacing:1px; text-transform:uppercase; margin:16px 0 8px;"><i class="fas fa-th-large" style="margin-right:5px;"></i>Les 4 onglets</div>
+                    <div style="display:grid; gap:6px; font-size:13px; color:#94a3b8; line-height:1.5;">
+                        <div><strong style="color:#e2e8f0;"><i class="fas fa-user-circle" style="margin-right:5px; color:#ffd700;"></i>Mon Profil</strong> — votre carte de membre (QR compris), vos informations modifiables, et en bas : vos avantages chez nos partenaires et les téléchargements (carte à imprimer, fonds d'écran).</div>
+                        <div><strong style="color:#e2e8f0;"><i class="fas fa-users" style="margin-right:5px; color:#ffd700;"></i>Partenaires</strong> — pour trouver des joueurs : activez d'abord « Apparaître dans l'annuaire » (bloc du haut), puis cherchez par nom, dispo ou style de jeu et contactez directement.</div>
+                        <div><strong style="color:#e2e8f0;"><i class="fas fa-calendar-alt" style="margin-right:5px; color:#00d2ff;"></i>Calendrier</strong> — tout ce qui se passe au club, mois par mois : tournois, sorties, matchs des équipes (les points de couleur sur la grille = des événements ce jour-là). Les messages du bureau sont dans le bandeau du haut.</div>
+                        <div><strong style="color:#e2e8f0;"><i class="fas fa-shield-alt" style="margin-right:5px; color:#e11d48;"></i>Mes Équipes</strong> — vos convocations (répondez-y !), votre équipe avec vos disponibilités et la discussion entre coéquipiers, et les championnats ouverts aux inscriptions.</div>
+                    </div>
+
+                    <div style="color:#22c55e; font-size:12px; font-weight:bold; letter-spacing:1px; text-transform:uppercase; margin:18px 0 8px;"><i class="fas fa-list-check" style="margin-right:5px;"></i>Les gestes essentiels</div>
+                    <div style="display:grid; gap:6px; font-size:13px; color:#94a3b8; line-height:1.5;">
+                        <div><strong style="color:#e2e8f0;">M'inscrire à un championnat :</strong> Mes Équipes → « S'inscrire » — le coach valide et vous place dans une équipe (vous serez notifié).</div>
+                        <div><strong style="color:#e2e8f0;">Donner mes disponibilités :</strong> Mes Équipes → sous votre équipe, un bouton Dispo / Indispo par rencontre — enregistré immédiatement, le coach le voit.</div>
+                        <div><strong style="color:#e2e8f0;">Répondre à une convocation :</strong> Mes Équipes → « Je confirme ma présence » ou « Je ne peux pas » — le coach est prévenu en cas d'empêchement.</div>
+                        <div><strong style="color:#e2e8f0;">Discuter avec mon équipe :</strong> bouton « 💬 Discussion d'équipe » — covoiturage, qui apporte quoi… le coach y a accès aussi.</div>
+                        <div><strong style="color:#e2e8f0;">Être alerté :</strong> activez les notifications (bouton en bas de Mes Équipes) pour recevoir convocations et messages même sans ouvrir le site.</div>
+                        <div><strong style="color:#e2e8f0;">Réserver un terrain :</strong> Mon Profil → « Réserver un terrain » (TenUp).</div>
+                    </div>
+
+                    <div style="background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.3); border-radius:10px; padding:10px 14px; margin-top:16px; font-size:12px; color:#94a3b8;">
+                        <i class="fas fa-circle-info" style="color:#f59e0b; margin-right:6px;"></i>Les pastilles rouges sur les onglets signalent du nouveau (message du bureau, convocation, message d'équipe).
+                    </div>
+                </div>
             </div>
 
             <!-- Onglets navigation -->
