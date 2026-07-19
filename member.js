@@ -2072,6 +2072,26 @@ function loadEquipesMember(uid) {
                                     + ' <span style="background:#c9a22722; color:#c9a227; border:1px solid #c9a22744; border-radius:10px; padding:1px 7px; font-size:10px; margin-left:5px;">Mon équipe</span>'
                                     + (eq.niveau ? ' <span style="color:#64748b; font-weight:normal; font-size:11px;">' + escMember(eq.niveau) + '</span>' : '')
                                     + '</div>';
+
+                                // Effectif de l'équipe (coéquipiers assignés par le coach)
+                                var coequipiers = Object.keys(eq.joueurs || {}).filter(function(jUid) { return jUid !== uid; })
+                                    .map(function(jUid) {
+                                        var mj = membresMap[jUid] || {};
+                                        var nomJ = ((mj.prenom || '') + ' ' + (mj.nom || '')).trim();
+                                        return nomJ ? nomJ + (mj.classement ? ' (' + mj.classement + ')' : '') : null;
+                                    })
+                                    .filter(function(n) { return n; })
+                                    .sort(function(a, b) { return a.localeCompare(b, 'fr'); });
+                                if (coequipiers.length) {
+                                    html2 += '<div style="display:flex; flex-wrap:wrap; align-items:center; gap:5px; margin-bottom:8px;">'
+                                        + '<span style="font-size:11px; color:#64748b;"><i class="fas fa-users" style="margin-right:4px;"></i>Avec :</span>'
+                                        + coequipiers.map(function(n) {
+                                            return '<span style="background:#0f172a; color:#94a3b8; border:1px solid #33415566; border-radius:10px; padding:2px 9px; font-size:11px;">' + escMember(n) + '</span>';
+                                          }).join('')
+                                        + '</div>';
+                                } else {
+                                    html2 += '<div style="font-size:11px; color:#64748b; margin-bottom:8px;"><i class="fas fa-users" style="margin-right:4px;"></i>Vous êtes pour l\'instant seul(e) dans cette équipe.</div>';
+                                }
                                 if (!rencontres.length) {
                                     html2 += '<p style="color:#475569; font-size:12px; padding:4px 0 4px 16px;">Aucune rencontre planifiée pour l\'instant.</p>';
                                 } else {
