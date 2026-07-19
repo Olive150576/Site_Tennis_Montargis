@@ -2028,28 +2028,33 @@ window.deleteChampionnat = async function(id) {
     });
     if (!ok) return;
 
-    // 1. Supprimer le championnat + ses rencontres
-    await db_ref.ref('championnats_equipe/' + id).remove();
+    try {
+        // 1. Supprimer le championnat + ses rencontres
+        await db_ref.ref('championnats_equipe/' + id).remove();
 
-    // 2. Supprimer toutes les inscriptions des membres pour ce championnat
-    await db_ref.ref('inscriptions_equipe/' + id).remove();
+        // 2. Supprimer toutes les inscriptions des membres pour ce championnat
+        await db_ref.ref('inscriptions_equipe/' + id).remove();
 
-    // 3. Supprimer toutes les équipes liées à ce championnat (et leurs discussions)
-    var snapEquipes = await db_ref.ref('equipes').orderByChild('champId').equalTo(id).once('value');
-    var suppEquipes = [];
-    snapEquipes.forEach(function(child) {
-        suppEquipes.push(db_ref.ref('equipes/' + child.key).remove());
-        suppEquipes.push(db_ref.ref('chats_equipe/' + child.key).remove());
-    });
-    await Promise.all(suppEquipes);
+        // 3. Supprimer toutes les équipes liées à ce championnat (et leurs discussions)
+        var snapEquipes = await db_ref.ref('equipes').orderByChild('champId').equalTo(id).once('value');
+        var suppEquipes = [];
+        snapEquipes.forEach(function(child) {
+            suppEquipes.push(db_ref.ref('equipes/' + child.key).remove());
+            suppEquipes.push(db_ref.ref('chats_equipe/' + child.key).remove());
+        });
+        await Promise.all(suppEquipes);
 
-    // 4. Supprimer toutes les notifications liées à ce championnat
-    var snapNotifs = await db_ref.ref('notifications_equipe').orderByChild('champId').equalTo(id).once('value');
-    var suppNotifs = [];
-    snapNotifs.forEach(function(child) { suppNotifs.push(db_ref.ref('notifications_equipe/' + child.key).remove()); });
-    await Promise.all(suppNotifs);
+        // 4. Supprimer toutes les notifications liées à ce championnat
+        var snapNotifs = await db_ref.ref('notifications_equipe').orderByChild('champId').equalTo(id).once('value');
+        var suppNotifs = [];
+        snapNotifs.forEach(function(child) { suppNotifs.push(db_ref.ref('notifications_equipe/' + child.key).remove()); });
+        await Promise.all(suppNotifs);
 
-    window.showNotification && window.showNotification('Championnat et toutes les données associées supprimés.', 'success');
+        window.showNotification && window.showNotification('Championnat et toutes les données associées supprimés.', 'success');
+    } catch(err) {
+        console.error('Erreur deleteChampionnat :', err);
+        window.showNotification && window.showNotification('Suppression incomplète : ' + (err.message || err) + ' — réessayez ou contactez le support.', 'error');
+    }
 };
 
 window.toggleInscriptionsChamp = async function(id, isOpen) {
