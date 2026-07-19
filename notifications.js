@@ -320,6 +320,12 @@ window.showErrorMessage = function(error, context = '') {
 
     let userMessage = errorMessages[error.code] || errorMessages[error.message];
 
+    // Ancien SDK + nouveau backend Firebase : INVALID_LOGIN_CREDENTIALS arrive
+    // emballé dans un auth/internal-error avec le détail en JSON brut
+    if (!userMessage && error.code === 'auth/internal-error' && String(error.message || '').indexOf('INVALID_LOGIN_CREDENTIALS') !== -1) {
+        userMessage = 'Email ou mot de passe incorrect.';
+    }
+
     // Erreur de validation renvoyée par une Cloud Function : son message est déjà user-friendly
     if (!userMessage && (error.code === 'functions/invalid-argument' || error.code === 'invalid-argument') && error.message) {
         userMessage = error.message;
