@@ -440,6 +440,7 @@ function loadPartenaireProfile() {
             optin.checked = !!p.public_profile;
             window.togglePartenaireForm();
         }
+        _updatePartenaireEtat(!!p.public_profile);
         var styleEl = document.getElementById('partenaire-style');
         if (styleEl && p.style_jeu) styleEl.value = p.style_jeu;
         // Disponibilités par jour/créneau
@@ -477,6 +478,24 @@ function updatePartenaireCount() {
     var cnt = document.getElementById('partenaire-msg-count');
     if (msg && cnt) cnt.textContent = msg.value.length;
 }
+
+// État du panneau « Mon profil partenaire » : replié si déjà visible dans l'annuaire, ouvert sinon
+function _updatePartenaireEtat(optinActif) {
+    var details = document.getElementById('partenaire-profil-details');
+    var badge = document.getElementById('partenaire-etat-badge');
+    if (details) details.open = !optinActif;
+    if (badge) badge.innerHTML = optinActif
+        ? '<span style="color:#22c55e;"><i class="fas fa-check-circle"></i> Visible dans l\'annuaire</span>'
+        : '<span style="color:#f59e0b;">Non visible — activez pour accéder à l\'annuaire</span>';
+}
+
+window.ouvrirProfilPartenaire = function() {
+    var details = document.getElementById('partenaire-profil-details');
+    if (details) {
+        details.open = true;
+        details.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+};
 
 // --- Annuaire partenaires : sauvegarde ---
 window.savePartenaireProfile = function() {
@@ -539,11 +558,14 @@ window.savePartenaireProfile = function() {
         if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-save"></i> Enregistrer mes préférences'; }
         if (status) status.innerHTML = '<span style="color:#22c55e;"><i class="fas fa-check"></i> Préférences enregistrées</span>';
         setTimeout(function() { if (status) status.innerHTML = ''; }, 3000);
-        // Rafraîchir l'annuaire immédiatement si déjà ouvert, sinon reset le flag
-        if (_annuaireLoaded) {
-            _annuaireLoaded = false;
-            loadAnnuairePartenaires();
-        }
+        // Mettre à jour le badge d'état (le panneau reste ouvert le temps de lire la confirmation)
+        var badge = document.getElementById('partenaire-etat-badge');
+        if (badge) badge.innerHTML = checked
+            ? '<span style="color:#22c55e;"><i class="fas fa-check-circle"></i> Visible dans l\'annuaire</span>'
+            : '<span style="color:#f59e0b;">Non visible — activez pour accéder à l\'annuaire</span>';
+        // Rafraîchir l'annuaire (même onglet désormais)
+        _annuaireLoaded = false;
+        loadAnnuairePartenaires();
     }).catch(function(err) {
         if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-save"></i> Enregistrer mes préférences'; }
         if (status) status.innerHTML = '<span style="color:#ef4444;">Erreur : ' + err.message + '</span>';
@@ -604,8 +626,8 @@ function loadAnnuairePartenaires() {
             grid.innerHTML = '<div class="member-empty-state" style="padding:32px 16px; text-align:center;">'
                 + '<i class="fas fa-lock" style="font-size:2rem; color:#64748b; margin-bottom:12px; display:block;"></i>'
                 + '<p style="color:#e2e8f0; font-weight:600; margin-bottom:8px;">Accès restreint</p>'
-                + '<p style="color:#94a3b8; font-size:0.88rem; margin-bottom:20px;">Pour consulter et contacter les partenaires de jeu, activez d\'abord votre propre profil dans <strong style="color:#e3ff00;">Mon Profil → Partenaire de jeu</strong>.</p>'
-                + '<button onclick="window.switchMemberTab(\'profil\')" style="background:#e3ff00; color:#020617; border:none; border-radius:8px; padding:10px 20px; font-weight:700; cursor:pointer; font-size:0.9rem;">'
+                + '<p style="color:#94a3b8; font-size:0.88rem; margin-bottom:20px;">Pour consulter et contacter les partenaires de jeu, activez d\'abord <strong style="color:#e3ff00;">« Apparaître dans l\'annuaire »</strong> dans le bloc « Mon profil partenaire » ci-dessus.</p>'
+                + '<button onclick="window.ouvrirProfilPartenaire()" style="background:#e3ff00; color:#020617; border:none; border-radius:8px; padding:10px 20px; font-weight:700; cursor:pointer; font-size:0.9rem;">'
                 + '<i class="fas fa-user-edit"></i> Activer mon profil partenaire</button>'
                 + '</div>';
             return;
