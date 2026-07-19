@@ -1535,14 +1535,39 @@ window.loadMembersAdmin = () => {
     if (!list) return;
     list.innerHTML = '<p style="color:#64748b; text-align:center;">Chargement...</p>';
 
-    db_ref.ref('members').once('value', snap => {
+    Promise.all([
+        db_ref.ref('members').once('value'),
+        db_ref.ref('coaches').once('value')
+    ]).then(([snap, csnap]) => {
         const data = snap.val();
         if (!data) {
             list.innerHTML = '<p style="color:#64748b; text-align:center;">Aucun membre enregistré.</p>';
             return;
         }
-        window._allMembersAdmin = Object.entries(data).map(([uid, m]) => ({ uid, ...m }));
+        const coaches = csnap.val() || {};
+        window._allMembersAdmin = Object.entries(data).map(([uid, m]) => ({ uid, ...m, isCoach: !!coaches[uid] }));
         window.filterMembers();
+    });
+};
+
+// Donner / retirer l'accès coach (panneau admin limité à la section Équipes)
+window.toggleCoachAccess = async function(uid, grant, nom) {
+    var msg = grant
+        ? nom + ' pourra se connecter au panneau d\'administration avec ses identifiants membre, mais n\'aura accès qu\'à la gestion des Équipes (championnats, convocations, discussions). Aucun accès aux actualités, membres, documents…'
+        : 'Retirer l\'accès coach de ' + nom + ' ? Le panneau Équipes lui sera fermé (son compte membre reste intact).';
+    var ok = await window.confirmDialog.show({
+        title: grant ? 'Donner l\'accès coach' : 'Retirer l\'accès coach',
+        message: msg,
+        type: grant ? 'info' : 'danger',
+        confirmText: 'Confirmer', cancelText: 'Annuler'
+    });
+    if (!ok) return;
+    var op = grant ? db_ref.ref('coaches/' + uid).set(true) : db_ref.ref('coaches/' + uid).remove();
+    op.then(function() {
+        window.showNotification && window.showNotification(grant ? 'Accès coach activé — ' + nom + ' peut ouvrir le panneau Équipes.' : 'Accès coach retiré.', 'success');
+        window.loadMembersAdmin();
+    }).catch(function(err) {
+        window.showNotification && window.showNotification('Erreur : ' + (err.message || err), 'error');
     });
 };
 
@@ -1571,6 +1596,11 @@ function memberRowHTML(m, statutOptions) {
                     <button onclick="window.toggleMemberEdit('${m.uid}')"
                         style="background:rgba(255,215,0,0.08); border:1px solid rgba(255,215,0,0.35); color:#ffd700; padding:5px 12px; border-radius:8px; cursor:pointer; font-size:12px;">
                         <i class="fas fa-edit"></i> Modifier
+                    </button>
+                    <button onclick="window.toggleCoachAccess('${m.uid}', ${m.isCoach ? 'false' : 'true'}, '${escapeHtml(m.prenom || '')} ${escapeHtml(m.nom || '')}')"
+                        title="${m.isCoach ? 'Accès coach actif — cliquer pour retirer' : 'Donner l’accès au panneau Équipes'}"
+                        style="background:${m.isCoach ? 'rgba(201,162,39,0.18)' : 'rgba(100,116,139,0.08)'}; border:1px solid ${m.isCoach ? 'rgba(201,162,39,0.55)' : 'rgba(100,116,139,0.3)'}; color:${m.isCoach ? '#c9a227' : '#94a3b8'}; padding:5px 12px; border-radius:8px; cursor:pointer; font-size:12px;">
+                        <i class="fas fa-user-tie"></i> ${m.isCoach ? 'Coach ✓' : 'Accès coach'}
                     </button>
                     <button onclick="window.toggleMemberActive('${m.uid}', ${!m.actif})"
                         style="background:${m.actif ? 'rgba(239,68,68,0.1)' : 'rgba(34,197,94,0.1)'}; border:1px solid ${m.actif ? 'rgba(239,68,68,0.4)' : 'rgba(34,197,94,0.4)'}; color:${m.actif ? '#ef4444' : '#22c55e'}; padding:5px 12px; border-radius:8px; cursor:pointer; font-size:12px;">

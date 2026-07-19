@@ -175,9 +175,13 @@ exports.sendMemberPush = functions.https.onCall(async (data, context) => {
     if (!context.auth) {
         throw new functions.https.HttpsError('unauthenticated', 'Vous devez être connecté.');
     }
-    const adminSnap = await admin.database().ref(`admins/${context.auth.uid}`).once('value');
-    if (!adminSnap.exists()) {
-        throw new functions.https.HttpsError('permission-denied', 'Accès réservé aux administrateurs.');
+    // Accessible aux admins ET aux coaches (convocations, validations d'inscription)
+    const [adminSnap, coachSnap] = await Promise.all([
+        admin.database().ref(`admins/${context.auth.uid}`).once('value'),
+        admin.database().ref(`coaches/${context.auth.uid}`).once('value')
+    ]);
+    if (!adminSnap.exists() && !coachSnap.exists()) {
+        throw new functions.https.HttpsError('permission-denied', 'Accès réservé aux administrateurs et coaches.');
     }
 
     const { uid, title, body, url } = data;
