@@ -924,6 +924,28 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // Mot de passe oublié — modal de connexion admin/coach
+    window.adminForgotPassword = () => {
+        const email = (document.getElementById('login-email').value || '').trim();
+        if (!email) {
+            window.showNotification && window.showNotification('Saisissez votre adresse email dans le champ ci-dessus, puis cliquez sur « Mot de passe oublié ».', 'warning');
+            document.getElementById('login-email').focus();
+            return;
+        }
+        auth.sendPasswordResetEmail(email).then(() => {
+            document.getElementById('login-modal').classList.add('hidden');
+            window.showSuccessMessage && window.showSuccessMessage(
+                '📧 Email envoyé à ' + email,
+                '⚠️ Si vous ne le recevez pas dans les 2 minutes, vérifiez votre dossier SPAM ou courrier indésirable.'
+            );
+        }).catch(err => {
+            var msg = 'Impossible d\'envoyer l\'email.';
+            if (err.code === 'auth/user-not-found') msg = 'Aucun compte trouvé pour cette adresse email.';
+            if (err.code === 'auth/invalid-email') msg = 'Adresse email invalide.';
+            window.showNotification && window.showNotification(msg, 'error');
+        });
+    };
+
     // Mot de passe oublié (sans être connecté)
     window.memberForgotPassword = () => {
         const email = (document.getElementById('member-login-email').value || '').trim();
