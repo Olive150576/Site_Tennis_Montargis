@@ -2299,20 +2299,31 @@ window.loadEquipesAdmin = function(champId) {
                                     }
                                 }
 
-                                // Synthèse des disponibilités des joueurs de l'équipe pour cette rencontre
+                                // Synthèse des disponibilités des joueurs de l'équipe pour cette rencontre (avec prénoms)
                                 var dispoSummaryHtml = '';
                                 if (nbJoueurs > 0 && !isValidee) {
                                     var dKey = eqId + '_' + rid;
-                                    var nbDispo = 0, nbIndispo = 0, nbSansRep = 0;
+                                    var nomsDispo = [], nomsIndispo = [], nomsSansRep = [];
                                     Object.keys(joueurs).forEach(function(jUid) {
                                         var insJ = inscritsChamp[jUid];
                                         var dv = insJ && insJ.disponibilites && insJ.disponibilites[dKey];
-                                        if (dv === true) nbDispo++; else if (dv === false) nbIndispo++; else nbSansRep++;
+                                        var mJ = members[jUid] || {};
+                                        var pnom = mJ.prenom || mJ.nom || '?';
+                                        if (dv === true) nomsDispo.push(pnom);
+                                        else if (dv === false) nomsIndispo.push(pnom);
+                                        else nomsSansRep.push(pnom);
                                     });
-                                    dispoSummaryHtml = '<div style="display:flex; gap:5px; margin-top:5px; font-size:9px; white-space:nowrap;">'
-                                        + '<span style="color:#22c55e;"><i class="fas fa-check"></i> ' + nbDispo + ' dispo' + (nbDispo > 1 ? 's' : '') + '</span>'
-                                        + '<span style="color:#ef4444;"><i class="fas fa-times"></i> ' + nbIndispo + '</span>'
-                                        + '<span style="color:#64748b;"><i class="fas fa-question"></i> ' + nbSansRep + ' sans réponse</span>'
+                                    // Liste compacte : 3 prénoms max puis « +n »
+                                    var _liste = function(noms) {
+                                        if (!noms.length) return '';
+                                        var aff = noms.slice(0, 3).join(', ');
+                                        if (noms.length > 3) aff += ' +' + (noms.length - 3);
+                                        return ' (' + escHtml(aff) + ')';
+                                    };
+                                    dispoSummaryHtml = '<div style="display:flex; flex-wrap:wrap; gap:5px; margin-top:5px; font-size:9px;">'
+                                        + '<span style="color:#22c55e;" title="' + escHtml(nomsDispo.join(', ')) + '"><i class="fas fa-check"></i> ' + nomsDispo.length + ' dispo' + (nomsDispo.length > 1 ? 's' : '') + _liste(nomsDispo) + '</span>'
+                                        + '<span style="color:#ef4444;" title="' + escHtml(nomsIndispo.join(', ')) + '"><i class="fas fa-times"></i> ' + nomsIndispo.length + _liste(nomsIndispo) + '</span>'
+                                        + '<span style="color:#64748b;" title="' + escHtml(nomsSansRep.join(', ')) + '"><i class="fas fa-question"></i> ' + nomsSansRep.length + ' sans réponse' + _liste(nomsSansRep) + '</span>'
                                         + '</div>';
                                 }
 
