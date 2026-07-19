@@ -501,7 +501,25 @@ window.switchAdmin = (section) => {
     var _specialSections = ['documents','contacts','members','club_messages','equipes','calendrier'];
     if (_specialSections.indexOf(section) !== -1) return;
 
-    if (titleEl) titleEl.innerText = `Gérer : ${section.toUpperCase()}`;
+    const _sectionTitles = { info: 'COORDONNÉES DU CLUB', news: 'ACTUALITÉS', event: 'ÉVÉNEMENTS (site public)', inst: 'INSTALLATIONS', coach: 'COACHS', rates: 'TARIFS', sponsors: 'PARTENAIRES' };
+    if (titleEl) titleEl.innerText = `Gérer : ${_sectionTitles[section] || section.toUpperCase()}`;
+
+    // Note d'aide contextuelle sous le titre (évite les confusions, ex: coordonnées ≠ messages aux membres)
+    var noteEl = document.getElementById('form-section-note');
+    if (!noteEl && titleEl) {
+        noteEl = document.createElement('p');
+        noteEl.id = 'form-section-note';
+        noteEl.style.cssText = 'color:#94a3b8; font-size:12px; margin:-8px 0 18px; padding:10px 14px; background:rgba(0,210,255,0.06); border-left:3px solid #00d2ff; border-radius:6px; display:none;';
+        titleEl.parentNode.insertBefore(noteEl, titleEl.nextSibling);
+    }
+    if (noteEl) {
+        if (section === 'info') {
+            noteEl.innerHTML = '<i class="fas fa-info-circle" style="margin-right:6px;"></i>Ces champs sont les <strong>coordonnées du club</strong> affichées sur le site public. L\'email est aussi l\'adresse qui reçoit le formulaire de contact. Pour envoyer un message aux membres, utilisez l\'onglet <strong>« Messages Club »</strong> — pour un événement daté, l\'onglet <strong>« Calendrier »</strong>.';
+            noteEl.style.display = 'block';
+        } else {
+            noteEl.style.display = 'none';
+        }
+    }
 
     window.resetAdminForm();
 
@@ -530,15 +548,23 @@ window.switchAdmin = (section) => {
 
     const inputTitle = document.getElementById('input-title');
     const inputDesc = document.getElementById('input-desc');
+    const labelTitle = document.getElementById('label-input-title');
+    const labelDesc = document.getElementById('label-input-desc');
     if (section === 'info') {
-        inputTitle.placeholder = "Adresse du club";
-        inputDesc.placeholder = "Numéro de téléphone";
+        inputTitle.placeholder = "Ex: 1234 rue du Tennis, 45200 Montargis";
+        inputDesc.placeholder = "Ex: 02 38 00 00 00";
+        if (labelTitle) labelTitle.textContent = 'Adresse du club';
+        if (labelDesc) labelDesc.textContent = 'Numéro de téléphone';
     } else if (section === 'sponsors') {
         inputTitle.placeholder = "Nom du partenaire";
         inputDesc.placeholder = "Informations complémentaires (facultatif)";
+        if (labelTitle) labelTitle.textContent = 'Nom du partenaire';
+        if (labelDesc) labelDesc.textContent = 'Description / Détails';
     } else {
         inputTitle.placeholder = "Titre";
         inputDesc.placeholder = "Description";
+        if (labelTitle) labelTitle.textContent = 'Titre / Nom';
+        if (labelDesc) labelDesc.textContent = 'Description / Détails';
     }
 
     document.querySelectorAll('.tab-btn').forEach(btn => {

@@ -75,7 +75,7 @@
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script defer src="notifications.min.js"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-    <script defer src="admin.min.js?v=22"></script>
+    <script defer src="admin.min.js?v=23"></script>
 </head>
 <body>
 
@@ -216,7 +216,7 @@
             <button class="tab-btn" onclick="switchAdmin('documents')" style="background:linear-gradient(135deg, #8b5cf6, #6366f1); color:white;">
                 <i class="fas fa-file-pdf"></i> Documents
             </button>
-            <button class="tab-btn" onclick="switchAdmin('info')">Infos Club</button>
+            <button class="tab-btn" onclick="switchAdmin('info')"><i class="fas fa-map-marker-alt"></i> Coordonnées</button>
             <button class="tab-btn" onclick="switchAdmin('contacts')" style="background:linear-gradient(135deg, #f59e0b, #d97706); color:white;">
                 <i class="fas fa-address-book"></i> Contacts
             </button>
@@ -882,13 +882,13 @@
                 <input type="hidden" id="edit-index" value="-1">
 
                 <div style="display:grid; gap:8px;">
-                    <label style="color:#e2e8f0; font-weight:500;">Titre / Nom</label>
+                    <label id="label-input-title" style="color:#e2e8f0; font-weight:500;">Titre / Nom</label>
                     <input type="text" id="input-title" required
                         style="padding:14px; background:#1e293b; border:1px solid #475569; color:white; border-radius:8px; width:100%; font-size:15px; box-sizing:border-box;">
                 </div>
 
                 <div style="display:grid; gap:8px;">
-                    <label style="color:#e2e8f0; font-weight:500;">Description / Détails</label>
+                    <label id="label-input-desc" style="color:#e2e8f0; font-weight:500;">Description / Détails</label>
                     <div id="format-toolbar" style="display:flex; gap:5px; padding:8px; background:#1e293b; border:1px solid #475569; border-bottom:none; border-radius:8px 8px 0 0;">
                         <button type="button" onclick="formatText('bold')" title="Gras (Ctrl+B)" style="background:#334155; border:none; color:#e2e8f0; width:32px; height:32px; border-radius:6px; cursor:pointer; font-weight:bold; font-size:14px;">B</button>
                         <button type="button" onclick="formatText('italic')" title="Italique (Ctrl+I)" style="background:#334155; border:none; color:#e2e8f0; width:32px; height:32px; border-radius:6px; cursor:pointer; font-style:italic; font-size:14px;">I</button>
