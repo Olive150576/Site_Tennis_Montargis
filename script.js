@@ -141,20 +141,44 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                     renderAll();
                 } else {
-                    // Vérifier si membre
-                    db_ref.ref('members/' + user.uid).once('value', memberSnap => {
-                        if (memberSnap.exists() && memberSnap.val().actif) {
-                            window.isCurrentUserMember = true;
-                            toggleMemberUI(true, memberSnap.val());
-                            // Pas de renderAll() : le site garde son aspect visiteur pour les membres
-                        } else {
-                            // Compte inconnu : déconnexion
-                            auth.signOut();
-                            window.showErrorMessage && window.showErrorMessage(
-                                { message: 'Compte non autorisé' }, 'login'
-                            );
-                            renderAll();
+                    // Vérifier si coach (accès au panneau restreint à la section Équipes)
+                    db_ref.ref('coaches/' + user.uid).once('value', coachSnap => {
+                        const isCoach = coachSnap.exists() && coachSnap.val() === true;
+
+                        // Coach qui vient de se connecter via le modal « Espace Club » → panneau Équipes
+                        if (isCoach && sessionStorage.getItem('_adminLogin')) {
+                            sessionStorage.removeItem('_adminLogin');
+                            document.getElementById('login-modal')?.classList.add('hidden');
+                            document.body.style.overflow = '';
+                            window.location.href = '/admin-panel.html';
+                            return;
                         }
+                        // Coach déjà connecté : boutons « Espace Club » → panneau Équipes
+                        if (isCoach) {
+                            ['admin-btn-mobile', 'admin-btn-footer'].forEach(id => {
+                                const btn = document.getElementById(id);
+                                if (!btn) return;
+                                btn.style.borderColor = '#c9a227';
+                                btn.innerHTML = '<i class="fas fa-shield-alt"></i> Panel Équipes';
+                                btn.onclick = () => window.location.href = '/admin-panel.html';
+                            });
+                        }
+
+                        // Le coach est aussi membre : conserver son espace membre normal
+                        db_ref.ref('members/' + user.uid).once('value', memberSnap => {
+                            if (memberSnap.exists() && memberSnap.val().actif) {
+                                window.isCurrentUserMember = true;
+                                toggleMemberUI(true, memberSnap.val());
+                                // Pas de renderAll() : le site garde son aspect visiteur pour les membres
+                            } else if (!isCoach) {
+                                // Compte inconnu : déconnexion
+                                auth.signOut();
+                                window.showErrorMessage && window.showErrorMessage(
+                                    { message: 'Compte non autorisé' }, 'login'
+                                );
+                                renderAll();
+                            }
+                        });
                     });
                 }
             });
