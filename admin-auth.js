@@ -26,6 +26,14 @@ function _applyCoachMode() {
         var oc = btn.getAttribute('onclick') || '';
         if (oc.indexOf("'equipes'") === -1) btn.style.display = 'none';
     });
+    // Masquer les étiquettes de groupes et les groupes ne contenant pas le bouton Équipes
+    document.querySelectorAll('.tab-group-label').forEach(function (l) { l.style.display = 'none'; });
+    document.querySelectorAll('.tab-group').forEach(function (g) {
+        var hasEquipes = Array.prototype.some.call(g.querySelectorAll('.tab-btn'), function (b) {
+            return (b.getAttribute('onclick') || '').indexOf("'equipes'") !== -1;
+        });
+        if (!hasEquipes) g.style.display = 'none';
+    });
     // Ouvrir directement la section Équipes dès que admin.js est chargé
     var tries = 0;
     var timer = setInterval(function () {

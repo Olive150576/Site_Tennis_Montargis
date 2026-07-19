@@ -70,12 +70,12 @@
     <script defer src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
     <script defer src="https://www.gstatic.com/firebasejs/8.10.1/firebase-functions.js"></script>
     <script defer src="firebase-init.min.js"></script>
-    <script defer src="admin-auth.min.js?v=2"></script>
+    <script defer src="admin-auth.min.js?v=3"></script>
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script defer src="notifications.min.js"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-    <script defer src="admin.min.js?v=23"></script>
+    <script defer src="admin.min.js?v=24"></script>
 </head>
 <body>
 
@@ -111,6 +111,50 @@
             <button onclick="logout()" class="tbtn" style="background:#ef4444;color:white;">
                 <i class="fas fa-sign-out-alt"></i> Déconnexion
             </button>
+        </div>
+    </div>
+
+
+    <!-- MODAL AIDE -->
+    <style>
+        #help-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:5000; padding:30px 15px; overflow-y:auto; }
+        #help-modal.show { display:block; }
+        .help-h { color:#00d2ff; font-size:13px; font-weight:bold; letter-spacing:1px; text-transform:uppercase; margin:18px 0 8px; }
+        .help-li { display:flex; gap:8px; padding:5px 0; font-size:13px; color:#94a3b8; line-height:1.5; }
+        .help-li strong { color:#e2e8f0; white-space:nowrap; }
+    </style>
+    <div id="help-modal">
+        <div style="max-width:640px; margin:0 auto; background:#0f172a; border:1px solid rgba(0,210,255,0.4); border-radius:16px; padding:28px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                <h3 style="color:#00d2ff; font-family:'Orbitron'; font-size:1rem; margin:0;"><i class="fas fa-question-circle" style="margin-right:8px;"></i>Guide du panneau admin</h3>
+                <button onclick="window.closeHelpModal()" style="background:#334155; color:white; border:none; padding:8px 16px; border-radius:8px; cursor:pointer;">✕</button>
+            </div>
+            <p style="color:#64748b; font-size:12px; margin:0 0 6px;">Le panneau est organisé en 3 zones : ce qui modifie le <strong style="color:#00d2ff;">site public</strong>, ce qui pilote l'<strong style="color:#22c55e;">espace membre</strong>, et les messages <strong style="color:#f59e0b;">reçus</strong>.</p>
+
+            <div class="help-h"><i class="fas fa-globe"></i> Site public — visible par tous les visiteurs</div>
+            <div class="help-li"><strong>Actualités</strong> — les news de la page d'accueil</div>
+            <div class="help-li"><strong>Événements</strong> — les événements mis en avant sur le site</div>
+            <div class="help-li"><strong>Installations</strong> — courts et infrastructures présentés</div>
+            <div class="help-li"><strong>Coachs</strong> — les fiches des enseignants (⚠ sans rapport avec l'« accès coach » d'un membre)</div>
+            <div class="help-li"><strong>Tarifs</strong> — la grille tarifaire</div>
+            <div class="help-li"><strong>Partenaires</strong> — les sponsors du club (⚠ différent de l'annuaire des partenaires de jeu des membres)</div>
+            <div class="help-li"><strong>Documents</strong> — les PDF téléchargeables</div>
+            <div class="help-li"><strong>Coordonnées</strong> — adresse, téléphone, email du club. L'email est l'adresse qui reçoit le formulaire de contact.</div>
+
+            <div class="help-h" style="color:#22c55e;"><i class="fas fa-users"></i> Espace membre — réservé aux adhérents connectés</div>
+            <div class="help-li"><strong>Membres</strong> — créer/modifier les comptes, donner l'« Accès coach » (panneau limité aux Équipes)</div>
+            <div class="help-li"><strong>Équipes</strong> — championnats : équipes, joueurs, calendrier FFT, convocations, discussions</div>
+            <div class="help-li"><strong>Calendrier</strong> — tout ce qui apparaît dans l'onglet Calendrier des membres (tournois, sorties, réunions…). Les matchs d'équipes s'y ajoutent automatiquement.</div>
+            <div class="help-li"><strong>Messages Club</strong> — les annonces du bureau (bandeau « Messages du Bureau » chez les membres)</div>
+
+            <div class="help-h" style="color:#f59e0b;"><i class="fas fa-inbox"></i> Reçus</div>
+            <div class="help-li"><strong>Contacts</strong> — les messages envoyés via le formulaire de contact du site</div>
+
+            <div class="help-h" style="color:#c9a227;"><i class="fas fa-list-check"></i> Les 4 procédures courantes</div>
+            <div class="help-li"><strong>Publier une actu :</strong> Site public → Actualités → remplir le formulaire → Enregistrer</div>
+            <div class="help-li"><strong>Annoncer un événement aux membres :</strong> Espace membre → Calendrier → Ajouter (avec la vraie date !)</div>
+            <div class="help-li"><strong>Lancer un championnat :</strong> Équipes → créer le championnat + équipes → les membres s'inscrivent → « Gérer les joueurs » (cocher = valider + assigner) → importer le calendrier FFT → composer et envoyer les convocations</div>
+            <div class="help-li"><strong>Donner l'accès coach :</strong> Membres → fiche du membre → bouton « Accès coach »</div>
         </div>
     </div>
 
@@ -205,33 +249,33 @@
             </div>
         </div>
 
-        <!-- TABs -->
-        <div style="display:flex; gap:10px; margin-bottom:30px; overflow-x:auto; padding-bottom:10px;">
-            <button class="tab-btn active" onclick="switchAdmin('news')">Actualités</button>
-            <button class="tab-btn" onclick="switchAdmin('event')">Événements</button>
-            <button class="tab-btn" onclick="switchAdmin('inst')">Installations</button>
-            <button class="tab-btn" onclick="switchAdmin('coach')">Coachs</button>
-            <button class="tab-btn" onclick="switchAdmin('rates')">Tarifs</button>
-            <button class="tab-btn" onclick="switchAdmin('sponsors')">Partenaires</button>
-            <button class="tab-btn" onclick="switchAdmin('documents')" style="background:linear-gradient(135deg, #8b5cf6, #6366f1); color:white;">
-                <i class="fas fa-file-pdf"></i> Documents
-            </button>
-            <button class="tab-btn" onclick="switchAdmin('info')"><i class="fas fa-map-marker-alt"></i> Coordonnées</button>
-            <button class="tab-btn" onclick="switchAdmin('contacts')" style="background:linear-gradient(135deg, #f59e0b, #d97706); color:white;">
-                <i class="fas fa-address-book"></i> Contacts
-            </button>
-            <button class="tab-btn" onclick="switchAdmin('members')" style="background:linear-gradient(135deg, #22c55e, #16a34a); color:white;">
-                <i class="fas fa-users"></i> Membres
-            </button>
-            <button class="tab-btn" onclick="switchAdmin('calendrier')" style="background:linear-gradient(135deg, #00d2ff, #0099bb); color:white;">
-                <i class="fas fa-calendar-alt"></i> Calendrier
-            </button>
-            <button class="tab-btn" onclick="switchAdmin('club_messages')" style="background:linear-gradient(135deg, #f59e0b, #b45309); color:white;">
-                <i class="fas fa-bullhorn"></i> Messages Club
-            </button>
-            <button class="tab-btn" onclick="switchAdmin('equipes')" style="background:linear-gradient(135deg, #e11d48, #9f1239); color:white;">
-                <i class="fas fa-shield-alt"></i> Équipes
-            </button>
+        <!-- TABs regroupés par zone -->
+        <div id="admin-tabs-bar" style="display:flex; flex-direction:column; gap:10px; margin-bottom:30px;">
+
+            <div class="tab-group" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; background:rgba(0,210,255,0.05); border:1px solid rgba(0,210,255,0.22); border-radius:12px; padding:10px 14px;">
+                <span class="tab-group-label" style="color:#00d2ff; font-size:10px; font-weight:bold; letter-spacing:1.5px; text-transform:uppercase; white-space:nowrap; min-width:110px;"><i class="fas fa-globe" style="margin-right:5px;"></i>Site public</span>
+                <button class="tab-btn active" onclick="switchAdmin('news')" title="Les actualités publiées sur la page d'accueil du site">Actualités</button>
+                <button class="tab-btn" onclick="switchAdmin('event')" title="Les événements mis en avant sur le site public">Événements</button>
+                <button class="tab-btn" onclick="switchAdmin('inst')" title="Les installations présentées sur le site">Installations</button>
+                <button class="tab-btn" onclick="switchAdmin('coach')" title="Les fiches des enseignants affichées sur le site (sans rapport avec l'accès coach)">Coachs</button>
+                <button class="tab-btn" onclick="switchAdmin('rates')" title="La grille tarifaire du site">Tarifs</button>
+                <button class="tab-btn" onclick="switchAdmin('sponsors')" title="Les partenaires / sponsors affichés sur le site">Partenaires</button>
+                <button class="tab-btn" onclick="switchAdmin('documents')" title="Les documents PDF téléchargeables du site"><i class="fas fa-file-pdf"></i> Documents</button>
+                <button class="tab-btn" onclick="switchAdmin('info')" title="Adresse, téléphone et email du club — l'email reçoit le formulaire de contact"><i class="fas fa-map-marker-alt"></i> Coordonnées</button>
+            </div>
+
+            <div class="tab-group" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; background:rgba(34,197,94,0.05); border:1px solid rgba(34,197,94,0.22); border-radius:12px; padding:10px 14px;">
+                <span class="tab-group-label" style="color:#22c55e; font-size:10px; font-weight:bold; letter-spacing:1.5px; text-transform:uppercase; white-space:nowrap; min-width:110px;"><i class="fas fa-users" style="margin-right:5px;"></i>Espace membre</span>
+                <button class="tab-btn" onclick="switchAdmin('members')" title="Comptes membres : création, modification, accès coach"><i class="fas fa-users"></i> Membres</button>
+                <button class="tab-btn" onclick="switchAdmin('equipes')" title="Championnats par équipes : équipes, convocations, discussions"><i class="fas fa-shield-alt"></i> Équipes</button>
+                <button class="tab-btn" onclick="switchAdmin('calendrier')" title="Le calendrier de l'espace membre : tournois, sorties, réunions…"><i class="fas fa-calendar-alt"></i> Calendrier</button>
+                <button class="tab-btn" onclick="switchAdmin('club_messages')" title="Les annonces du bureau affichées dans l'espace membre"><i class="fas fa-bullhorn"></i> Messages Club</button>
+            </div>
+
+            <div class="tab-group" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; background:rgba(245,158,11,0.05); border:1px solid rgba(245,158,11,0.22); border-radius:12px; padding:10px 14px;">
+                <span class="tab-group-label" style="color:#f59e0b; font-size:10px; font-weight:bold; letter-spacing:1.5px; text-transform:uppercase; white-space:nowrap; min-width:110px;"><i class="fas fa-inbox" style="margin-right:5px;"></i>Reçus</span>
+                <button class="tab-btn" onclick="switchAdmin('contacts')" title="Les messages reçus via le formulaire de contact du site"><i class="fas fa-address-book"></i> Contacts</button>
+            </div>
         </div>
 
         <!-- SECTION CALENDRIER DU CLUB -->

@@ -1018,6 +1018,19 @@ window.removeTempImage = (index) => {
 };
 
 // === MODAL D'AIDE ===
+// Tuiles de statistiques cliquables → ouvrent l'onglet correspondant
+(function() {
+    var map = { 'stat-news': 'news', 'stat-events': 'event', 'stat-inst': 'inst', 'stat-coach': 'coach', 'stat-drafts': 'news', 'stat-contacts': 'contacts', 'stat-members': 'members' };
+    Object.keys(map).forEach(function(id) {
+        var el = document.getElementById(id);
+        if (!el || !el.parentElement) return;
+        var tile = el.parentElement;
+        tile.style.cursor = 'pointer';
+        tile.title = 'Ouvrir l\'onglet correspondant';
+        tile.addEventListener('click', function() { window.switchAdmin && window.switchAdmin(map[id]); });
+    });
+})();
+
 window.showAdminHelp = () => {
     const modal = document.getElementById('help-modal');
     if (modal) {
