@@ -140,6 +140,13 @@ document.addEventListener('DOMContentLoaded', () => {
                             .catch(e => console.warn('Custom claim Storage:', e.message));
                     }
                     renderAll();
+                    // L'admin peut aussi avoir une fiche membre : activer en plus son espace membre
+                    db_ref.ref('members/' + user.uid).once('value', memberSnap => {
+                        if (memberSnap.exists() && memberSnap.val().actif) {
+                            window.isCurrentUserMember = true;
+                            toggleMemberUI(true, memberSnap.val());
+                        }
+                    });
                 } else {
                     // Vérifier si coach (accès au panneau restreint à la section Équipes)
                     db_ref.ref('coaches/' + user.uid).once('value', coachSnap => {
