@@ -2011,43 +2011,107 @@ function _renderCalEntryCard(e) {
         + '</div></div>';
 }
 
+// Mois affiché dans la vue calendrier ('YYYY-MM')
+var _calMoisAffiche = new Date().toISOString().substring(0, 7);
+
+window.calMoisPrecedent = function() { _calChangerMois(-1); };
+window.calMoisSuivant = function() { _calChangerMois(1); };
+window.calAujourdhui = function() {
+    _calMoisAffiche = new Date().toISOString().substring(0, 7);
+    _renderCalendrierListe();
+};
+
+function _calChangerMois(delta) {
+    var y = parseInt(_calMoisAffiche.substring(0, 4), 10);
+    var m = parseInt(_calMoisAffiche.substring(5, 7), 10) + delta;
+    if (m < 1) { m = 12; y--; }
+    if (m > 12) { m = 1; y++; }
+    _calMoisAffiche = y + '-' + ('0' + m).slice(-2);
+    _renderCalendrierListe();
+}
+
+window.calAllerAuJour = function(dayISO) {
+    var el = document.getElementById('cal-jour-' + dayISO);
+    if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.style.outline = '2px solid #00d2ff';
+        setTimeout(function() { el.style.outline = 'none'; }, 1600);
+    }
+};
+
 function _renderCalendrierListe() {
     var listEl = document.getElementById('calendrier-liste');
     if (!listEl) return;
     var todayISO = new Date().toISOString().substring(0, 10);
     var visibles = _calEntries.filter(function(e) { return _calFiltres[e.type] !== false; });
 
-    if (!visibles.length) {
-        listEl.innerHTML = '<div class="member-empty-state"><i class="fas fa-calendar-times"></i><p>Rien au calendrier pour l\'instant.</p></div>';
-        return;
+    var y = parseInt(_calMoisAffiche.substring(0, 4), 10);
+    var m = parseInt(_calMoisAffiche.substring(5, 7), 10); // 1-12
+    var moisDebut = _calMoisAffiche + '-01';
+    var nbJours = new Date(y, m, 0).getDate();
+    var moisFin = _calMoisAffiche + '-' + ('0' + nbJours).slice(-2);
+
+    // Événements visibles ce mois-ci (les événements à cheval sur plusieurs mois sont inclus)
+    var duMois = visibles.filter(function(e) {
+        return e.date <= moisFin && (e.dateFin || e.date) >= moisDebut;
+    });
+
+    // Pastilles de la grille : pour chaque jour, les couleurs des types présents
+    var dots = {}; // 'YYYY-MM-DD' -> [couleurs]
+    duMois.forEach(function(e) {
+        var t = _CAL_TYPES_M[e.type];
+        var debut = e.date > moisDebut ? e.date : moisDebut;
+        var fin = (e.dateFin || e.date) < moisFin ? (e.dateFin || e.date) : moisFin;
+        for (var d = parseInt(debut.substring(8, 10), 10); d <= parseInt(fin.substring(8, 10), 10); d++) {
+            var cle = _calMoisAffiche + '-' + ('0' + d).slice(-2);
+            dots[cle] = dots[cle] || [];
+            if (dots[cle].indexOf(t.color) === -1 && dots[cle].length < 3) dots[cle].push(t.color);
+        }
+    });
+
+    // --- Barre de navigation ---
+    var estMoisCourant = _calMoisAffiche === todayISO.substring(0, 7);
+    var html = '<div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:14px;">'
+        + '<button onclick="window.calMoisPrecedent()" style="background:#1e293b; color:#00d2ff; border:1px solid #33415588; border-radius:8px; padding:8px 14px; cursor:pointer; font-size:14px;"><i class="fas fa-chevron-left"></i></button>'
+        + '<div style="text-align:center;">'
+        + '<div style="color:#e2e8f0; font-family:\'Orbitron\'; font-size:1rem;">' + _MOIS_FR[m - 1] + ' ' + y + '</div>'
+        + (!estMoisCourant ? '<button onclick="window.calAujourdhui()" style="background:none; border:none; color:#00d2ff; font-size:11px; cursor:pointer; text-decoration:underline; padding:2px;">Revenir à aujourd\'hui</button>' : '')
+        + '</div>'
+        + '<button onclick="window.calMoisSuivant()" style="background:#1e293b; color:#00d2ff; border:1px solid #33415588; border-radius:8px; padding:8px 14px; cursor:pointer; font-size:14px;"><i class="fas fa-chevron-right"></i></button>'
+        + '</div>';
+
+    // --- Grille du mois (lundi → dimanche) ---
+    var joursSem = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+    html += '<div style="display:grid; grid-template-columns:repeat(7, 1fr); gap:4px; margin-bottom:20px; background:#0f172a; border:1px solid #1e293b; border-radius:12px; padding:10px;">';
+    joursSem.forEach(function(j) {
+        html += '<div style="text-align:center; color:#475569; font-size:10px; font-weight:bold; padding:4px 0;">' + j + '</div>';
+    });
+    var premierJour = (new Date(y, m - 1, 1).getDay() + 6) % 7; // 0 = lundi
+    for (var v = 0; v < premierJour; v++) html += '<div></div>';
+    for (var jour = 1; jour <= nbJours; jour++) {
+        var dISO = _calMoisAffiche + '-' + ('0' + jour).slice(-2);
+        var estAuj = dISO === todayISO;
+        var jDots = dots[dISO] || [];
+        var clickable = jDots.length > 0;
+        html += '<div ' + (clickable ? 'onclick="window.calAllerAuJour(\'' + dISO + '\')" ' : '')
+            + 'style="text-align:center; padding:5px 0 3px; border-radius:8px; ' + (clickable ? 'cursor:pointer; background:#1e293b;' : '')
+            + (estAuj ? ' border:1px solid #00d2ff; background:rgba(0,210,255,0.1);' : '') + '">'
+            + '<div style="font-size:12px; color:' + (estAuj ? '#00d2ff' : jDots.length ? '#e2e8f0' : '#475569') + '; font-weight:' + (jDots.length ? 'bold' : 'normal') + ';">' + jour + '</div>'
+            + '<div style="display:flex; justify-content:center; gap:2px; height:5px; margin-top:2px;">'
+            + jDots.map(function(c) { return '<span style="width:5px; height:5px; border-radius:50%; background:' + c + ';"></span>'; }).join('')
+            + '</div></div>';
     }
+    html += '</div>';
 
-    var aVenir = visibles.filter(function(e) { return (e.dateFin || e.date) >= todayISO; });
-    var passes = visibles.filter(function(e) { return (e.dateFin || e.date) < todayISO; }).reverse();
-
-    var html = '';
-    if (!aVenir.length) {
-        html += '<div class="member-empty-state"><i class="fas fa-calendar-check"></i><p>Rien de prévu prochainement.</p></div>';
+    // --- Agenda du mois ---
+    if (!duMois.length) {
+        html += '<div class="member-empty-state"><i class="fas fa-calendar-check"></i><p>Rien de prévu en ' + _MOIS_FR[m - 1].toLowerCase() + '.</p></div>';
     } else {
-        var moisCourant = '';
-        aVenir.forEach(function(e) {
-            var cle = e.date.substring(0, 7);
-            if (cle !== moisCourant) {
-                moisCourant = cle;
-                var moisIdx = parseInt(cle.substring(5, 7), 10) - 1;
-                html += '<div style="color:#00d2ff; font-family:\'Orbitron\'; font-size:0.85rem; margin:22px 0 10px; padding-bottom:6px; border-bottom:1px solid rgba(0,210,255,0.2);">'
-                    + (_MOIS_FR[moisIdx] || '') + ' ' + cle.substring(0, 4) + '</div>';
-            }
-            html += '<div style="margin-bottom:8px;">' + _renderCalEntryCard(e) + '</div>';
+        duMois.forEach(function(e) {
+            var estPasse = (e.dateFin || e.date) < todayISO;
+            var ancre = e.date >= moisDebut ? e.date : moisDebut;
+            html += '<div id="cal-jour-' + ancre + '" style="margin-bottom:8px; border-radius:12px; transition:outline .3s;' + (estPasse ? ' opacity:0.5;' : '') + '">' + _renderCalEntryCard(e) + '</div>';
         });
-    }
-
-    if (passes.length) {
-        html += '<details style="margin-top:24px;">'
-            + '<summary style="color:#64748b; font-size:13px; cursor:pointer; padding:10px 0; border-top:1px solid #1e293b;"><i class="fas fa-history" style="margin-right:6px;"></i>Déjà passé (' + passes.length + ')</summary>'
-            + '<div style="display:grid; gap:8px; margin-top:10px; opacity:0.6;">'
-            + passes.map(_renderCalEntryCard).join('')
-            + '</div></details>';
     }
 
     listEl.innerHTML = html;
