@@ -2020,6 +2020,7 @@ function loadEquipesMember(uid) {
                     if (mesChEl) mesChEl.innerHTML = '<p style="color:#64748b; font-size:13px; text-align:center;">Vous n\'êtes inscrit(e) à aucun championnat.</p>';
                 } else {
                     var html2 = '';
+                    var chatEquipeIds = [];
                     inscritChampIds.forEach(function(champId) {
                         var c = champs[champId]; if (!c) return;
                         var ins = mesInscriptions[champId];
@@ -2092,6 +2093,14 @@ function loadEquipesMember(uid) {
                                 } else {
                                     html2 += '<div style="font-size:11px; color:#64748b; margin-bottom:8px;"><i class="fas fa-users" style="margin-right:4px;"></i>Vous êtes pour l\'instant seul(e) dans cette équipe.</div>';
                                 }
+
+                                // Bouton discussion d'équipe (avec pastille non-lu remplie après coup)
+                                html2 += '<button onclick="window.ouvrirChatEquipe(\'' + equipeId + '\',\'' + escMember(eq.nom || 'Équipe').replace(/'/g, '\\\'') + '\')" '
+                                    + 'style="position:relative; background:rgba(0,210,255,0.1); color:#00d2ff; border:1px solid rgba(0,210,255,0.3); padding:8px 16px; border-radius:8px; cursor:pointer; font-size:12px; font-weight:bold; margin-bottom:10px;">'
+                                    + '<i class="fas fa-comments" style="margin-right:6px;"></i>Discussion d\'équipe'
+                                    + '<span id="chat-badge-' + equipeId + '" style="display:none; position:absolute; top:-4px; right:-4px; width:10px; height:10px; background:#e11d48; border-radius:50%; border:2px solid #1e293b;"></span>'
+                                    + '</button>';
+                                chatEquipeIds.push(equipeId);
                                 if (!rencontres.length) {
                                     html2 += '<p style="color:#475569; font-size:12px; padding:4px 0 4px 16px;">Aucune rencontre planifiée pour l\'instant.</p>';
                                 } else {
@@ -2121,6 +2130,7 @@ function loadEquipesMember(uid) {
                         html2 += '</div>';
                     });
                     if (mesChEl) mesChEl.innerHTML = html2;
+                    chatEquipeIds.forEach(_checkChatBadge);
                 }
 
                 // ---- Section C : mes convocations ----
@@ -2392,6 +2402,122 @@ window.repondreConvocation = function(equipeId, rencontreId, statut) {
         loadEquipesMember(uid);
     }).catch(function(err) {
         window.showNotification && window.showNotification('Erreur : ' + (err.message || err), 'error');
+    });
+};
+
+// ============================================================
+// DISCUSSION D'ÉQUIPE (chat entre coéquipiers + coach)
+// ============================================================
+
+var _chatEquipeId = null;
+var _chatListenerRef = null;
+
+// Pastille rouge sur le bouton discussion si le dernier message est plus récent que la dernière ouverture
+function _checkChatBadge(equipeId) {
+    window.db_ref.ref('chats_equipe/' + equipeId).orderByChild('createdAt').limitToLast(1).once('value', function(snap) {
+        if (!snap.exists()) return;
+        var lastAt = 0; var lastUid = null;
+        snap.forEach(function(child) { lastAt = child.val().createdAt || 0; lastUid = child.val().uid; });
+        var myUid = _cardMemberData ? _cardMemberData._uid : null;
+        var seenAt = parseInt(localStorage.getItem('usm_chat_seen_' + equipeId) || '0', 10);
+        var badge = document.getElementById('chat-badge-' + equipeId);
+        if (badge && lastAt > seenAt && lastUid !== myUid) badge.style.display = 'block';
+    });
+}
+
+function _renderChatMessage(msgId, m, myUid) {
+    var isMe = m.uid === myUid;
+    var isCoach = m.role === 'coach';
+    var auteur = isCoach ? ('Coach' + ((m.prenom || m.nom) ? ' ' + ((m.prenom || '') + ' ' + (m.nom || '')).trim() : ''))
+                         : (((m.prenom || '') + ' ' + (m.nom || '')).trim() || 'Membre');
+    var heure = m.createdAt ? new Date(m.createdAt).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
+    var bulle = document.createElement('div');
+    bulle.id = 'chat-msg-' + msgId;
+    bulle.style.cssText = 'max-width:80%; padding:8px 12px; border-radius:12px; font-size:13px; line-height:1.4; word-break:break-word; position:relative; '
+        + (isMe ? 'align-self:flex-end; background:rgba(0,210,255,0.14); border:1px solid rgba(0,210,255,0.25); color:#e2e8f0; border-bottom-right-radius:4px;'
+                : isCoach ? 'align-self:flex-start; background:rgba(201,162,39,0.12); border:1px solid rgba(201,162,39,0.35); color:#e2e8f0; border-bottom-left-radius:4px;'
+                          : 'align-self:flex-start; background:#1e293b; border:1px solid #334155; color:#e2e8f0; border-bottom-left-radius:4px;');
+    bulle.innerHTML = '<div style="display:flex; align-items:center; gap:6px; margin-bottom:3px;">'
+        + '<span style="font-size:10px; font-weight:bold; color:' + (isCoach ? '#c9a227' : isMe ? '#00d2ff' : '#94a3b8') + ';">'
+        + (isCoach ? '<i class="fas fa-user-tie" style="margin-right:3px;"></i>' : '') + escMember(auteur) + (isMe ? ' (vous)' : '') + '</span>'
+        + '<span style="font-size:9px; color:#475569;">' + heure + '</span>'
+        + (isMe ? '<button onclick="window.supprimerMessageChat(\'' + msgId + '\')" title="Supprimer" style="background:none; border:none; color:#475569; cursor:pointer; font-size:10px; padding:0 2px; margin-left:auto;"><i class="fas fa-trash"></i></button>' : '')
+        + '</div>'
+        + '<div>' + escMember(m.texte || '') + '</div>';
+    return bulle;
+}
+
+window.ouvrirChatEquipe = function(equipeId, eqNom) {
+    _chatEquipeId = equipeId;
+    var myUid = _cardMemberData ? _cardMemberData._uid : null;
+    document.getElementById('chat-equipe-nom').textContent = 'Discussion — ' + eqNom;
+    var box = document.getElementById('chat-equipe-messages');
+    box.innerHTML = '<p style="color:#64748b; font-size:12px; text-align:center;"><i class="fas fa-spinner fa-spin"></i></p>';
+    document.getElementById('modal-chat-equipe').style.display = '';
+
+    // Marquer comme lu + masquer la pastille
+    localStorage.setItem('usm_chat_seen_' + equipeId, String(Date.now()));
+    var badge = document.getElementById('chat-badge-' + equipeId);
+    if (badge) badge.style.display = 'none';
+
+    // Écoute temps réel des 100 derniers messages
+    _chatListenerRef = window.db_ref.ref('chats_equipe/' + equipeId).orderByChild('createdAt').limitToLast(100);
+    var first = true;
+    _chatListenerRef.on('child_added', function(child) {
+        if (first) { box.innerHTML = ''; first = false; }
+        box.appendChild(_renderChatMessage(child.key, child.val() || {}, myUid));
+        box.scrollTop = box.scrollHeight;
+        localStorage.setItem('usm_chat_seen_' + equipeId, String(Date.now()));
+    });
+    _chatListenerRef.on('child_removed', function(child) {
+        var el = document.getElementById('chat-msg-' + child.key);
+        if (el) el.remove();
+    });
+    // Si aucun message après un court délai, afficher l'invite
+    setTimeout(function() {
+        if (first && _chatEquipeId === equipeId) {
+            box.innerHTML = '<p style="color:#64748b; font-size:12px; text-align:center; margin:auto;">Aucun message pour l\'instant.<br>Lancez la discussion : covoiturage, qui apporte quoi… 🎾</p>';
+            first = false;
+        }
+    }, 1200);
+
+    // Envoi avec la touche Entrée
+    var input = document.getElementById('chat-equipe-input');
+    input.value = '';
+    input.onkeydown = function(e) { if (e.key === 'Enter') window.envoyerMessageChat(); };
+    setTimeout(function() { input.focus(); }, 200);
+};
+
+window.fermerChatEquipe = function() {
+    document.getElementById('modal-chat-equipe').style.display = 'none';
+    if (_chatListenerRef) { _chatListenerRef.off(); _chatListenerRef = null; }
+    if (_chatEquipeId) localStorage.setItem('usm_chat_seen_' + _chatEquipeId, String(Date.now()));
+    _chatEquipeId = null;
+};
+
+window.envoyerMessageChat = function() {
+    var input = document.getElementById('chat-equipe-input');
+    var texte = (input.value || '').trim();
+    if (!texte || !_chatEquipeId) return;
+    var myUid = _cardMemberData ? _cardMemberData._uid : null;
+    if (!myUid) return;
+    input.value = '';
+    window.db_ref.ref('chats_equipe/' + _chatEquipeId).push({
+        uid: myUid,
+        prenom: _cardMemberData.prenom || '',
+        nom: _cardMemberData.nom || '',
+        texte: texte,
+        createdAt: Date.now()
+    }).catch(function(err) {
+        input.value = texte;
+        window.showNotification && window.showNotification('Message non envoyé : ' + (err.message || err), 'error');
+    });
+};
+
+window.supprimerMessageChat = function(msgId) {
+    if (!_chatEquipeId) return;
+    window.db_ref.ref('chats_equipe/' + _chatEquipeId + '/' + msgId).remove().catch(function(err) {
+        window.showNotification && window.showNotification('Suppression impossible : ' + (err.message || err), 'error');
     });
 };
 

@@ -239,6 +239,67 @@ exports.sendMemberPush = functions.https.onCall(async (data, context) => {
 });
 
 /**
+ * Trigger DB — Nouveau message dans une discussion d'équipe
+ * Envoie une push Web à tous les joueurs de l'équipe sauf l'auteur.
+ * Chemin : chats_equipe/{equipeId}/{msgId}
+ */
+exports.onTeamChatMessage = functions.database.ref('/chats_equipe/{equipeId}/{msgId}')
+    .onCreate(async (snap, context) => {
+        const msg = snap.val() || {};
+        const equipeId = context.params.equipeId;
+        if (!msg.uid || !msg.texte) return null;
+
+        const eqSnap = await admin.database().ref(`equipes/${equipeId}`).once('value');
+        const eq = eqSnap.val();
+        if (!eq) return null;
+
+        const destinataires = Object.keys(eq.joueurs || {}).filter(u => u !== msg.uid);
+        if (!destinataires.length) return null;
+
+        const vapidPrivateKey = functions.config().vapid?.private_key || process.env.VAPID_PRIVATE_KEY;
+        if (!vapidPrivateKey) {
+            console.warn('[onTeamChatMessage] Clé VAPID privée non configurée — pas de push.');
+            return null;
+        }
+        webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, vapidPrivateKey);
+
+        const auteur = (`${msg.prenom || ''} ${msg.nom || ''}`).trim() || (msg.role === 'coach' ? 'Le coach' : 'Un coéquipier');
+        const texte = msg.texte.length > 100 ? msg.texte.substring(0, 97) + '...' : msg.texte;
+        const payload = JSON.stringify({
+            title: `💬 ${eq.nom || 'Équipe'} — ${auteur}`,
+            body: texte,
+            icon: '/icon-192.png',
+            badge: '/icon-192.png',
+            url: 'https://tennismontargis.fr/espace-membre.html'
+        });
+        const options = { TTL: 60 * 60 * 24, urgency: 'normal' };
+
+        let sent = 0;
+        await Promise.all(destinataires.map(async (uid) => {
+            const subsSnap = await admin.database().ref(`push_subscriptions_membres/${uid}`).once('value');
+            if (!subsSnap.exists()) return;
+            const toRemove = [];
+            await Promise.all(Object.entries(subsSnap.val()).map(async ([tokenHash, sub]) => {
+                if (!sub.token || !sub.keys) { toRemove.push(tokenHash); return; }
+                try {
+                    await webpush.sendNotification({ endpoint: sub.token, keys: sub.keys }, payload, options);
+                    sent++;
+                } catch (err) {
+                    if (err.statusCode === 410 || err.statusCode === 404) toRemove.push(tokenHash);
+                }
+            }));
+            if (toRemove.length) {
+                const updates = {};
+                toRemove.forEach(k => { updates[k] = null; });
+                await admin.database().ref(`push_subscriptions_membres/${uid}`).update(updates);
+            }
+        }));
+
+        console.log(`[onTeamChatMessage] équipe=${equipeId} auteur=${msg.uid} → ${sent} push envoyées`);
+        return null;
+    });
+
+/**
  * Cloud Function pour attribuer le custom claim "admin" dans Firebase Auth
  * Utilisé pour restreindre la suppression dans Firebase Storage aux admins uniquement
  */

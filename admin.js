@@ -2034,10 +2034,13 @@ window.deleteChampionnat = async function(id) {
     // 2. Supprimer toutes les inscriptions des membres pour ce championnat
     await db_ref.ref('inscriptions_equipe/' + id).remove();
 
-    // 3. Supprimer toutes les équipes liées à ce championnat
+    // 3. Supprimer toutes les équipes liées à ce championnat (et leurs discussions)
     var snapEquipes = await db_ref.ref('equipes').orderByChild('champId').equalTo(id).once('value');
     var suppEquipes = [];
-    snapEquipes.forEach(function(child) { suppEquipes.push(db_ref.ref('equipes/' + child.key).remove()); });
+    snapEquipes.forEach(function(child) {
+        suppEquipes.push(db_ref.ref('equipes/' + child.key).remove());
+        suppEquipes.push(db_ref.ref('chats_equipe/' + child.key).remove());
+    });
     await Promise.all(suppEquipes);
 
     // 4. Supprimer toutes les notifications liées à ce championnat
@@ -2381,6 +2384,7 @@ window.loadEquipesAdmin = function(champId) {
                             + '<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;">'
                             + '<div style="font-weight:bold; color:' + color + '; font-size:14px;">' + escHtml(eq.nom) + '</div>'
                             + '<div style="display:flex; gap:6px;">'
+                            + '<button onclick="window.ouvrirChatAdmin(\'' + eqId + '\',\'' + escHtml(eq.nom || 'Équipe').replace(/'/g, '\\\'') + '\')" title="Discussion d\'équipe" style="background:#0f172a; color:#00d2ff; border:1px solid #00d2ff44; padding:4px 8px; border-radius:5px; cursor:pointer; font-size:11px;"><i class="fas fa-comments"></i></button>'
                             + '<button onclick="window.openEditEquipeModal(\'' + eqId + '\',\'' + champId + '\')" title="Modifier" style="background:#0f172a; color:#94a3b8; border:1px solid #33415544; padding:4px 8px; border-radius:5px; cursor:pointer; font-size:11px;"><i class="fas fa-pen"></i></button>'
                             + '<button onclick="deleteEquipeAdmin(\'' + eqId + '\')" title="Supprimer" style="background:#0f172a; color:#ef4444; border:1px solid #ef444444; padding:4px 8px; border-radius:5px; cursor:pointer; font-size:11px;"><i class="fas fa-trash"></i></button>'
                             + '</div></div>'
@@ -2464,7 +2468,7 @@ window.saveEditEquipe = function() {
 };
 
 window.deleteEquipeAdmin = async function(equipeId) {
-    var ok = await window.confirmDialog.show({ title: 'Supprimer l\'équipe', message: 'Supprimer cette équipe et ses convocations ?', type: 'danger', confirmText: 'Supprimer', cancelText: 'Annuler' });
+    var ok = await window.confirmDialog.show({ title: 'Supprimer l\'équipe', message: 'Supprimer cette équipe, ses convocations et sa discussion ?', type: 'danger', confirmText: 'Supprimer', cancelText: 'Annuler' });
     if (!ok) return;
     var champIdToRefresh = null;
     try {
@@ -2472,6 +2476,7 @@ window.deleteEquipeAdmin = async function(equipeId) {
         champIdToRefresh = snapDel.val();
     } catch(_) {}
     db_ref.ref('equipes/' + equipeId).remove().then(function() {
+        db_ref.ref('chats_equipe/' + equipeId).remove();
         window.showNotification && window.showNotification('Équipe supprimée.', 'success');
         if (champIdToRefresh) window.loadEquipesAdmin(champIdToRefresh);
     }).catch(function(err) {
@@ -2851,6 +2856,97 @@ window.validerEtNotifierConvocation = function() {
     }).catch(function(err) {
         console.error('Erreur validerEtNotifierConvocation :', err);
         window.showNotification && window.showNotification('Erreur lors de la validation : ' + (err.message || err), 'error');
+    });
+};
+
+// --- Discussion d'équipe (vue coach) ---
+var _chatAdminEquipeId = null;
+var _chatAdminListenerRef = null;
+
+function _renderChatMsgAdmin(msgId, m) {
+    var isCoach = m.role === 'coach';
+    var auteur = isCoach ? ('Coach' + ((m.prenom || m.nom) ? ' ' + ((m.prenom || '') + ' ' + (m.nom || '')).trim() : ''))
+                         : (((m.prenom || '') + ' ' + (m.nom || '')).trim() || 'Membre');
+    var heure = m.createdAt ? new Date(m.createdAt).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
+    var bulle = document.createElement('div');
+    bulle.id = 'chat-admin-msg-' + msgId;
+    bulle.style.cssText = 'max-width:80%; padding:8px 12px; border-radius:12px; font-size:13px; line-height:1.4; word-break:break-word; '
+        + (isCoach ? 'align-self:flex-end; background:rgba(201,162,39,0.12); border:1px solid rgba(201,162,39,0.35); color:#e2e8f0; border-bottom-right-radius:4px;'
+                   : 'align-self:flex-start; background:#1e293b; border:1px solid #334155; color:#e2e8f0; border-bottom-left-radius:4px;');
+    bulle.innerHTML = '<div style="display:flex; align-items:center; gap:6px; margin-bottom:3px;">'
+        + '<span style="font-size:10px; font-weight:bold; color:' + (isCoach ? '#c9a227' : '#94a3b8') + ';">'
+        + (isCoach ? '<i class="fas fa-user-tie" style="margin-right:3px;"></i>' : '') + escHtml(auteur) + '</span>'
+        + '<span style="font-size:9px; color:#475569;">' + heure + '</span>'
+        + '<button onclick="window.supprimerMessageChatAdmin(\'' + msgId + '\')" title="Supprimer ce message" style="background:none; border:none; color:#475569; cursor:pointer; font-size:10px; padding:0 2px; margin-left:auto;"><i class="fas fa-trash"></i></button>'
+        + '</div>'
+        + '<div>' + escHtml(m.texte || '') + '</div>';
+    return bulle;
+}
+
+window.ouvrirChatAdmin = function(equipeId, eqNom) {
+    _chatAdminEquipeId = equipeId;
+    document.getElementById('chat-admin-nom').textContent = 'Discussion — ' + eqNom;
+    var box = document.getElementById('chat-admin-messages');
+    box.innerHTML = '<p style="color:#64748b; font-size:12px; text-align:center;"><i class="fas fa-spinner fa-spin"></i></p>';
+    document.getElementById('modal-chat-admin').style.display = '';
+
+    _chatAdminListenerRef = db_ref.ref('chats_equipe/' + equipeId).orderByChild('createdAt').limitToLast(100);
+    var first = true;
+    _chatAdminListenerRef.on('child_added', function(child) {
+        if (first) { box.innerHTML = ''; first = false; }
+        box.appendChild(_renderChatMsgAdmin(child.key, child.val() || {}));
+        box.scrollTop = box.scrollHeight;
+    });
+    _chatAdminListenerRef.on('child_removed', function(child) {
+        var el = document.getElementById('chat-admin-msg-' + child.key);
+        if (el) el.remove();
+    });
+    setTimeout(function() {
+        if (first && _chatAdminEquipeId === equipeId) {
+            box.innerHTML = '<p style="color:#64748b; font-size:12px; text-align:center; margin:auto;">Aucun message pour l\'instant.</p>';
+            first = false;
+        }
+    }, 1200);
+
+    var input = document.getElementById('chat-admin-input');
+    input.value = '';
+    input.onkeydown = function(e) { if (e.key === 'Enter') window.envoyerMessageChatAdmin(); };
+};
+
+window.fermerChatAdmin = function() {
+    document.getElementById('modal-chat-admin').style.display = 'none';
+    if (_chatAdminListenerRef) { _chatAdminListenerRef.off(); _chatAdminListenerRef = null; }
+    _chatAdminEquipeId = null;
+};
+
+window.envoyerMessageChatAdmin = function() {
+    var input = document.getElementById('chat-admin-input');
+    var texte = (input.value || '').trim();
+    if (!texte || !_chatAdminEquipeId) return;
+    var user = firebase.auth().currentUser;
+    if (!user) return;
+    input.value = '';
+    // Récupérer prénom/nom de l'admin s'il a une fiche membre (sinon « Coach » seul)
+    db_ref.ref('members/' + user.uid).once('value').then(function(s) {
+        var me = s.val() || {};
+        return db_ref.ref('chats_equipe/' + _chatAdminEquipeId).push({
+            uid: user.uid,
+            prenom: me.prenom || '',
+            nom: me.nom || '',
+            role: 'coach',
+            texte: texte,
+            createdAt: Date.now()
+        });
+    }).catch(function(err) {
+        input.value = texte;
+        window.showNotification && window.showNotification('Message non envoyé : ' + (err.message || err), 'error');
+    });
+};
+
+window.supprimerMessageChatAdmin = function(msgId) {
+    if (!_chatAdminEquipeId) return;
+    db_ref.ref('chats_equipe/' + _chatAdminEquipeId + '/' + msgId).remove().catch(function(err) {
+        window.showNotification && window.showNotification('Suppression impossible : ' + (err.message || err), 'error');
     });
 };
 
