@@ -249,6 +249,19 @@
         }
         .club-message-date { font-size: 0.75rem; color: #64748b; }
         .club-message-body { color: #94a3b8; font-size: 0.88rem; line-height: 1.6; white-space: pre-wrap; }
+
+        /* ===== En-tête sur téléphone : boutons alignés en rangées nettes ===== */
+        @media (max-width: 640px) {
+            .member-header { padding: 20px 16px; gap: 14px; }
+            /* Contacter le club : étiquette sur sa propre ligne, boutons en 2 colonnes égales */
+            #club-contact-btns { width: 100%; }
+            #club-contact-btns > span { flex-basis: 100%; }
+            #club-contact-btns a { flex: 1; justify-content: center; }
+            /* Actions : « Revenir au site » + « Aide » côte à côte, « Déconnexion » en dessous pleine largeur */
+            .member-header-actions { width: 100%; margin-left: 0 !important; }
+            .member-header-actions .member-back-btn { flex: 1; justify-content: center; }
+            .member-header-actions .member-logout-btn { flex-basis: 100%; justify-content: center; }
+        }
     </style>
 
     <!-- Firebase SDKs — defer : téléchargement parallèle, exécution après parsing HTML -->
