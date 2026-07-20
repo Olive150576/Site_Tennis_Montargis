@@ -2405,7 +2405,7 @@ section#contact-section.animate-in { transition-delay: 0.1s; }
 .mic-edit-input:focus { border-color: #ffd700; }
 
 /* ── BOUTONS RAPIDES ─────────────────────────────────── */
-.member-quick-links { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 10px; }
+.member-quick-links { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 10px; margin-bottom: 28px; }
 
 .member-quick-btn {
     background: rgba(255, 215, 0, 0.1);

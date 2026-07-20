@@ -305,15 +305,19 @@
                     <h2 class="member-greeting" id="member-greeting" data-clarity-mask="true">Bonjour !</h2>
                 </div>
                 <div id="club-contact-btns" style="display:none; gap:8px; align-items:center; flex-wrap:wrap;"></div>
-                <button class="member-back-btn" onclick="window.showMemberHelp()" title="Comment fonctionne mon espace membre ?" style="border-color:rgba(0,210,255,0.35); color:#00d2ff;">
-                    <i class="fas fa-question-circle"></i> Aide
-                </button>
-                <a href="/" class="member-back-btn">
-                    <i class="fas fa-arrow-left"></i> Site
-                </a>
-                <button class="member-logout-btn" onclick="window.memberLogout()">
-                    <i class="fas fa-sign-out-alt"></i> Déconnexion
-                </button>
+                <div class="member-header-actions" style="margin-left:auto; display:flex; gap:8px; flex-wrap:wrap; align-items:center; justify-content:flex-end;">
+                    <a href="/" class="member-back-btn" title="Retourner sur le site du club"
+                       style="background:rgba(255,215,0,0.1); border-color:rgba(255,215,0,0.45); color:#ffd700; font-weight:600;">
+                        <i class="fas fa-home"></i> Revenir au site
+                    </a>
+                    <button class="member-back-btn" onclick="window.showMemberHelp()" title="Comment fonctionne mon espace membre ?"
+                        style="background:rgba(0,210,255,0.08); border-color:rgba(0,210,255,0.35); color:#00d2ff; cursor:pointer; font-family:inherit;">
+                        <i class="fas fa-question-circle"></i> Aide
+                    </button>
+                    <button class="member-logout-btn" onclick="window.memberLogout()" style="margin-left:0;">
+                        <i class="fas fa-sign-out-alt"></i> Déconnexion
+                    </button>
+                </div>
             </div>
 
             <!-- MODAL AIDE MEMBRE -->
