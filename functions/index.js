@@ -303,6 +303,176 @@ exports.onTeamChatMessage = functions.database.ref('/chats_equipe/{equipeId}/{ms
         return null;
     });
 
+// ─────────────────────────────────────────────────────────────────────────
+//  NOTIFICATIONS PAR EMAIL (championnats par équipes)
+// ─────────────────────────────────────────────────────────────────────────
+
+// Transporteur email « sûr » pour les triggers : renvoie null au lieu de throw.
+function getMailTransporterSafe() {
+    const gmailUser = functions.config().gmail?.user || process.env.GMAIL_USER;
+    const gmailPass = functions.config().gmail?.pass || process.env.GMAIL_APP_PASSWORD;
+    if (!gmailUser || !gmailPass) {
+        console.warn('[email] Configuration Gmail absente — email non envoyé.');
+        return null;
+    }
+    if (!_mailTransporter) {
+        _mailTransporter = nodemailer.createTransport({ service: 'gmail', auth: { user: gmailUser, pass: gmailPass } });
+    }
+    return _mailTransporter;
+}
+
+// Enveloppe HTML brandée du club autour du contenu du message.
+function _clubEmailHtml(heading, bodyHtml, ctaLabel, ctaUrl) {
+    const url = ctaUrl || 'https://tennismontargis.fr/espace-membre.html';
+    const cta = ctaLabel
+        ? `<tr><td style="padding:8px 0 4px;"><a href="${url}" style="display:inline-block;background:#e11d48;color:#ffffff;text-decoration:none;font-weight:bold;padding:12px 24px;border-radius:8px;font-size:14px;">${escapeHtml(ctaLabel)}</a></td></tr>`
+        : '';
+    return `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#0b1220;">
+      <table width="100%" cellpadding="0" cellspacing="0" style="background:#0b1220;padding:24px 12px;">
+        <tr><td align="center">
+          <table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#0f172a;border:1px solid #1e293b;border-radius:14px;overflow:hidden;">
+            <tr><td style="background:linear-gradient(135deg,#0d1b2e,#1a2f4a);padding:20px 24px;border-bottom:1px solid #1e293b;">
+              <div style="color:#ffd700;font-family:Arial,sans-serif;font-weight:bold;font-size:16px;letter-spacing:1px;">USM TENNIS MONTARGIS</div>
+              <div style="color:#94a3b8;font-family:Arial,sans-serif;font-size:12px;margin-top:2px;">Championnats par équipes</div>
+            </td></tr>
+            <tr><td style="padding:24px;">
+              <table width="100%" cellpadding="0" cellspacing="0" style="font-family:Arial,sans-serif;">
+                <tr><td style="color:#e2e8f0;font-size:17px;font-weight:bold;padding-bottom:10px;">${escapeHtml(heading)}</td></tr>
+                <tr><td style="color:#cbd5e1;font-size:14px;line-height:1.6;padding-bottom:16px;">${bodyHtml}</td></tr>
+                ${cta}
+              </table>
+            </td></tr>
+            <tr><td style="padding:16px 24px;border-top:1px solid #1e293b;color:#64748b;font-family:Arial,sans-serif;font-size:11px;line-height:1.5;">
+              Vous recevez cet email en tant que membre inscrit à un championnat de l'USM Tennis Montargis.<br>
+              Retrouvez le détail dans votre espace membre.
+            </td></tr>
+          </table>
+        </td></tr>
+      </table></body></html>`;
+}
+
+// Envoi d'un email du club (renvoie true/false, ne throw jamais).
+async function sendClubEmail(to, subject, heading, bodyHtml, ctaLabel, ctaUrl, textFallback) {
+    if (!to) return false;
+    const transporter = getMailTransporterSafe();
+    if (!transporter) return false;
+    const gmailUser = functions.config().gmail?.user || process.env.GMAIL_USER;
+    try {
+        await transporter.sendMail({
+            from: `"USM Tennis Montargis" <${gmailUser}>`,
+            to,
+            subject,
+            text: textFallback || heading,
+            html: _clubEmailHtml(heading, bodyHtml, ctaLabel, ctaUrl)
+        });
+        return true;
+    } catch (err) {
+        console.error('[email] Échec envoi à', to, ':', err.message);
+        return false;
+    }
+}
+
+/**
+ * Trigger DB — Notification interne créée → email au joueur concerné.
+ * Double automatiquement chaque notification_equipe d'un email (hors chat,
+ * qui n'écrit pas dans notifications_equipe).
+ * Chemin : notifications_equipe/{notifId}
+ */
+const _EMAIL_SUJETS = {
+    convoque:            { sujet: '🎾 Vous êtes convoqué(e) — USM Tennis',        titre: 'Nouvelle convocation' },
+    inscription_validee: { sujet: '✅ Inscription validée — USM Tennis',           titre: 'Inscription validée' },
+    inscription_refusee: { sujet: 'Inscription au championnat — USM Tennis',       titre: 'Inscription refusée' },
+    equipe_assignee:     { sujet: '🎾 Vous êtes dans une équipe — USM Tennis',     titre: 'Vous avez rejoint une équipe' }
+};
+
+exports.onNotificationEmail = functions.database.ref('/notifications_equipe/{notifId}')
+    .onCreate(async (snap) => {
+        const n = snap.val() || {};
+        const cfg = _EMAIL_SUJETS[n.type];
+        if (!n.uid || !cfg) return null; // type non concerné par l'email
+
+        const memberSnap = await admin.database().ref(`members/${n.uid}`).once('value');
+        const member = memberSnap.val();
+        if (!member || !member.email) {
+            console.log(`[onNotificationEmail] pas d'email pour uid=${n.uid}`);
+            return null;
+        }
+
+        const prenom = member.prenom ? escapeHtml(member.prenom) : '';
+        const body = (prenom ? `Bonjour ${prenom},<br><br>` : '') + escapeHtml(n.message || '');
+        const ok = await sendClubEmail(
+            member.email, cfg.sujet, cfg.titre, body,
+            'Ouvrir mon espace membre', 'https://tennismontargis.fr/espace-membre.html',
+            n.message || cfg.titre
+        );
+        console.log(`[onNotificationEmail] type=${n.type} uid=${n.uid} email=${ok ? 'envoyé' : 'non envoyé'}`);
+        return null;
+    });
+
+/**
+ * Trigger DB — Un joueur se désiste d'une convocation → alerte email au coach + club.
+ * Chemin : equipes/{equipeId}/convocations/{rencontreId}/reponses/{uid}
+ */
+exports.onDesistementAlerte = functions.database.ref('/equipes/{equipeId}/convocations/{rencontreId}/reponses/{uid}')
+    .onWrite(async (change, context) => {
+        const after = change.after.val();
+        const before = change.before.val();
+        // On n'alerte que sur un NOUVEAU désistement
+        if (!after || after.statut !== 'decline') return null;
+        if (before && before.statut === 'decline') return null;
+
+        const { equipeId, rencontreId, uid } = context.params;
+        const [eqSnap, joueurSnap, infoSnap] = await Promise.all([
+            admin.database().ref(`equipes/${equipeId}`).once('value'),
+            admin.database().ref(`members/${uid}`).once('value'),
+            admin.database().ref('info/email').once('value')
+        ]);
+        const eq = eqSnap.val() || {};
+        const joueur = joueurSnap.val() || {};
+        const rencontre = (eq.rencontres && eq.rencontres[rencontreId]) || {};
+
+        const champSnap = eq.champId
+            ? await admin.database().ref(`championnats_equipe/${eq.champId}/nom`).once('value')
+            : null;
+        const champNom = champSnap ? (champSnap.val() || '') : '';
+
+        // Destinataires : email du club + emails des coaches
+        const destinataires = new Set();
+        const clubEmail = infoSnap.val();
+        if (clubEmail) destinataires.add(clubEmail);
+
+        const coachesSnap = await admin.database().ref('coaches').once('value');
+        const coaches = coachesSnap.val() || {};
+        await Promise.all(Object.keys(coaches).map(async (cUid) => {
+            const cSnap = await admin.database().ref(`members/${cUid}/email`).once('value');
+            if (cSnap.val()) destinataires.add(cSnap.val());
+        }));
+
+        if (!destinataires.size) {
+            console.warn('[onDesistementAlerte] aucun destinataire (club/coach) — email non envoyé.');
+            return null;
+        }
+
+        const nomJoueur = ((joueur.prenom || '') + ' ' + (joueur.nom || '')).trim() || 'Un joueur';
+        const dateMatch = (rencontre.date || '?') + (rencontre.heure ? ' à ' + rencontre.heure : '')
+            + (rencontre.adversaire ? ' vs ' + rencontre.adversaire : '');
+        const body = `<strong style="color:#ef4444;">${escapeHtml(nomJoueur)}</strong> vient de se désister d'une convocation.<br><br>`
+            + `<strong>Équipe :</strong> ${escapeHtml(eq.nom || '—')}${champNom ? ' (' + escapeHtml(champNom) + ')' : ''}<br>`
+            + `<strong>Rencontre :</strong> ${escapeHtml(dateMatch)}<br><br>`
+            + `Pensez à revoir la composition de l'équipe.`;
+
+        const ok = await sendClubEmail(
+            Array.from(destinataires).join(','),
+            '⚠️ Désistement — ' + (eq.nom || 'Équipe') + ' — USM Tennis',
+            'Désistement d\'un joueur',
+            body,
+            'Gérer les équipes', 'https://tennismontargis.fr/admin-panel.html',
+            `${nomJoueur} se désiste — ${eq.nom || 'Équipe'} — ${dateMatch}`
+        );
+        console.log(`[onDesistementAlerte] joueur=${uid} équipe=${equipeId} → ${destinataires.size} destinataire(s), email=${ok ? 'envoyé' : 'non envoyé'}`);
+        return null;
+    });
+
 /**
  * Cloud Function pour attribuer le custom claim "admin" dans Firebase Auth
  * Utilisé pour restreindre la suppression dans Firebase Storage aux admins uniquement
