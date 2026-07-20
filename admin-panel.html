@@ -61,6 +61,31 @@
             max-width: 1200px;
             margin: 0 auto;
         }
+
+        /* ===== Adaptation téléphone ===== */
+        @media (max-width: 640px) {
+            html, body { overflow-x: hidden; }
+            .admin-content { padding: 18px 12px 60px; }
+            /* Les champs peuvent rétrécir dans les grilles (sinon ils imposent ~180px chacun) */
+            .admin-content input, .admin-content select, .admin-content textarea, .admin-content button {
+                min-width: 0;
+                max-width: 100%;
+            }
+            /* Lignes à cases (À la une, Brouillon, Notifier) : passage en plusieurs lignes */
+            #featured-container, #draft-container, #notification-container { flex-wrap: wrap; }
+            #draft-container span, #notification-container span {
+                flex-basis: 100%;
+                margin-left: 34px;
+                text-align: left !important;
+            }
+            /* Zone d'upload compacte, ligne YouTube repliable */
+            #image-upload-container { padding: 18px 10px; }
+            #image-upload-container input[type="file"] { width: 100%; }
+            #image-upload-container > div { flex-wrap: wrap; }
+            /* Barre d'onglets : l'étiquette de zone passe au-dessus des boutons */
+            .tab-group { padding: 8px 10px; }
+            .tab-group-label { min-width: 100% !important; margin-bottom: 2px; }
+        }
     </style>
 
     <!-- Firebase SDKs — defer : téléchargement parallèle, exécution après parsing HTML -->
