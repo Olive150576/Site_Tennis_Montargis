@@ -176,7 +176,7 @@ window.saveProfilCoordonnees = function() {
     window.db_ref.ref('members/' + targetUid).update(updates).then(function() {
         // Trace l'historique quand un membre modifie lui-même son classement
         // (le classement conditionne l'éligibilité aux équipes de championnat)
-        if (classementChanged && !_cardMemberData._isAdmin) {
+        if (classementChanged && !_cardMemberData._isStaff) {
             window.db_ref.ref('members/' + targetUid + '/classementHistory').push({
                 from: previousClassement,
                 to: classement,
@@ -209,8 +209,8 @@ window.initMemberDashboard = function(memberData) {
 
     // Photo de profil sauvegardée
     if (memberData.photoURL) window.setMemberAvatar(memberData.photoURL);
-    // Mode admin : bandeau + photo modifiable pour le membre cible
-    if (memberData._isAdmin) {
+    // Mode gestion (admin ou coach) : bandeau + photo modifiable pour le membre cible
+    if (memberData._isStaff) {
         var avatarDiv = document.getElementById('member-avatar-img');
         if (avatarDiv) {
             avatarDiv.style.cursor = 'pointer';
@@ -236,13 +236,13 @@ window.initMemberDashboard = function(memberData) {
             ].join('');
             banner.innerHTML = '<i class="fas fa-user-shield" style="color:#ffd700;font-size:1.1rem;flex-shrink:0;"></i>' +
                 '<div style="flex:1;">' +
-                '<div style="color:#ffd700;font-weight:700;font-size:0.88rem;">Mode administrateur</div>' +
+                '<div style="color:#ffd700;font-weight:700;font-size:0.88rem;">Mode gestion</div>' +
                 '<div style="color:rgba(255,215,0,0.65);font-size:0.78rem;margin-top:1px;">Vous éditez le profil de <strong style="color:rgba(255,215,0,0.9);">' +
                 (memberData.prenom || '') + ' ' + (memberData.nom || '') +
                 '</strong>. Toutes les modifications sont enregistrées directement.</div>' +
                 '</div>' +
                 '<a href="/admin-panel.html" style="background:rgba(255,215,0,0.12);border:1px solid rgba(255,215,0,0.35);color:#ffd700;padding:7px 14px;border-radius:8px;font-size:0.8rem;text-decoration:none;white-space:nowrap;display:flex;align-items:center;gap:6px;">' +
-                '<i class="fas fa-arrow-left"></i> Panel admin' +
+                '<i class="fas fa-arrow-left"></i> Retour au panneau' +
                 '</a>';
             zone.insertBefore(banner, zone.firstChild);
         }
