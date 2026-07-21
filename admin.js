@@ -1798,11 +1798,18 @@ function memberRowHTML(m, statutOptions) {
                         style="background:rgba(255,215,0,0.08); border:1px solid rgba(255,215,0,0.35); color:#ffd700; padding:5px 12px; border-radius:8px; cursor:pointer; font-size:12px;">
                         <i class="fas fa-edit"></i> Modifier
                     </button>
+                    ${window.isCurrentUserAdmin ? `
                     <button onclick="window.toggleCoachAccess('${m.uid}', ${m.isCoach ? 'false' : 'true'}, '${escapeHtml(m.prenom || '')} ${escapeHtml(m.nom || '')}')"
                         title="${m.isCoach ? 'Accès coach actif — cliquer pour retirer' : 'Donner l’accès au panneau Équipes'}"
                         style="background:${m.isCoach ? 'rgba(201,162,39,0.18)' : 'rgba(100,116,139,0.08)'}; border:1px solid ${m.isCoach ? 'rgba(201,162,39,0.55)' : 'rgba(100,116,139,0.3)'}; color:${m.isCoach ? '#c9a227' : '#94a3b8'}; padding:5px 12px; border-radius:8px; cursor:pointer; font-size:12px;">
                         <i class="fas fa-user-tie"></i> ${m.isCoach ? 'Coach ✓' : 'Accès coach'}
                     </button>
+                    ` : (m.isCoach ? `
+                    <span title="Accès coach actif — réservé à l'administrateur pour le modifier"
+                        style="background:rgba(201,162,39,0.18); border:1px solid rgba(201,162,39,0.55); color:#c9a227; padding:5px 12px; border-radius:8px; font-size:12px;">
+                        <i class="fas fa-user-tie"></i> Coach ✓
+                    </span>
+                    ` : '')}
                     <button onclick="window.toggleMemberActive('${m.uid}', ${!m.actif})"
                         style="background:${m.actif ? 'rgba(239,68,68,0.1)' : 'rgba(34,197,94,0.1)'}; border:1px solid ${m.actif ? 'rgba(239,68,68,0.4)' : 'rgba(34,197,94,0.4)'}; color:${m.actif ? '#ef4444' : '#22c55e'}; padding:5px 12px; border-radius:8px; cursor:pointer; font-size:12px;">
                         ${m.actif ? 'Désactiver' : 'Réactiver'}

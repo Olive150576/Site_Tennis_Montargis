@@ -5,6 +5,20 @@ const nodemailer = require('nodemailer');
 
 admin.initializeApp();
 
+// Vérifie que l'appelant est admin OU coach (gestion des membres) — throw sinon.
+async function requireStaff(context) {
+    if (!context.auth) {
+        throw new functions.https.HttpsError('unauthenticated', 'Vous devez être connecté.');
+    }
+    const [adminSnap, coachSnap] = await Promise.all([
+        admin.database().ref(`admins/${context.auth.uid}`).once('value'),
+        admin.database().ref(`coaches/${context.auth.uid}`).once('value')
+    ]);
+    if (!adminSnap.exists() && !coachSnap.exists()) {
+        throw new functions.https.HttpsError('permission-denied', 'Accès réservé aux administrateurs et coaches.');
+    }
+}
+
 function escapeHtml(str) {
     return String(str)
         .replace(/&/g, '&amp;')
@@ -497,13 +511,7 @@ exports.grantAdminClaim = functions.https.onCall(async (data, context) => {
  * Cloud Function pour supprimer un compte membre
  */
 exports.deleteMember = functions.https.onCall(async (data, context) => {
-    if (!context.auth) {
-        throw new functions.https.HttpsError('unauthenticated', 'Vous devez être connecté.');
-    }
-    const adminSnap = await admin.database().ref(`admins/${context.auth.uid}`).once('value');
-    if (!adminSnap.exists()) {
-        throw new functions.https.HttpsError('permission-denied', 'Accès réservé aux administrateurs.');
-    }
+    await requireStaff(context);
 
     const { uid } = data;
     if (!uid) throw new functions.https.HttpsError('invalid-argument', 'UID membre requis.');
@@ -734,14 +742,7 @@ exports.sendContactEmail = functions.https.onCall(async (data, context) => {
  * Appelée par l'admin depuis le panel d'administration
  */
 exports.createMember = functions.https.onCall(async (data, context) => {
-    if (!context.auth) {
-        throw new functions.https.HttpsError('unauthenticated', 'Vous devez être connecté.');
-    }
-    // Vérifier que l'appelant est admin
-    const adminSnap = await admin.database().ref(`admins/${context.auth.uid}`).once('value');
-    if (!adminSnap.exists()) {
-        throw new functions.https.HttpsError('permission-denied', 'Accès réservé aux administrateurs.');
-    }
+    await requireStaff(context);
 
     const { email, password, nom, prenom, telephone, licence, classement, categorie, statut } = data;
 
@@ -781,16 +782,22 @@ exports.createMember = functions.https.onCall(async (data, context) => {
  * Cloud Function pour désactiver / réactiver un membre
  */
 exports.toggleMemberStatus = functions.https.onCall(async (data, context) => {
-    if (!context.auth) {
-        throw new functions.https.HttpsError('unauthenticated', 'Vous devez être connecté.');
-    }
-    const adminSnap = await admin.database().ref(`admins/${context.auth.uid}`).once('value');
-    if (!adminSnap.exists()) {
-        throw new functions.https.HttpsError('permission-denied', 'Accès réservé aux administrateurs.');
-    }
+    await requireStaff(context);
 
     const { uid, actif } = data;
     if (!uid) throw new functions.https.HttpsError('invalid-argument', 'UID membre requis.');
+
+    // Garde-fou : un coach ne peut pas désactiver un compte admin ou coach (y compris lui-même)
+    const callerIsAdmin = (await admin.database().ref(`admins/${context.auth.uid}`).once('value')).exists();
+    if (!callerIsAdmin && !actif) {
+        const [targetAdmin, targetCoach] = await Promise.all([
+            admin.database().ref(`admins/${uid}`).once('value'),
+            admin.database().ref(`coaches/${uid}`).once('value')
+        ]);
+        if (targetAdmin.exists() || targetCoach.exists()) {
+            throw new functions.https.HttpsError('permission-denied', 'Vous ne pouvez pas désactiver un compte administrateur ou coach.');
+        }
+    }
 
     await admin.database().ref(`members/${uid}/actif`).set(!!actif);
 
