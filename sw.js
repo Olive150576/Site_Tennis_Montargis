@@ -1,4 +1,4 @@
-const CACHE_NAME = 'usm-tennis-v40';
+const CACHE_NAME = 'usm-tennis-v41';
 const ASSETS = [
     '/',
     '/index.html',
@@ -10,8 +10,11 @@ const ASSETS = [
     '/notifications.js',
     '/icon-192.png',
     '/icon-512.png',
+    '/icon-membre-192.png',
+    '/icon-membre-512.png',
     '/logo_usm_new.png',
-    '/manifest.json'
+    '/manifest.json',
+    '/manifest-membre.json'
 ];
 
 self.addEventListener('install', (e) => {

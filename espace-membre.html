@@ -20,6 +20,14 @@
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png">
 
+    <!-- PWA — application installable dédiée à l'espace membre -->
+    <link rel="manifest" href="/manifest-membre.json" crossorigin="use-credentials">
+    <meta name="theme-color" content="#0d1b2e">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-membre.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Espace Membre">
+
     <!-- Preconnect -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -277,6 +285,17 @@
     <script defer src="notifications.min.js"></script>
     <script defer src="member.min.js?v=15"></script>
     <script defer src="member-auth.min.js"></script>
+    <script>
+        // PWA — enregistre le service worker même si l'utilisateur arrive
+        // directement sur l'espace membre (installation depuis cette page).
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js', { scope: '/' })
+                    .then(reg => reg.update())
+                    .catch(err => console.log('SW Registration Error:', err));
+            });
+        }
+    </script>
 </head>
 
 <body>
