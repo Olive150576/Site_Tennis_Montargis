@@ -498,13 +498,35 @@ window.ouvrirProfilPartenaire = function() {
 };
 
 // --- Annuaire partenaires : sauvegarde ---
-window.savePartenaireProfile = function() {
+window.savePartenaireProfile = async function() {
     if (!_cardMemberData || !_cardMemberData._uid) return;
     var uid = _cardMemberData._uid;
     var btn    = document.getElementById('partenaire-save-btn');
     var status = document.getElementById('partenaire-save-status');
     var optin  = document.getElementById('partenaire-optin');
     var checked = optin ? optin.checked : false;
+
+    // Garde-fou : visible dans l'annuaire mais aucun moyen de contact coché (oubli fréquent)
+    if (checked) {
+        var telBox   = document.getElementById('partenaire-share-tel');
+        var emailBox = document.getElementById('partenaire-share-email');
+        if (!(telBox && telBox.checked) && !(emailBox && emailBox.checked) && window.confirmDialog) {
+            var choix = await window.confirmDialog.checklist({
+                title: 'Comment vous contacter ?',
+                message: "Vous n'avez coché aucun moyen de contact — les autres membres ne pourront pas vous joindre depuis l'annuaire. Cochez au moins une option, ou annulez pour revenir en arrière.",
+                type: 'warning',
+                confirmText: 'Enregistrer',
+                cancelText: 'Annuler',
+                items: [
+                    { id: 'tel', label: 'Téléphone', checked: false },
+                    { id: 'email', label: 'Email', checked: false }
+                ]
+            });
+            if (!choix) return;
+            if (telBox) telBox.checked = choix.tel;
+            if (emailBox) emailBox.checked = choix.email;
+        }
+    }
 
     var data = { public_profile: checked, updatedAt: Date.now() };
     if (checked) {

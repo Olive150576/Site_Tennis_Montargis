@@ -277,6 +277,68 @@ class ConfirmDialog {
             self.cancelBtn.addEventListener('click', handleCancel);
         });
     }
+
+    /**
+     * Affiche un dialogue avec une liste de cases à cocher
+     * @param {Object} options
+     * @param {string} options.title
+     * @param {string} options.message
+     * @param {Array<{id:string, label:string, checked?:boolean}>} options.items
+     * @param {string} options.confirmText
+     * @param {string} options.cancelText
+     * @param {string} options.type - 'warning' ou 'danger'
+     * @returns {Promise<Object|null>} { [id]: boolean, ... } ou null si annulé
+     */
+    checklist(options = {}) {
+        var self = this;
+        return new Promise(function(resolve) {
+            var title = options.title || 'Confirmation';
+            var message = options.message || '';
+            var items = options.items || [];
+            var confirmText = options.confirmText || 'Valider';
+            var cancelText = options.cancelText || 'Annuler';
+            var type = options.type || 'warning';
+
+            var icons = { warning: '<i class="fas fa-exclamation-triangle"></i>', danger: '<i class="fas fa-trash-alt"></i>', info: '<i class="fas fa-info-circle"></i>' };
+            self.icon.innerHTML = icons[type] || icons.warning;
+            self.icon.className = 'confirm-icon ' + type;
+            self.title.textContent = title;
+
+            var itemsHtml = items.map(function(it) {
+                return '<label style="display:flex; align-items:center; gap:8px; padding:9px 12px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.12); border-radius:8px; margin-top:8px; cursor:pointer;">'
+                    + '<input type="checkbox" id="confirm-checklist-' + it.id + '"' + (it.checked ? ' checked' : '') + ' style="width:16px; height:16px; accent-color:#ffd700; flex-shrink:0;">'
+                    + '<span style="color:#e2e8f0; font-size:13px;">' + it.label + '</span></label>';
+            }).join('');
+
+            self.message.innerHTML = (message ? '<div style="margin-bottom:4px; color:#94a3b8; font-size:13px;">' + message + '</div>' : '') + itemsHtml;
+
+            self.confirmBtn.textContent = confirmText;
+            self.cancelBtn.textContent = cancelText;
+            self.modal.classList.add('show');
+
+            var handleConfirm = function() {
+                var result = {};
+                items.forEach(function(it) {
+                    var el = document.getElementById('confirm-checklist-' + it.id);
+                    result[it.id] = !!(el && el.checked);
+                });
+                self.close(true);
+                resolve(result);
+                cleanup();
+            };
+            var handleCancel = function() {
+                self.close(false);
+                resolve(null);
+                cleanup();
+            };
+            var cleanup = function() {
+                self.confirmBtn.removeEventListener('click', handleConfirm);
+                self.cancelBtn.removeEventListener('click', handleCancel);
+            };
+            self.confirmBtn.addEventListener('click', handleConfirm);
+            self.cancelBtn.addEventListener('click', handleCancel);
+        });
+    }
 }
 
 // Instance globale
