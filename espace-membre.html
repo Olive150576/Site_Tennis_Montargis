@@ -818,8 +818,12 @@
 
             <!-- ===== ONGLET : MES ÉQUIPES ===== -->
             <div id="mtab-equipes" class="member-tab-content hidden">
-                <div class="member-section-title">
-                    <i class="fas fa-shield-alt"></i> Championnats en Équipe
+                <div class="member-section-title" style="justify-content:space-between; flex-wrap:wrap; row-gap:8px;">
+                    <span><i class="fas fa-shield-alt"></i> Championnats en Équipe</span>
+                    <!-- Bouton notifications push convocations -->
+                    <div id="equipes-push-container" style="text-align:right;">
+                        <p style="color:#64748b; font-size:12px; margin:0;"><i class="fas fa-spinner fa-spin"></i></p>
+                    </div>
                 </div>
 
                 <!-- Bannière : nouvelle inscription possible (remplie par JS si pertinent) -->
@@ -853,11 +857,6 @@
                     <div id="equipes-champs-dispos" style="display:grid; gap:14px;">
                         <p style="color:#64748b; font-size:13px; text-align:center;"><i class="fas fa-spinner fa-spin"></i> Chargement...</p>
                     </div>
-                </div>
-
-                <!-- Bouton notifications push convocations -->
-                <div id="equipes-push-container" style="margin-bottom:10px; text-align:center;">
-                    <p style="color:#64748b; font-size:12px;"><i class="fas fa-spinner fa-spin"></i></p>
                 </div>
             </div>
 
