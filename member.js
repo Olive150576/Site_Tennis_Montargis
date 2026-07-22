@@ -2648,7 +2648,10 @@ window.inscrireChampionnat = async function(champId) {
     var uid = _cardMemberData ? _cardMemberData._uid : null;
     if (!uid) return;
 
-    var message = 'Vous inscrire au championnat « ' + c.nom + ' » ?\n\nLe coach validera votre inscription et vous placera dans une équipe. Vous pourrez ensuite indiquer vos disponibilités.';
+    var message = 'Vous inscrire au championnat « ' + c.nom + ' » ?\n\n'
+        + 'Le coach validera votre inscription et vous placera dans une équipe. Vous pourrez ensuite indiquer vos disponibilités.\n\n'
+        + 'En vous inscrivant, vous vous engagez auprès du club, de vos coéquipiers et du coach à répondre rapidement aux convocations et à honorer vos disponibilités tout au long de la saison. '
+        + 'La vie d\'une équipe repose sur l\'engagement de chacun : merci d\'anticiper le plus tôt possible si un empêchement survient, pour ne pas mettre vos partenaires en difficulté au dernier moment.';
     var ok;
     if (window.confirmDialog && window.confirmDialog.show) {
         ok = await window.confirmDialog.show({ title: 'S\'inscrire au championnat', message: message, type: 'info', confirmText: 'Je m\'inscris', cancelText: 'Annuler' });
