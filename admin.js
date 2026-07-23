@@ -2453,6 +2453,20 @@ window.loadEquipesAdmin = function(champId) {
                     var inscritsChamp = {};
                     snapInscrits.forEach(function(child) { inscritsChamp[child.key] = child.val(); });
 
+                    // Liste des inscriptions (la plus récente en premier) — toujours visible en bas de page
+                    var inscritsUids = Object.keys(inscritsChamp).sort(function(a, b) {
+                        return (inscritsChamp[b].createdAt || 0) - (inscritsChamp[a].createdAt || 0);
+                    });
+                    var inscriptionsRows = inscritsUids.map(function(uid) {
+                        return _inscriptionRowHtml(champId, uid, inscritsChamp[uid], members[uid]);
+                    }).join('');
+                    var inscriptionsHtml = '<div style="margin-top:24px; background:#1e293b; border:1px solid #334155; border-radius:12px; padding:16px 18px;">'
+                        + '<div style="font-size:12px; color:#94a3b8; font-weight:bold; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:10px;">'
+                        + '<i class="fas fa-user-clock" style="margin-right:6px; color:#00d2ff;"></i>Inscriptions au championnat (' + inscritsUids.length + ')'
+                        + '</div>'
+                        + (inscriptionsRows || '<p style="color:#64748b; font-size:12px; text-align:center; padding:8px 0;">Aucune inscription pour l\'instant.</p>')
+                        + '</div>';
+
                     // Trier les équipes
                     var equipesTriees = [];
                     snapEquipes.forEach(function(child) { equipesTriees.push({ key: child.key, val: child.val() }); });
@@ -2480,7 +2494,8 @@ window.loadEquipesAdmin = function(champId) {
                         + '</div>';
 
                     if (!equipesTriees.length) {
-                        container.innerHTML = statsHtml + '<p style="color:#64748b; text-align:center; padding:30px;">Aucune équipe pour ce championnat.<br><small>Cliquez sur "Ajouter une équipe" ou recréez le championnat avec un nombre d\'équipes défini.</small></p>';
+                        container.innerHTML = statsHtml + '<p style="color:#64748b; text-align:center; padding:30px;">Aucune équipe pour ce championnat.<br><small>Cliquez sur "Ajouter une équipe" ou recréez le championnat avec un nombre d\'équipes défini.</small></p>'
+                            + inscriptionsHtml;
 
                         window._membersCache = members;
                         return;
@@ -2676,7 +2691,7 @@ window.loadEquipesAdmin = function(champId) {
                     });
 
                     kanban += '</div>';
-                    container.innerHTML = statsHtml + kanban;
+                    container.innerHTML = statsHtml + kanban + inscriptionsHtml;
                     window._membersCache = members;
     }).catch(function(err) {
         if (container) container.innerHTML = '<p style="color:#ef4444; text-align:center;"><i class="fas fa-exclamation-triangle" style="margin-right:6px;"></i>Erreur de chargement : ' + escHtml(err.message || String(err)) + '</p>';
@@ -3390,6 +3405,50 @@ window.toggleInscritsChamp = function(champId) {
     _loadInscritsPanel(champId);
 };
 
+// Formate un timestamp d'inscription en « 22/07/2026 à 14:35 »
+function _formatInscritAt(ts) {
+    if (!ts) return '';
+    var d = new Date(ts);
+    return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+        + ' à ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+}
+
+// Ligne HTML pour une inscription (réutilisée dans le panneau "Inscrits" et la liste en bas de l'onglet Équipes)
+function _inscriptionRowHtml(champId, uid, data, m) {
+    m = m || {};
+    var nom = ((m.prenom || '') + ' ' + (m.nom || '')).trim() || uid;
+    var valide = data && data.valide;
+    var refuse = data && data.statut === 'refuse';
+    var motif = data && data.motifRefus;
+    var nbDispoRens = Object.keys((data && data.disponibilites) || {}).length;
+    var quand = _formatInscritAt(data && data.createdAt);
+
+    var statutHtml;
+    if (refuse) {
+        statutHtml = '<span style="font-size:11px; color:#ef4444; white-space:nowrap;"><i class="fas fa-times-circle"></i> Refusée</span>';
+    } else if (valide) {
+        statutHtml = '<span style="font-size:11px; color:#22c55e; white-space:nowrap;"><i class="fas fa-check-circle"></i> Inscr. validée</span>';
+    } else {
+        statutHtml = '<span style="font-size:11px; color:#f59e0b; white-space:nowrap;"><i class="fas fa-clock"></i> En attente</span>';
+    }
+
+    return '<div style="display:flex; align-items:center; justify-content:space-between; padding:8px 4px; border-bottom:1px solid #1e293b44; gap:10px; flex-wrap:wrap;">'
+        + '<div style="flex:1; min-width:120px;">'
+        + '<span style="font-size:12px; color:#e2e8f0;">' + escHtml(nom) + '</span>'
+        + (quand ? '<div style="font-size:10px; color:#64748b; margin-top:2px;"><i class="fas fa-clock" style="margin-right:3px;"></i>Inscrit le ' + quand + '</div>' : '')
+        + '</div>'
+        + '<div style="display:flex; flex-direction:column; align-items:flex-end; gap:3px;">'
+        + statutHtml
+        + '<span style="font-size:10px; color:' + (nbDispoRens > 0 ? '#22c55e' : '#64748b') + '; white-space:nowrap;">' + (nbDispoRens > 0 ? '<i class="fas fa-calendar-check"></i> ' + nbDispoRens + ' dispo(s) renseignée(s)' : '<i class="fas fa-hourglass-half"></i> Aucune dispo renseignée') + '</span>'
+        + '</div>'
+        + '<div style="display:flex; gap:5px;">'
+        + (!valide && !refuse ? '<button onclick="window.validerInscriptionAdmin(\'' + champId + '\',\'' + uid + '\')" style="background:#22c55e22; color:#22c55e; border:1px solid #22c55e44; padding:4px 10px; border-radius:5px; cursor:pointer; font-size:11px;" title="Valider inscription"><i class="fas fa-check"></i></button>' : '')
+        + (!refuse ? '<button onclick="window.refuserInscription(\'' + champId + '\',\'' + uid + '\')" style="background:#f59e0b22; color:#f59e0b; border:1px solid #f59e0b44; padding:4px 10px; border-radius:5px; cursor:pointer; font-size:11px;" title="Refuser avec motif"><i class="fas fa-ban"></i></button>' : '')
+        + '<button onclick="window.supprimerInscription(\'' + champId + '\',\'' + uid + '\')" style="background:#ef444422; color:#ef4444; border:1px solid #ef444444; padding:4px 10px; border-radius:5px; cursor:pointer; font-size:11px;" title="Supprimer définitivement"><i class="fas fa-trash"></i></button>'
+        + '</div>'
+        + (refuse && motif ? '<div style="flex-basis:100%; font-size:11px; color:#94a3b8; padding:6px 8px; background:#ef444411; border-left:2px solid #ef4444; border-radius:4px; margin-top:2px;"><i class="fas fa-comment-alt" style="margin-right:4px; color:#ef4444;"></i><strong style="color:#ef4444;">Motif :</strong> ' + escHtml(motif) + '</div>' : '');
+}
+
 function _loadInscritsPanel(champId) {
     var panel = document.getElementById('inscrits-panel-' + champId);
     if (!panel) return;
@@ -3405,36 +3464,7 @@ function _loadInscritsPanel(champId) {
         var rows = '';
         if (snapIns.exists()) {
             snapIns.forEach(function(insNode) {
-                var uid = insNode.key; var data = insNode.val();
-                var m = members[uid] || {};
-                var nom = ((m.prenom || '') + ' ' + (m.nom || '')).trim() || uid;
-                var valide = data && data.valide;
-                var refuse = data && data.statut === 'refuse';
-                var motif = data && data.motifRefus;
-                var nbDispoRens = Object.keys((data && data.disponibilites) || {}).length;
-
-                var statutHtml;
-                if (refuse) {
-                    statutHtml = '<span style="font-size:11px; color:#ef4444; white-space:nowrap;"><i class="fas fa-times-circle"></i> Refusée</span>';
-                } else if (valide) {
-                    statutHtml = '<span style="font-size:11px; color:#22c55e; white-space:nowrap;"><i class="fas fa-check-circle"></i> Inscr. validée</span>';
-                } else {
-                    statutHtml = '<span style="font-size:11px; color:#f59e0b; white-space:nowrap;"><i class="fas fa-clock"></i> En attente</span>';
-                }
-
-                rows += '<div style="display:flex; align-items:center; justify-content:space-between; padding:8px 4px; border-bottom:1px solid #1e293b44; gap:10px; flex-wrap:wrap;">'
-                    + '<span style="font-size:12px; color:#e2e8f0; flex:1;">' + escHtml(nom) + '</span>'
-                    + '<div style="display:flex; flex-direction:column; align-items:flex-end; gap:3px;">'
-                    + statutHtml
-                    + '<span style="font-size:10px; color:' + (nbDispoRens > 0 ? '#22c55e' : '#64748b') + '; white-space:nowrap;">' + (nbDispoRens > 0 ? '<i class="fas fa-calendar-check"></i> ' + nbDispoRens + ' dispo(s) renseignée(s)' : '<i class="fas fa-hourglass-half"></i> Aucune dispo renseignée') + '</span>'
-                    + '</div>'
-                    + '<div style="display:flex; gap:5px;">'
-                    + (!valide && !refuse ? '<button onclick="window.validerInscriptionAdmin(\'' + champId + '\',\'' + uid + '\')" style="background:#22c55e22; color:#22c55e; border:1px solid #22c55e44; padding:4px 10px; border-radius:5px; cursor:pointer; font-size:11px;" title="Valider inscription"><i class="fas fa-check"></i></button>' : '')
-                    + (!refuse ? '<button onclick="window.refuserInscription(\'' + champId + '\',\'' + uid + '\')" style="background:#f59e0b22; color:#f59e0b; border:1px solid #f59e0b44; padding:4px 10px; border-radius:5px; cursor:pointer; font-size:11px;" title="Refuser avec motif"><i class="fas fa-ban"></i></button>' : '')
-                    + '<button onclick="window.supprimerInscription(\'' + champId + '\',\'' + uid + '\')" style="background:#ef444422; color:#ef4444; border:1px solid #ef444444; padding:4px 10px; border-radius:5px; cursor:pointer; font-size:11px;" title="Supprimer définitivement"><i class="fas fa-trash"></i></button>'
-                    + '</div>'
-                    + (refuse && motif ? '<div style="flex-basis:100%; font-size:11px; color:#94a3b8; padding:6px 8px; background:#ef444411; border-left:2px solid #ef4444; border-radius:4px; margin-top:2px;"><i class="fas fa-comment-alt" style="margin-right:4px; color:#ef4444;"></i><strong style="color:#ef4444;">Motif :</strong> ' + escHtml(motif) + '</div>' : '')
-                    + '</div>';
+                rows += _inscriptionRowHtml(champId, insNode.key, insNode.val(), members[insNode.key]);
             });
         }
         panel.innerHTML = '<div style="font-size:11px; color:#64748b; margin-bottom:8px; font-weight:bold; text-transform:uppercase; letter-spacing:0.5px; display:flex; justify-content:space-between; align-items:center;">'
