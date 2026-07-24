@@ -3423,6 +3423,7 @@ function _inscriptionRowHtml(champId, uid, data, m) {
     var nbDispoRens = Object.keys((data && data.disponibilites) || {}).length;
     var quand = _formatInscritAt(data && data.createdAt);
 
+    var borderColor = refuse ? '#ef4444' : valide ? '#22c55e' : '#f59e0b';
     var statutHtml;
     if (refuse) {
         statutHtml = '<span style="font-size:11px; color:#ef4444; white-space:nowrap;"><i class="fas fa-times-circle"></i> Refusée</span>';
@@ -3432,21 +3433,26 @@ function _inscriptionRowHtml(champId, uid, data, m) {
         statutHtml = '<span style="font-size:11px; color:#f59e0b; white-space:nowrap;"><i class="fas fa-clock"></i> En attente</span>';
     }
 
-    return '<div style="display:flex; align-items:center; justify-content:space-between; padding:8px 4px; border-bottom:1px solid #1e293b44; gap:10px; flex-wrap:wrap;">'
-        + '<div style="flex:1; min-width:120px;">'
-        + '<span style="font-size:12px; color:#e2e8f0;">' + escHtml(nom) + '</span>'
-        + (quand ? '<div style="font-size:10px; color:#64748b; margin-top:2px;"><i class="fas fa-clock" style="margin-right:3px;"></i>Inscrit le ' + quand + '</div>' : '')
+    // Carte à 2 lignes bien séparées (nom+date, puis statut/dispo/actions) : plus lisible
+    // qu'un unique bloc flex à 3 éléments qui se chevauchaient de façon imprévisible.
+    return '<div style="background:#0f172a; border-left:3px solid ' + borderColor + '; border-radius:6px; padding:9px 12px; margin-bottom:6px;">'
+        + '<div style="display:flex; align-items:baseline; justify-content:space-between; gap:10px; flex-wrap:wrap;">'
+        + '<span style="font-size:13px; color:#e2e8f0; font-weight:600;">' + escHtml(nom) + '</span>'
+        + (quand ? '<span style="font-size:10px; color:#64748b; white-space:nowrap;"><i class="fas fa-clock" style="margin-right:3px;"></i>Inscrit le ' + quand + '</span>' : '')
         + '</div>'
-        + '<div style="display:flex; flex-direction:column; align-items:flex-end; gap:3px;">'
+        + '<div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-top:7px;">'
+        + '<div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">'
         + statutHtml
         + '<span style="font-size:10px; color:' + (nbDispoRens > 0 ? '#22c55e' : '#64748b') + '; white-space:nowrap;">' + (nbDispoRens > 0 ? '<i class="fas fa-calendar-check"></i> ' + nbDispoRens + ' dispo(s) renseignée(s)' : '<i class="fas fa-hourglass-half"></i> Aucune dispo renseignée') + '</span>'
         + '</div>'
-        + '<div style="display:flex; gap:5px;">'
+        + '<div style="display:flex; gap:5px; flex-shrink:0;">'
         + (!valide && !refuse ? '<button onclick="window.validerInscriptionAdmin(\'' + champId + '\',\'' + uid + '\')" style="background:#22c55e22; color:#22c55e; border:1px solid #22c55e44; padding:4px 10px; border-radius:5px; cursor:pointer; font-size:11px;" title="Valider inscription"><i class="fas fa-check"></i></button>' : '')
         + (!refuse ? '<button onclick="window.refuserInscription(\'' + champId + '\',\'' + uid + '\')" style="background:#f59e0b22; color:#f59e0b; border:1px solid #f59e0b44; padding:4px 10px; border-radius:5px; cursor:pointer; font-size:11px;" title="Refuser avec motif"><i class="fas fa-ban"></i></button>' : '')
         + '<button onclick="window.supprimerInscription(\'' + champId + '\',\'' + uid + '\')" style="background:#ef444422; color:#ef4444; border:1px solid #ef444444; padding:4px 10px; border-radius:5px; cursor:pointer; font-size:11px;" title="Supprimer définitivement"><i class="fas fa-trash"></i></button>'
         + '</div>'
-        + (refuse && motif ? '<div style="flex-basis:100%; font-size:11px; color:#94a3b8; padding:6px 8px; background:#ef444411; border-left:2px solid #ef4444; border-radius:4px; margin-top:2px;"><i class="fas fa-comment-alt" style="margin-right:4px; color:#ef4444;"></i><strong style="color:#ef4444;">Motif :</strong> ' + escHtml(motif) + '</div>' : '');
+        + '</div>'
+        + (refuse && motif ? '<div style="font-size:11px; color:#94a3b8; padding:6px 8px; background:#ef444411; border-left:2px solid #ef4444; border-radius:4px; margin-top:7px;"><i class="fas fa-comment-alt" style="margin-right:4px; color:#ef4444;"></i><strong style="color:#ef4444;">Motif :</strong> ' + escHtml(motif) + '</div>' : '')
+        + '</div>';
 }
 
 function _loadInscritsPanel(champId) {
