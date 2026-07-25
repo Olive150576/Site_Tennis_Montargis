@@ -2617,18 +2617,20 @@ window.loadEquipesAdmin = function(champId) {
                                     Object.values(convPositions).forEach(function(cUid) {
                                         if (cUid && convoquesUids.indexOf(cUid) === -1) convoquesUids.push(cUid);
                                     });
-                                    var nbConf = 0, declNoms = [];
+                                    var confNoms = [], declNoms = [], sansRepNoms = [];
                                     convoquesUids.forEach(function(cUid) {
                                         var rep = reponses[cUid];
-                                        if (rep && rep.statut === 'confirme') nbConf++;
-                                        else if (rep && rep.statut === 'decline') {
-                                            var dm = members[cUid] || {};
-                                            declNoms.push(dm.prenom || dm.nom || '?');
-                                        }
+                                        var cm = members[cUid] || {};
+                                        var pnom = cm.prenom || cm.nom || '?';
+                                        if (rep && rep.statut === 'confirme') confNoms.push(pnom);
+                                        else if (rep && rep.statut === 'decline') declNoms.push(pnom);
+                                        else sansRepNoms.push(pnom);
                                     });
+                                    var nbConf = confNoms.length;
                                     reponsesHtml = '<div style="margin-top:5px; font-size:9px;">'
-                                        + '<span style="color:' + (nbConf === convoquesUids.length ? '#22c55e' : '#94a3b8') + ';"><i class="fas fa-user-check"></i> ' + nbConf + '/' + convoquesUids.length + ' confirmé' + (nbConf > 1 ? 's' : '') + '</span>'
+                                        + '<span style="color:' + (nbConf === convoquesUids.length ? '#22c55e' : '#94a3b8') + ';" title="' + escHtml(confNoms.join(', ')) + '"><i class="fas fa-user-check"></i> ' + nbConf + '/' + convoquesUids.length + ' confirmé' + (nbConf > 1 ? 's' : '') + (confNoms.length ? ' : ' + escHtml(confNoms.join(', ')) : '') + '</span>'
                                         + (declNoms.length ? '<div style="color:#ef4444; margin-top:2px;"><i class="fas fa-user-times"></i> Désistement : ' + escHtml(declNoms.join(', ')) + '</div>' : '')
+                                        + (sansRepNoms.length ? '<div style="color:#64748b; margin-top:2px;"><i class="fas fa-hourglass-half"></i> Sans réponse : ' + escHtml(sansRepNoms.join(', ')) + '</div>' : '')
                                         + '</div>';
                                 }
 
