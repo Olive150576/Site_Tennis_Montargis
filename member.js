@@ -396,7 +396,7 @@ function renderProfilAlerte(memberData) {
         + '</div>';
 }
 
-/** Statistiques de la saison : matchs joués, convocations reçues, passages au club */
+/** Statistiques de la saison : matchs joués et convocations reçues */
 function loadProfilStats(uid) {
     var setStat = function(id, val) { var e = document.getElementById(id); if (e) e.textContent = val; };
 
@@ -420,11 +420,6 @@ function loadProfilStats(uid) {
         setStat('stat-matchs', joues);
         setStat('stat-convocations', convocations);
     }, function() { setStat('stat-matchs', '—'); setStat('stat-convocations', '—'); });
-
-    // Passages au club (scans du QR à l'accueil)
-    window.db_ref.ref('scans/' + uid).once('value', function(snap) {
-        setStat('stat-passages', snap.exists() ? Object.keys(snap.val()).length : 0);
-    }, function() { setStat('stat-passages', '—'); });
 }
 
 /** Frise de progression du classement (alimentée quand le membre modifie son classement) */
