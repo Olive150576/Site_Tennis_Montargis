@@ -1772,6 +1772,16 @@ window.toggleCoachAccess = async function(uid, grant, nom) {
     });
 };
 
+// Catégories proposées à la création d'un membre — mêmes valeurs à l'édition
+var _CATEGORIES_MEMBRE = [
+    { val: 'Adulte H',  lib: 'Adulte Homme' },
+    { val: 'Adulte F',  lib: 'Adulte Femme' },
+    { val: 'Jeune G',   lib: 'Jeune Garçon' },
+    { val: 'Jeune F',   lib: 'Jeune Fille' },
+    { val: 'Vétéran H', lib: 'Vétéran Homme' },
+    { val: 'Vétéran F', lib: 'Vétéran Femme' }
+];
+
 function memberRowHTML(m, statutOptions) {
     statutOptions = statutOptions || ['Membre','Membre Bureau','Coach','Secrétaire Général','Trésorier Général Adjoint','Trésorier Général','Vice-Président','Président'];
     return `
@@ -1832,6 +1842,13 @@ function memberRowHTML(m, statutOptions) {
                         <label style="color:#94a3b8; font-size:11px; display:block; margin-bottom:4px;">N° Licence FFT</label>
                         <input id="edit-licence-${m.uid}" value="${escapeHtml(m.licence || '')}" placeholder="1234567"
                             style="width:100%; padding:8px 10px; background:#1e293b; border:1px solid #475569; color:white; border-radius:6px; font-size:13px; box-sizing:border-box;">
+                    </div>
+                    <div>
+                        <label style="color:#94a3b8; font-size:11px; display:block; margin-bottom:4px;">Catégorie</label>
+                        <select id="edit-categorie-${m.uid}"
+                            style="width:100%; padding:8px 10px; background:#1e293b; border:1px solid #475569; color:white; border-radius:6px; font-size:13px; box-sizing:border-box;">
+                            ${_CATEGORIES_MEMBRE.map(c => `<option value="${c.val}" ${(m.categorie||'Adulte H')===c.val?'selected':''}>${c.lib}</option>`).join('')}
+                        </select>
                     </div>
                     <div>
                         <label style="color:#94a3b8; font-size:11px; display:block; margin-bottom:4px;">Statut</label>
@@ -1926,8 +1943,9 @@ window.saveMemberEdit = async (uid) => {
     const classement = document.getElementById(`edit-classement-${uid}`)?.value.trim() || '';
     const licence    = document.getElementById(`edit-licence-${uid}`)?.value.trim() || '';
     const statut     = document.getElementById(`edit-statut-${uid}`)?.value || 'Membre';
+    const categorie  = document.getElementById(`edit-categorie-${uid}`)?.value || 'Adulte H';
     try {
-        await db_ref.ref(`members/${uid}`).update({ classement, licence, statut });
+        await db_ref.ref(`members/${uid}`).update({ classement, licence, statut, categorie });
         window.showSuccessMessage('Modifications enregistrées', '');
         window.loadMembersAdmin();
     } catch (err) {
