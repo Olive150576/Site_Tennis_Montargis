@@ -109,7 +109,7 @@
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script defer src="notifications.min.js"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-    <script defer src="admin.min.js?v=31"></script>
+    <script defer src="admin.min.js?v=32"></script>
     <script>
         // PWA — enregistre le service worker même si l'utilisateur arrive
         // directement sur le panneau admin (installation depuis cette page).
@@ -447,6 +447,26 @@
                         </button>
                     </div>
                 </div>
+                <!-- Prévenir les membres -->
+                <div style="margin-bottom:18px; background:rgba(245,158,11,0.05); border:1px solid rgba(245,158,11,0.25); border-radius:10px; padding:14px;">
+                    <label style="color:#f59e0b; font-size:12px; font-weight:600; display:block; margin-bottom:4px;">
+                        <i class="fas fa-bell" style="margin-right:5px;"></i>Prévenir les membres
+                    </label>
+                    <p style="color:#64748b; font-size:11px; margin:0 0 10px;">
+                        À cocher au moment d'enregistrer. Rien n'est envoyé si les deux cases sont décochées — pratique pour corriger un événement sans re-notifier.
+                    </p>
+                    <div style="display:flex; gap:16px; flex-wrap:wrap;">
+                        <label style="display:flex; align-items:center; gap:8px; cursor:pointer; color:#e2e8f0; font-size:13px;">
+                            <input type="checkbox" id="cal-notif-push" style="width:16px; height:16px; accent-color:#f59e0b; cursor:pointer;">
+                            <span><i class="fas fa-mobile-screen" style="color:#64748b; margin-right:4px;"></i>Notification sur mobile</span>
+                        </label>
+                        <label style="display:flex; align-items:center; gap:8px; cursor:pointer; color:#e2e8f0; font-size:13px;">
+                            <input type="checkbox" id="cal-notif-email" style="width:16px; height:16px; accent-color:#f59e0b; cursor:pointer;">
+                            <span><i class="fas fa-envelope" style="color:#64748b; margin-right:4px;"></i>Email</span>
+                        </label>
+                    </div>
+                </div>
+
                 <div style="display:flex; gap:10px; flex-wrap:wrap;">
                     <button onclick="window.saveCalendrierEntry()"
                         style="background:linear-gradient(135deg,#00d2ff,#0077b6); color:white; border:none; padding:11px 26px; border-radius:8px; font-weight:bold; cursor:pointer; font-size:13px;">

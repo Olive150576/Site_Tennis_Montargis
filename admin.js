@@ -938,9 +938,28 @@ window.saveCalendrierEntry = function() {
         };
         if (!editId) data.createdAt = Date.now();
         var ref = editId ? db_ref.ref('calendrier/' + editId) : db_ref.ref('calendrier').push();
-        return ref.update(data);
-    }).then(function() {
+        return ref.update(data).then(function() { return ref.key; });
+    }).then(function(eventId) {
         window.showNotification && window.showNotification(editId ? 'Entrée mise à jour.' : 'Ajouté au calendrier !', 'success');
+
+        // Diffusion aux membres si l'admin l'a demandé
+        var envoyerPush  = !!(document.getElementById('cal-notif-push')  || {}).checked;
+        var envoyerEmail = !!(document.getElementById('cal-notif-email') || {}).checked;
+        if (envoyerPush || envoyerEmail) {
+            window.showNotification && window.showNotification('Envoi aux membres en cours…', 'info');
+            firebase.functions().httpsCallable('notifyCalendarEvent')({
+                eventId: eventId, envoyerPush: envoyerPush, envoyerEmail: envoyerEmail
+            }).then(function(res) {
+                var r = res.data || {};
+                var parts = [];
+                if (envoyerPush)  parts.push(r.push + ' notification(s)');
+                if (envoyerEmail) parts.push(r.emails + ' email(s)');
+                window.showNotification && window.showNotification('Membres prévenus : ' + parts.join(' et ') + '.', 'success');
+            }).catch(function(err) {
+                window.showNotification && window.showNotification('Événement enregistré, mais l\'envoi a échoué : ' + (err.message || err), 'error');
+            });
+        }
+
         window.resetCalendrierForm();
         window.loadCalendrierAdmin();
     }).catch(function(err) {
@@ -987,6 +1006,10 @@ window.resetCalendrierForm = function() {
     var preview = document.getElementById('cal-image-preview'); if (preview) preview.innerHTML = '';
     _calBoutons = [];
     _renderCalBoutons();
+    // Les cases de diffusion repartent décochées : pas de renvoi involontaire à la prochaine modification
+    ['cal-notif-push', 'cal-notif-email'].forEach(function(id) {
+        var el = document.getElementById(id); if (el) el.checked = false;
+    });
     document.getElementById('cal-form-title').innerHTML = '<i class="fas fa-plus-circle" style="margin-right:8px;"></i>Ajouter au calendrier';
     document.getElementById('cal-save-label').textContent = 'Ajouter au calendrier';
     document.getElementById('cal-cancel-btn').style.display = 'none';

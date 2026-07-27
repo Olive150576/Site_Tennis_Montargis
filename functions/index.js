@@ -488,6 +488,119 @@ exports.onDesistementAlerte = functions.database.ref('/equipes/{equipeId}/convoc
     });
 
 /**
+ * Cloud Function — Annonce d'un événement du calendrier à tous les membres actifs.
+ * Canaux au choix de l'admin : notification push et/ou email.
+ * Appelée depuis le panneau admin après l'enregistrement d'un événement.
+ */
+exports.notifyCalendarEvent = functions.https.onCall(async (data, context) => {
+    if (!context.auth) {
+        throw new functions.https.HttpsError('unauthenticated', 'Vous devez être connecté.');
+    }
+    const [adminSnap, coachSnap] = await Promise.all([
+        admin.database().ref(`admins/${context.auth.uid}`).once('value'),
+        admin.database().ref(`coaches/${context.auth.uid}`).once('value')
+    ]);
+    if (!adminSnap.exists() && !coachSnap.exists()) {
+        throw new functions.https.HttpsError('permission-denied', 'Accès réservé aux administrateurs et coaches.');
+    }
+
+    const { eventId, envoyerPush, envoyerEmail } = data || {};
+    if (!eventId) throw new functions.https.HttpsError('invalid-argument', 'Identifiant d\'événement requis.');
+    if (!envoyerPush && !envoyerEmail) return { success: true, push: 0, emails: 0, message: 'Aucun canal sélectionné.' };
+
+    const evtSnap = await admin.database().ref(`calendrier/${eventId}`).once('value');
+    const evt = evtSnap.val();
+    if (!evt) throw new functions.https.HttpsError('not-found', 'Événement introuvable.');
+
+    // Mise en forme des informations de l'événement
+    const dateFr = (iso) => {
+        if (!iso) return '';
+        const p = String(iso).split('-');
+        return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : iso;
+    };
+    const quand = dateFr(evt.date)
+        + (evt.dateFin ? ' au ' + dateFr(evt.dateFin) : '')
+        + (evt.heure ? ' à ' + evt.heure : '');
+    const aInscription = Array.isArray(evt.boutons) && evt.boutons.some(b => b && b.type === 'inscription');
+
+    // Membres actifs destinataires
+    const membersSnap = await admin.database().ref('members').once('value');
+    const membres = [];
+    membersSnap.forEach(child => {
+        const m = child.val();
+        if (m && m.actif) membres.push({ uid: child.key, email: m.email, prenom: m.prenom || '' });
+    });
+
+    let pushEnvoyees = 0;
+    let emailsEnvoyes = 0;
+
+    // --- Notifications push ---
+    if (envoyerPush) {
+        const vapidPrivateKey = functions.config().vapid?.private_key || process.env.VAPID_PRIVATE_KEY;
+        if (vapidPrivateKey) {
+            webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, vapidPrivateKey);
+            const payload = JSON.stringify({
+                title: `📅 ${evt.titre}`,
+                body: quand + (evt.lieu ? ' — ' + evt.lieu : '') + (aInscription ? ' · Inscriptions ouvertes' : ''),
+                icon: '/icon-192.png',
+                badge: '/icon-192.png',
+                url: 'https://tennismontargis.fr/espace-membre.html'
+            });
+            const options = { TTL: 60 * 60 * 48, urgency: 'normal' };
+
+            await Promise.all(membres.map(async (mb) => {
+                const subsSnap = await admin.database().ref(`push_subscriptions_membres/${mb.uid}`).once('value');
+                if (!subsSnap.exists()) return;
+                const toRemove = [];
+                await Promise.all(Object.entries(subsSnap.val()).map(async ([tokenHash, sub]) => {
+                    if (!sub.token || !sub.keys) { toRemove.push(tokenHash); return; }
+                    try {
+                        await webpush.sendNotification({ endpoint: sub.token, keys: sub.keys }, payload, options);
+                        pushEnvoyees++;
+                    } catch (err) {
+                        if (err.statusCode === 410 || err.statusCode === 404) toRemove.push(tokenHash);
+                    }
+                }));
+                if (toRemove.length) {
+                    const updates = {};
+                    toRemove.forEach(k => { updates[k] = null; });
+                    await admin.database().ref(`push_subscriptions_membres/${mb.uid}`).update(updates);
+                }
+            }));
+        } else {
+            console.warn('[notifyCalendarEvent] Clé VAPID absente — push non envoyées.');
+        }
+    }
+
+    // --- Emails ---
+    if (envoyerEmail) {
+        const corps = `<strong>${escapeHtml(evt.titre)}</strong><br>`
+            + `<span style="color:#94a3b8;">${escapeHtml(quand)}</span>`
+            + (evt.lieu ? `<br>📍 ${escapeHtml(evt.lieu)}` : '')
+            + (evt.prix ? `<br>💶 ${escapeHtml(evt.prix)}` : '')
+            + (evt.description ? `<br><br>${escapeHtml(evt.description).replace(/\n/g, '<br>')}` : '')
+            + (aInscription ? `<br><br><strong style="color:#22c55e;">Les inscriptions sont ouvertes</strong> — rendez-vous dans votre espace membre, onglet Calendrier.` : '');
+
+        const destinataires = membres.filter(m => m.email);
+        for (const mb of destinataires) {
+            const ok = await sendClubEmail(
+                mb.email,
+                `📅 ${evt.titre} — USM Tennis Montargis`,
+                'Nouveauté au calendrier du club',
+                (mb.prenom ? `Bonjour ${escapeHtml(mb.prenom)},<br><br>` : '') + corps,
+                aInscription ? 'M\'inscrire' : 'Voir le calendrier',
+                'https://tennismontargis.fr/espace-membre.html',
+                `${evt.titre} — ${quand}`
+            );
+            if (ok) emailsEnvoyes++;
+        }
+    }
+
+    console.log(`[notifyCalendarEvent] ${evt.titre} → ${pushEnvoyees} push, ${emailsEnvoyes} emails`);
+    return { success: true, push: pushEnvoyees, emails: emailsEnvoyes };
+});
+
+/**
  * Cloud Function pour attribuer le custom claim "admin" dans Firebase Auth
  * Utilisé pour restreindre la suppression dans Firebase Storage aux admins uniquement
  */
