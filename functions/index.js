@@ -504,13 +504,32 @@ exports.notifyCalendarEvent = functions.https.onCall(async (data, context) => {
         throw new functions.https.HttpsError('permission-denied', 'Accès réservé aux administrateurs et coaches.');
     }
 
-    const { eventId, envoyerPush, envoyerEmail } = data || {};
+    const { eventId, envoyerPush, envoyerEmail, testEmail } = data || {};
     if (!eventId) throw new functions.https.HttpsError('invalid-argument', 'Identifiant d\'événement requis.');
     if (!envoyerPush && !envoyerEmail) return { success: true, push: 0, emails: 0, message: 'Aucun canal sélectionné.' };
 
     const evtSnap = await admin.database().ref(`calendrier/${eventId}`).once('value');
     const evt = evtSnap.val();
     if (!evt) throw new functions.https.HttpsError('not-found', 'Événement introuvable.');
+
+    // Mode test : un seul destinataire, soit l'adresse de connexion, soit celle d'un membre existant
+    const estTest = !!testEmail;
+    if (estTest) {
+        const emailDemande = String(testEmail).trim().toLowerCase();
+        const emailAuth = (context.auth.token && context.auth.token.email || '').toLowerCase();
+        let autorise = emailDemande === emailAuth;
+        if (!autorise) {
+            const tousMembres = await admin.database().ref('members').once('value');
+            tousMembres.forEach(child => {
+                const m = child.val();
+                if (m && m.email && String(m.email).toLowerCase() === emailDemande) autorise = true;
+            });
+        }
+        if (!autorise) {
+            throw new functions.https.HttpsError('permission-denied',
+                'L\'adresse de test doit être votre adresse de connexion ou celle d\'un membre du club.');
+        }
+    }
 
     // Mise en forme des informations de l'événement
     const dateFr = (iso) => {
@@ -523,13 +542,20 @@ exports.notifyCalendarEvent = functions.https.onCall(async (data, context) => {
         + (evt.heure ? ' à ' + evt.heure : '');
     const aInscription = Array.isArray(evt.boutons) && evt.boutons.some(b => b && b.type === 'inscription');
 
-    // Membres actifs destinataires
+    // Destinataires : tous les membres actifs, ou le seul destinataire de test
     const membersSnap = await admin.database().ref('members').once('value');
-    const membres = [];
+    let membres = [];
     membersSnap.forEach(child => {
         const m = child.val();
         if (m && m.actif) membres.push({ uid: child.key, email: m.email, prenom: m.prenom || '' });
     });
+    if (estTest) {
+        const cible = String(testEmail).trim().toLowerCase();
+        const membreCible = membres.filter(m => (m.email || '').toLowerCase() === cible);
+        membres = membreCible.length
+            ? membreCible
+            : [{ uid: context.auth.uid, email: testEmail, prenom: '' }];
+    }
 
     let pushEnvoyees = 0;
     let emailsEnvoyes = 0;
@@ -596,8 +622,8 @@ exports.notifyCalendarEvent = functions.https.onCall(async (data, context) => {
         }
     }
 
-    console.log(`[notifyCalendarEvent] ${evt.titre} → ${pushEnvoyees} push, ${emailsEnvoyes} emails`);
-    return { success: true, push: pushEnvoyees, emails: emailsEnvoyes };
+    console.log(`[notifyCalendarEvent]${estTest ? ' [TEST]' : ''} ${evt.titre} → ${pushEnvoyees} push, ${emailsEnvoyes} emails`);
+    return { success: true, push: pushEnvoyees, emails: emailsEnvoyes, test: estTest };
 });
 
 /**

@@ -807,6 +807,18 @@ window.calSupprimerBouton = function(idx) {
     _renderCalBoutons();
 };
 
+/** Mode test : révèle le champ d'adresse, pré-rempli avec l'adresse de connexion */
+window.calToggleTest = function() {
+    var actif = !!(document.getElementById('cal-notif-test') || {}).checked;
+    var wrap = document.getElementById('cal-notif-test-wrap');
+    if (wrap) wrap.style.display = actif ? 'block' : 'none';
+    var champ = document.getElementById('cal-notif-test-email');
+    if (actif && champ && !champ.value) {
+        var user = firebase.auth().currentUser;
+        champ.value = (user && user.email) || '';
+    }
+};
+
 // Mémorise la saisie en cours avant tout re-rendu de la liste
 function _calLireBoutonsDepuisDOM() {
     _calBoutons.forEach(function(b, i) {
@@ -911,6 +923,13 @@ window.saveCalendrierEntry = function() {
         }
     }
 
+    // Le mode test exige une adresse
+    if ((document.getElementById('cal-notif-test') || {}).checked
+        && !((document.getElementById('cal-notif-test-email') || {}).value || '').trim()) {
+        window.showNotification && window.showNotification('Indiquez l\'adresse email de test, ou décochez le mode test.', 'error');
+        return;
+    }
+
     var saveBtn = document.getElementById('cal-save-label');
     if (saveBtn) saveBtn.textContent = 'Enregistrement…';
 
@@ -945,16 +964,20 @@ window.saveCalendrierEntry = function() {
         // Diffusion aux membres si l'admin l'a demandé
         var envoyerPush  = !!(document.getElementById('cal-notif-push')  || {}).checked;
         var envoyerEmail = !!(document.getElementById('cal-notif-email') || {}).checked;
+        var modeTest     = !!(document.getElementById('cal-notif-test')  || {}).checked;
+        var testEmail    = ((document.getElementById('cal-notif-test-email') || {}).value || '').trim();
         if (envoyerPush || envoyerEmail) {
-            window.showNotification && window.showNotification('Envoi aux membres en cours…', 'info');
+            window.showNotification && window.showNotification(modeTest ? 'Envoi du test…' : 'Envoi aux membres en cours…', 'info');
             firebase.functions().httpsCallable('notifyCalendarEvent')({
-                eventId: eventId, envoyerPush: envoyerPush, envoyerEmail: envoyerEmail
+                eventId: eventId, envoyerPush: envoyerPush, envoyerEmail: envoyerEmail,
+                testEmail: modeTest ? testEmail : null
             }).then(function(res) {
                 var r = res.data || {};
                 var parts = [];
                 if (envoyerPush)  parts.push(r.push + ' notification(s)');
                 if (envoyerEmail) parts.push(r.emails + ' email(s)');
-                window.showNotification && window.showNotification('Membres prévenus : ' + parts.join(' et ') + '.', 'success');
+                window.showNotification && window.showNotification(
+                    (r.test ? 'Test envoyé : ' : 'Membres prévenus : ') + parts.join(' et ') + '.', 'success');
             }).catch(function(err) {
                 window.showNotification && window.showNotification('Événement enregistré, mais l\'envoi a échoué : ' + (err.message || err), 'error');
             });
@@ -1007,9 +1030,11 @@ window.resetCalendrierForm = function() {
     _calBoutons = [];
     _renderCalBoutons();
     // Les cases de diffusion repartent décochées : pas de renvoi involontaire à la prochaine modification
-    ['cal-notif-push', 'cal-notif-email'].forEach(function(id) {
+    ['cal-notif-push', 'cal-notif-email', 'cal-notif-test'].forEach(function(id) {
         var el = document.getElementById(id); if (el) el.checked = false;
     });
+    var testWrap = document.getElementById('cal-notif-test-wrap');
+    if (testWrap) testWrap.style.display = 'none';
     document.getElementById('cal-form-title').innerHTML = '<i class="fas fa-plus-circle" style="margin-right:8px;"></i>Ajouter au calendrier';
     document.getElementById('cal-save-label').textContent = 'Ajouter au calendrier';
     document.getElementById('cal-cancel-btn').style.display = 'none';
