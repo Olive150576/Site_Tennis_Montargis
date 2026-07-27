@@ -2274,24 +2274,36 @@ function loadCalendrierMember() {
         });
 
         _calEntries.sort(function(a, b) { return a.date.localeCompare(b.date) || (a.heure || '').localeCompare(b.heure || ''); });
+        // Index stable, utilisé par les boutons « Ajouter à mon agenda »
+        _calEntries.forEach(function(e, i) { e._idx = i; });
+        _renderProchainement();
 
         // Filtres : uniquement les types réellement présents, tous actifs par défaut
         var typesPresents = [];
         _calEntries.forEach(function(e) { if (typesPresents.indexOf(e.type) === -1) typesPresents.push(e.type); });
         var filtresEl = document.getElementById('calendrier-filtres');
         if (filtresEl) {
+            var aDesMatchs = _calEntries.some(function(e) { return e.isMyMatch; });
+            var html = '';
             if (typesPresents.length > 1) {
-                filtresEl.innerHTML = typesPresents.map(function(ty) {
+                html += typesPresents.map(function(ty) {
                     var t = _CAL_TYPES_M[ty];
                     if (_calFiltres[ty] === undefined) _calFiltres[ty] = true;
                     return '<button id="cal-filtre-' + ty + '" onclick="window.toggleCalFiltre(\'' + ty + '\')" '
                         + 'style="border-radius:20px; padding:6px 14px; font-size:12px; cursor:pointer; font-family:inherit; transition:all .15s;">'
                         + '<i class="fas ' + t.icon + '" style="margin-right:5px;"></i>' + t.label + '</button>';
                 }).join('');
-                typesPresents.forEach(_updateCalFiltreBtn);
-            } else {
-                filtresEl.innerHTML = '';
             }
+            // Raccourci pour les joueurs d'équipe : n'afficher que ses propres rencontres
+            if (aDesMatchs) {
+                html += '<button id="cal-filtre-mes-matchs" onclick="window.toggleCalMesMatchs()" '
+                    + 'style="border-radius:20px; padding:6px 14px; font-size:12px; cursor:pointer; font-family:inherit; transition:all .15s;'
+                    + ' background:' + (_calFiltreMesMatchs ? '#c9a22722' : '#0f172a') + '; color:' + (_calFiltreMesMatchs ? '#c9a227' : '#475569')
+                    + '; border:1px solid ' + (_calFiltreMesMatchs ? '#c9a22755' : '#33415555') + '; opacity:' + (_calFiltreMesMatchs ? '1' : '0.6') + ';">'
+                    + '<i class="fas fa-star" style="margin-right:5px;"></i>Mes matchs</button>';
+            }
+            filtresEl.innerHTML = html;
+            if (typesPresents.length > 1) typesPresents.forEach(_updateCalFiltreBtn);
         }
 
         _renderCalendrierListe();
@@ -2314,7 +2326,128 @@ function _updateCalFiltreBtn(ty) {
 window.toggleCalFiltre = function(ty) {
     _calFiltres[ty] = _calFiltres[ty] === false;
     _updateCalFiltreBtn(ty);
+    _renderProchainement();
     _renderCalendrierListe();
+};
+
+// Filtre « Mes matchs » : réservé aux membres effectivement convoqués/affectés
+var _calFiltreMesMatchs = false;
+
+window.toggleCalMesMatchs = function() {
+    _calFiltreMesMatchs = !_calFiltreMesMatchs;
+    var btn = document.getElementById('cal-filtre-mes-matchs');
+    if (btn) {
+        btn.style.background = _calFiltreMesMatchs ? '#c9a22722' : '#0f172a';
+        btn.style.color      = _calFiltreMesMatchs ? '#c9a227' : '#475569';
+        btn.style.border     = '1px solid ' + (_calFiltreMesMatchs ? '#c9a22755' : '#33415555');
+        btn.style.opacity    = _calFiltreMesMatchs ? '1' : '0.6';
+    }
+    _renderProchainement();
+    _renderCalendrierListe();
+};
+
+// --- Export d'un événement vers l'agenda personnel (fichier .ics standard) ---
+function _icsEscape(s) {
+    return String(s || '').replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
+}
+function _icsDatePlusUnJour(iso) {
+    var d = new Date(iso + 'T00:00:00');
+    d.setDate(d.getDate() + 1);
+    return d.toISOString().substring(0, 10).replace(/-/g, '');
+}
+
+window.calAjouterAgenda = function(idx) {
+    var e = _calEntries[idx];
+    if (!e) return;
+    var dateCompacte = e.date.replace(/-/g, '');
+    var lignes = [
+        'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//USM Tennis Montargis//Calendrier//FR',
+        'CALSCALE:GREGORIAN', 'BEGIN:VEVENT',
+        'UID:usm-' + dateCompacte + '-' + idx + '@tennismontargis.fr',
+        'DTSTAMP:' + new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')
+    ];
+
+    if (e.heure && /^\d{2}:\d{2}$/.test(e.heure)) {
+        var hhmm = e.heure.replace(':', '');
+        lignes.push('DTSTART:' + dateCompacte + 'T' + hhmm + '00');
+        // Durée par défaut : 2 h
+        var finH = Math.min(23, parseInt(e.heure.substring(0, 2), 10) + 2);
+        lignes.push('DTEND:' + dateCompacte + 'T' + ('0' + finH).slice(-2) + e.heure.substring(3, 5) + '00');
+    } else {
+        // Journée entière — DTEND est exclusif, d'où le +1 jour
+        lignes.push('DTSTART;VALUE=DATE:' + dateCompacte);
+        lignes.push('DTEND;VALUE=DATE:' + _icsDatePlusUnJour(e.dateFin || e.date));
+    }
+
+    lignes.push('SUMMARY:' + _icsEscape(e.titre));
+    if (e.lieu) lignes.push('LOCATION:' + _icsEscape(e.lieu));
+    var desc = [e.description, e.prix ? 'Tarif : ' + e.prix : ''].filter(Boolean).join('\n');
+    if (desc) lignes.push('DESCRIPTION:' + _icsEscape(desc));
+    lignes.push('END:VEVENT', 'END:VCALENDAR');
+
+    var blob = new Blob([lignes.join('\r\n')], { type: 'text/calendar;charset=utf-8' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = (e.titre || 'evenement').replace(/[^a-zA-Z0-9À-ÿ ]/g, '').trim().substring(0, 40) + '.ics';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
+    window.showNotification && window.showNotification('Événement téléchargé — ouvrez le fichier pour l\'ajouter à votre agenda.', 'success');
+};
+
+/** Libellé d'imminence : « aujourd'hui », « demain », « dans 5 jours »… */
+function _calImminence(dateISO) {
+    var auj = new Date(); auj.setHours(0, 0, 0, 0);
+    var d = new Date(dateISO + 'T00:00:00');
+    var jours = Math.round((d - auj) / 86400000);
+    if (jours < 0)  return null;
+    if (jours === 0) return "aujourd'hui";
+    if (jours === 1) return 'demain';
+    if (jours < 7)   return 'dans ' + jours + ' jours';
+    if (jours < 14)  return 'dans une semaine';
+    if (jours < 31)  return 'dans ' + Math.round(jours / 7) + ' semaines';
+    return null;
+}
+
+/** Bloc « À venir » : les 3 prochains événements, quel que soit le mois affiché */
+function _renderProchainement() {
+    var el = document.getElementById('calendrier-prochainement');
+    if (!el) return;
+    var todayISO = new Date().toISOString().substring(0, 10);
+    var prochains = _calEntries
+        .filter(function(e) { return (e.dateFin || e.date) >= todayISO && _calFiltres[e.type] !== false; })
+        .filter(function(e) { return !_calFiltreMesMatchs || e.isMyMatch; })
+        .slice(0, 3);
+
+    if (!prochains.length) { el.style.display = 'none'; el.innerHTML = ''; return; }
+
+    el.style.display = 'block';
+    el.innerHTML = '<div style="color:#00d2ff; font-family:\'Orbitron\',sans-serif; font-size:0.8rem; letter-spacing:1px; text-transform:uppercase; margin-bottom:10px;">'
+        + '<i class="fas fa-bolt" style="margin-right:7px;"></i>À venir</div>'
+        + '<div style="display:grid; gap:8px;">'
+        + prochains.map(function(e) {
+            var t = _CAL_TYPES_M[e.type];
+            var imm = _calImminence(e.date);
+            return '<div onclick="window.calAllerAuMoisDe(\'' + e.date + '\')" style="cursor:pointer; display:flex; align-items:center; gap:12px; background:linear-gradient(135deg,' + t.color + '14,rgba(15,23,42,0.6)); border:1px solid ' + t.color + '44; border-radius:12px; padding:12px 14px;">'
+                + '<i class="fas ' + t.icon + '" style="color:' + t.color + '; font-size:1.1rem; flex-shrink:0; width:22px; text-align:center;"></i>'
+                + '<div style="flex:1; min-width:0;">'
+                + '<div style="color:#e2e8f0; font-size:0.88rem; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">' + escMember(e.titre)
+                + (e.isMyMatch ? ' <i class="fas fa-star" style="color:#c9a227; font-size:0.7rem;" title="Votre match"></i>' : '') + '</div>'
+                + '<div style="color:#94a3b8; font-size:0.75rem; margin-top:2px;">' + _calFmtDateM(e.date) + (e.heure ? ' à ' + escMember(e.heure) : '') + '</div>'
+                + '</div>'
+                + (imm ? '<span style="background:' + t.color + '22; color:' + t.color + '; border:1px solid ' + t.color + '55; border-radius:20px; padding:3px 10px; font-size:0.7rem; font-weight:700; white-space:nowrap; flex-shrink:0;">' + imm + '</span>' : '')
+                + '</div>';
+        }).join('')
+        + '</div>';
+}
+
+/** Depuis le bloc « À venir » : bascule le calendrier sur le mois de l'événement */
+window.calAllerAuMoisDe = function(dateISO) {
+    _calMoisAffiche = dateISO.substring(0, 7);
+    _renderCalendrierListe();
+    setTimeout(function() { window.calAllerAuJour(dateISO); }, 120);
 };
 
 function _renderCalEntryCard(e) {
@@ -2341,6 +2474,9 @@ function _renderCalEntryCard(e) {
         + (sousTitre.length ? '<div style="color:#94a3b8; font-size:12px; margin-top:3px;">' + escMember(sousTitre.join(' · ')) + '</div>' : '')
         + (e.description ? '<div style="color:#64748b; font-size:12px; margin-top:5px; white-space:pre-wrap;">' + escMember(e.description) + '</div>' : '')
         + (e.image ? '<img src="' + escMember(e.image) + '" alt="" loading="lazy" style="max-height:160px; max-width:100%; border-radius:8px; margin-top:8px;">' : '')
+        + (e._idx !== undefined ? '<button onclick="window.calAjouterAgenda(' + e._idx + ')" title="Ajouter cet événement à l\'agenda de mon téléphone" '
+            + 'style="margin-top:9px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.15); color:#94a3b8; border-radius:8px; padding:5px 11px; font-size:11px; cursor:pointer; font-family:inherit;">'
+            + '<i class="fas fa-calendar-plus" style="margin-right:5px;"></i>Ajouter à mon agenda</button>' : '')
         + '</div></div>';
 }
 
@@ -2417,7 +2553,9 @@ function _renderCalendrierListe() {
     var listEl = document.getElementById('calendrier-liste');
     if (!listEl) return;
     var todayISO = new Date().toISOString().substring(0, 10);
-    var visibles = _calEntries.filter(function(e) { return _calFiltres[e.type] !== false; });
+    var visibles = _calEntries
+        .filter(function(e) { return _calFiltres[e.type] !== false; })
+        .filter(function(e) { return !_calFiltreMesMatchs || e.isMyMatch; });
 
     var y = parseInt(_calMoisAffiche.substring(0, 4), 10);
     var m = parseInt(_calMoisAffiche.substring(5, 7), 10); // 1-12
@@ -2445,10 +2583,19 @@ function _renderCalendrierListe() {
 
     // --- Barre de navigation ---
     var estMoisCourant = _calMoisAffiche === todayISO.substring(0, 7);
+    // Les mois qui contiennent au moins un événement visible sont marqués d'un point
+    var moisAvecEvts = {};
+    visibles.forEach(function(e) {
+        var cur = e.date.substring(0, 7);
+        var fin = (e.dateFin || e.date).substring(0, 7);
+        var garde = 0;
+        while (cur <= fin && garde++ < 24) { moisAvecEvts[cur] = true; cur = _calMoisSuivantDe(cur); }
+    });
     var optionsMois = _calListeMois().map(function(ym) {
         var my = ym.substring(0, 4);
         var mi = parseInt(ym.substring(5, 7), 10) - 1;
-        return '<option value="' + ym + '"' + (ym === _calMoisAffiche ? ' selected' : '') + '>' + _MOIS_FR[mi] + ' ' + my + '</option>';
+        return '<option value="' + ym + '"' + (ym === _calMoisAffiche ? ' selected' : '') + '>'
+            + (moisAvecEvts[ym] ? '• ' : '') + _MOIS_FR[mi] + ' ' + my + '</option>';
     }).join('');
 
     var html = '<div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:14px;">'
@@ -2485,15 +2632,29 @@ function _renderCalendrierListe() {
     }
     html += '</div>';
 
-    // --- Agenda du mois ---
+    // --- Agenda du mois : à venir d'abord, passés repliés en dessous ---
+    var aVenir = duMois.filter(function(e) { return (e.dateFin || e.date) >= todayISO; });
+    var passes = duMois.filter(function(e) { return (e.dateFin || e.date) <  todayISO; }).reverse();
+
     if (!duMois.length) {
         html += '<div class="member-empty-state"><i class="fas fa-calendar-check"></i><p>Rien de prévu en ' + _MOIS_FR[m - 1].toLowerCase() + '.</p></div>';
     } else {
-        duMois.forEach(function(e) {
-            var estPasse = (e.dateFin || e.date) < todayISO;
+        var carte = function(e) {
             var ancre = e.date >= moisDebut ? e.date : moisDebut;
-            html += '<div id="cal-jour-' + ancre + '" style="margin-bottom:8px; border-radius:12px; transition:outline .3s;' + (estPasse ? ' opacity:0.5;' : '') + '">' + _renderCalEntryCard(e) + '</div>';
-        });
+            return '<div id="cal-jour-' + ancre + '" style="margin-bottom:8px; border-radius:12px; transition:outline .3s;">' + _renderCalEntryCard(e) + '</div>';
+        };
+        if (aVenir.length) {
+            html += aVenir.map(carte).join('');
+        } else {
+            html += '<div class="member-empty-state"><i class="fas fa-calendar-check"></i><p>Plus rien de prévu ce mois-ci.</p></div>';
+        }
+        if (passes.length) {
+            html += '<details style="margin-top:16px;">'
+                + '<summary style="color:#64748b; font-size:13px; cursor:pointer; padding:10px 0; border-top:1px solid #1e293b;">'
+                + '<i class="fas fa-history" style="margin-right:6px;"></i>Déjà passé ce mois-ci (' + passes.length + ')</summary>'
+                + '<div style="margin-top:10px; opacity:0.55;">' + passes.map(carte).join('') + '</div>'
+                + '</details>';
+        }
     }
 
     listEl.innerHTML = html;
