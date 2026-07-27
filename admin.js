@@ -659,14 +659,89 @@ window.loadCalendrierAdmin = function() {
                     + (e.lieu ? ' · ' + escHtml(e.lieu) : '') + (e.prix ? ' · ' + escHtml(e.prix) : '') + '</div>'
                     + '</div>'
                     + '<div style="display:flex; gap:8px; flex-shrink:0;">'
+                    + (_calABoutonInscription(e) ? '<button onclick="window.toggleInscritsEvenement(\'' + id + '\')" title="Voir les inscrits" style="background:#0f172a; color:#22c55e; border:1px solid #22c55e44; padding:6px 12px; border-radius:6px; cursor:pointer; font-size:12px;"><i class="fas fa-users"></i></button>' : '')
                     + '<button onclick="window.editCalendrierEntry(\'' + id + '\')" style="background:#0f172a; color:#e2e8f0; border:1px solid #47556944; padding:6px 12px; border-radius:6px; cursor:pointer; font-size:12px;"><i class="fas fa-edit"></i></button>'
                     + '<button onclick="window.deleteCalendrierEntry(\'' + id + '\')" style="background:#0f172a; color:#ef4444; border:1px solid #ef444444; padding:6px 12px; border-radius:6px; cursor:pointer; font-size:12px;"><i class="fas fa-trash"></i></button>'
-                    + '</div></div>';
+                    + '</div></div>'
+                    + '<div id="inscrits-evt-' + id + '" style="display:none; background:#0f172a; border:1px solid #22c55e33; border-top:none; border-radius:0 0 10px 10px; padding:12px 16px; margin-top:-4px;"></div>';
             });
             list.innerHTML = html;
         }
     });
     _loadCalendrierMatchsAdmin();
+};
+
+function _calABoutonInscription(e) {
+    return Array.isArray(e.boutons) && e.boutons.some(function(b) { return b && b.type === 'inscription'; });
+}
+
+/** Panneau dépliable listant les inscrits à un événement */
+window.toggleInscritsEvenement = function(eventId) {
+    var panel = document.getElementById('inscrits-evt-' + eventId);
+    if (!panel) return;
+    if (panel.style.display !== 'none') { panel.style.display = 'none'; return; }
+    panel.style.display = 'block';
+    panel.innerHTML = '<p style="color:#64748b; font-size:12px; text-align:center;"><i class="fas fa-spinner fa-spin"></i> Chargement…</p>';
+
+    db_ref.ref('inscriptions_evenement/' + eventId).once('value', function(snap) {
+        var e = _calDataCache[eventId] || {};
+        var btnIns = (e.boutons || []).filter(function(b) { return b.type === 'inscription'; })[0] || {};
+        var inscrits = [];
+        snap.forEach(function(c) { inscrits.push(Object.assign({ uid: c.key }, c.val())); });
+        inscrits.sort(function(a, b) { return (a.at || 0) - (b.at || 0); });
+
+        var entete = '<div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:10px;">'
+            + '<span style="color:#22c55e; font-size:12px; font-weight:600;"><i class="fas fa-users" style="margin-right:6px;"></i>'
+            + inscrits.length + ' inscrit' + (inscrits.length > 1 ? 's' : '')
+            + (btnIns.placesMax ? ' / ' + btnIns.placesMax + ' places' : '') + '</span>'
+            + (inscrits.length ? '<button onclick="window.copierInscrits(\'' + eventId + '\')" style="background:#1e293b; color:#94a3b8; border:1px solid #33415566; padding:5px 12px; border-radius:6px; cursor:pointer; font-size:11px;"><i class="fas fa-copy" style="margin-right:5px;"></i>Copier la liste</button>' : '')
+            + '</div>';
+
+        if (!inscrits.length) {
+            panel.innerHTML = entete + '<p style="color:#64748b; font-size:12px; text-align:center; padding:6px 0;">Personne ne s\'est encore inscrit.</p>';
+            return;
+        }
+        panel.innerHTML = entete + '<div style="display:grid; gap:5px;">'
+            + inscrits.map(function(i, n) {
+                var quand = i.at ? new Date(i.at).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }) : '';
+                return '<div style="display:flex; align-items:center; gap:10px; padding:6px 10px; background:#1e293b; border-radius:6px; font-size:12px;">'
+                    + '<span style="color:#475569; min-width:18px;">' + (n + 1) + '.</span>'
+                    + '<span style="color:#e2e8f0; flex:1;">' + escHtml(((i.prenom || '') + ' ' + (i.nom || '')).trim()) + '</span>'
+                    + '<span style="color:#475569; font-size:11px;">' + quand + '</span>'
+                    + '<button onclick="window.retirerInscritEvenement(\'' + eventId + '\',\'' + i.uid + '\')" title="Retirer" style="background:none; border:none; color:#ef4444; cursor:pointer; font-size:11px;"><i class="fas fa-user-minus"></i></button>'
+                    + '</div>';
+            }).join('') + '</div>';
+    });
+};
+
+window.copierInscrits = function(eventId) {
+    db_ref.ref('inscriptions_evenement/' + eventId).once('value', function(snap) {
+        var noms = [];
+        snap.forEach(function(c) {
+            var i = c.val();
+            noms.push(((i.prenom || '') + ' ' + (i.nom || '')).trim());
+        });
+        var texte = noms.join('\n');
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(texte).then(function() {
+                window.showNotification && window.showNotification('Liste copiée (' + noms.length + ' noms).', 'success');
+            });
+        }
+    });
+};
+
+window.retirerInscritEvenement = async function(eventId, uid) {
+    var ok = await window.confirmDialog.show({
+        title: 'Retirer cet inscrit',
+        message: 'Retirer ce membre de la liste des participants ?',
+        type: 'danger', confirmText: 'Retirer', cancelText: 'Annuler'
+    });
+    if (!ok) return;
+    db_ref.ref('inscriptions_evenement/' + eventId + '/' + uid).remove().then(function() {
+        window.showNotification && window.showNotification('Inscription retirée.', 'success');
+        var panel = document.getElementById('inscrits-evt-' + eventId);
+        if (panel) { panel.style.display = 'none'; window.toggleInscritsEvenement(eventId); }
+    });
 };
 
 // Matchs d'équipes à venir (lecture seule — gérés depuis l'onglet Équipes)
@@ -704,6 +779,103 @@ function _loadCalendrierMatchsAdmin() {
     });
 }
 
+// --- Boutons configurables d'un événement (lien / fichier / inscription) ---
+var _calBoutons = []; // [{ type, libelle, url, fichierNom, placesMax, dateLimite }]
+
+var _CAL_BTN_META = {
+    lien:        { icon: 'fa-link',            color: '#00d2ff', titre: 'Bouton lien' },
+    fichier:     { icon: 'fa-file-arrow-down', color: '#a855f7', titre: 'Bouton fichier' },
+    inscription: { icon: 'fa-user-check',      color: '#22c55e', titre: 'Bouton inscription' }
+};
+
+window.calAjouterBouton = function(type) {
+    if (type === 'inscription' && _calBoutons.some(function(b) { return b.type === 'inscription'; })) {
+        window.showNotification && window.showNotification('Un seul bouton d\'inscription par événement.', 'warning');
+        return;
+    }
+    var defauts = {
+        lien:        { type: 'lien', libelle: '', url: '' },
+        fichier:     { type: 'fichier', libelle: '', url: '', fichierNom: '' },
+        inscription: { type: 'inscription', libelle: 'Je participe', placesMax: '', dateLimite: '' }
+    };
+    _calBoutons.push(defauts[type]);
+    _renderCalBoutons();
+};
+
+window.calSupprimerBouton = function(idx) {
+    _calBoutons.splice(idx, 1);
+    _renderCalBoutons();
+};
+
+// Mémorise la saisie en cours avant tout re-rendu de la liste
+function _calLireBoutonsDepuisDOM() {
+    _calBoutons.forEach(function(b, i) {
+        var g = function(champ) { var el = document.getElementById('cal-btn-' + champ + '-' + i); return el ? el.value : undefined; };
+        var lib = g('libelle'); if (lib !== undefined) b.libelle = lib;
+        if (b.type === 'lien')        { var u = g('url');        if (u !== undefined) b.url = u; }
+        if (b.type === 'inscription') {
+            var p = g('places');  if (p !== undefined) b.placesMax = p;
+            var d = g('limite');  if (d !== undefined) b.dateLimite = d;
+        }
+    });
+}
+
+function _renderCalBoutons() {
+    var wrap = document.getElementById('cal-boutons-liste');
+    if (!wrap) return;
+    if (!_calBoutons.length) {
+        wrap.innerHTML = '<p style="color:#475569; font-size:11px; margin:0; font-style:italic;">Aucun bouton — l\'événement s\'affichera simplement avec sa description.</p>';
+        return;
+    }
+    wrap.innerHTML = _calBoutons.map(function(b, i) {
+        var meta = _CAL_BTN_META[b.type] || _CAL_BTN_META.lien;
+        var champs = '';
+        if (b.type === 'lien') {
+            champs = '<input type="url" id="cal-btn-url-' + i + '" value="' + escHtml(b.url || '') + '" placeholder="https://tenup.fft.fr/…" '
+                + 'style="width:100%; padding:8px 10px; background:#0f172a; border:1px solid #475569; color:white; border-radius:6px; font-size:12px; box-sizing:border-box;">';
+        } else if (b.type === 'fichier') {
+            champs = '<input type="file" id="cal-btn-fichier-' + i + '" accept=".pdf,image/*" '
+                + 'style="width:100%; padding:6px; background:#0f172a; border:1px solid #475569; color:#94a3b8; border-radius:6px; font-size:11px; box-sizing:border-box;">'
+                + (b.url ? '<div style="color:#22c55e; font-size:11px; margin-top:4px;"><i class="fas fa-check" style="margin-right:4px;"></i>Fichier actuel : ' + escHtml(b.fichierNom || 'document') + ' <span style="color:#64748b;">(choisissez-en un autre pour le remplacer)</span></div>' : '');
+        } else {
+            champs = '<div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">'
+                + '<div><label style="color:#64748b; font-size:10px; display:block; margin-bottom:3px;">Places max (vide = illimité)</label>'
+                + '<input type="number" min="1" id="cal-btn-places-' + i + '" value="' + escHtml(b.placesMax || '') + '" placeholder="ex : 20" '
+                + 'style="width:100%; padding:8px 10px; background:#0f172a; border:1px solid #475569; color:white; border-radius:6px; font-size:12px; box-sizing:border-box;"></div>'
+                + '<div><label style="color:#64748b; font-size:10px; display:block; margin-bottom:3px;">Date limite d\'inscription</label>'
+                + '<input type="date" id="cal-btn-limite-' + i + '" value="' + escHtml(b.dateLimite || '') + '" '
+                + 'style="width:100%; padding:8px 10px; background:#0f172a; border:1px solid #475569; color:white; border-radius:6px; font-size:12px; box-sizing:border-box;"></div>'
+                + '</div>';
+        }
+        return '<div style="background:#0f172a; border:1px solid ' + meta.color + '33; border-left:3px solid ' + meta.color + '; border-radius:8px; padding:12px;">'
+            + '<div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px;">'
+            + '<span style="color:' + meta.color + '; font-size:12px; font-weight:600;"><i class="fas ' + meta.icon + '" style="margin-right:6px;"></i>' + meta.titre + '</span>'
+            + '<button type="button" onclick="window.calSupprimerBouton(' + i + ')" style="background:none; border:none; color:#ef4444; cursor:pointer; font-size:12px;"><i class="fas fa-trash"></i></button>'
+            + '</div>'
+            + '<input type="text" id="cal-btn-libelle-' + i + '" value="' + escHtml(b.libelle || '') + '" placeholder="Texte du bouton (ex : S\'inscrire sur TenUp)" '
+            + 'style="width:100%; padding:8px 10px; background:#0f172a; border:1px solid #475569; color:white; border-radius:6px; font-size:12px; box-sizing:border-box; margin-bottom:8px;">'
+            + champs
+            + '</div>';
+    }).join('');
+}
+
+/** Téléverse les fichiers choisis pour les boutons de type « fichier » */
+async function _calUploaderFichiersBoutons() {
+    for (var i = 0; i < _calBoutons.length; i++) {
+        var b = _calBoutons[i];
+        if (b.type !== 'fichier') continue;
+        var input = document.getElementById('cal-btn-fichier-' + i);
+        var file = input && input.files ? input.files[0] : null;
+        if (!file) continue;
+        if (file.size > 10 * 1024 * 1024) throw new Error('Fichier trop volumineux (max 10 Mo) : ' + file.name);
+        var safeName = Date.now() + '_' + file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+        var ref = storage.ref('documents/' + safeName);
+        await ref.put(file, { contentType: file.type || 'application/octet-stream' });
+        b.url = await ref.getDownloadURL();
+        b.fichierNom = file.name;
+    }
+}
+
 window.saveCalendrierEntry = function() {
     var titre = (document.getElementById('cal-titre').value || '').trim();
     var type = document.getElementById('cal-type').value;
@@ -720,17 +892,49 @@ window.saveCalendrierEntry = function() {
     if (!titre || !date) { window.showNotification && window.showNotification('Le titre et la date sont obligatoires.', 'error'); return; }
     if (dateFin && dateFin < date) { window.showNotification && window.showNotification('La date de fin doit être après la date de début.', 'error'); return; }
 
+    // Récupérer la saisie des boutons et valider
+    _calLireBoutonsDepuisDOM();
+    for (var bi = 0; bi < _calBoutons.length; bi++) {
+        var b = _calBoutons[bi];
+        if (!(b.libelle || '').trim()) {
+            window.showNotification && window.showNotification('Chaque bouton doit avoir un texte.', 'error'); return;
+        }
+        if (b.type === 'lien' && !(b.url || '').trim()) {
+            window.showNotification && window.showNotification('Le bouton « ' + b.libelle + ' » doit avoir un lien.', 'error'); return;
+        }
+        if (b.type === 'fichier') {
+            var inp = document.getElementById('cal-btn-fichier-' + bi);
+            var aUnFichier = (inp && inp.files && inp.files[0]) || b.url;
+            if (!aUnFichier) {
+                window.showNotification && window.showNotification('Le bouton « ' + b.libelle + ' » doit avoir un fichier.', 'error'); return;
+            }
+        }
+    }
+
     var saveBtn = document.getElementById('cal-save-label');
     if (saveBtn) saveBtn.textContent = 'Enregistrement…';
 
     var imagePromise = file ? uploadImage(file) : Promise.resolve(_calImageUrl || '');
     imagePromise.then(function(imageUrl) {
+        return _calUploaderFichiersBoutons().then(function() { return imageUrl; });
+    }).then(function(imageUrl) {
+        var boutons = _calBoutons.map(function(b) {
+            var o = { type: b.type, libelle: (b.libelle || '').trim() };
+            if (b.type === 'lien')    o.url = (b.url || '').trim();
+            if (b.type === 'fichier') { o.url = b.url || ''; o.fichierNom = b.fichierNom || ''; }
+            if (b.type === 'inscription') {
+                o.placesMax  = b.placesMax ? parseInt(b.placesMax, 10) : null;
+                o.dateLimite = b.dateLimite || null;
+            }
+            return o;
+        });
         var data = {
             titre: titre, type: type, date: date,
             dateFin: dateFin || null, heure: heure || null,
             lieu: lieu || null, prix: prix || null,
             description: description || null,
-            image: imageUrl || null
+            image: imageUrl || null,
+            boutons: boutons.length ? boutons : null
         };
         if (!editId) data.createdAt = Date.now();
         var ref = editId ? db_ref.ref('calendrier/' + editId) : db_ref.ref('calendrier').push();
@@ -759,6 +963,8 @@ window.editCalendrierEntry = function(id) {
     _calImageUrl = e.image || '';
     var preview = document.getElementById('cal-image-preview');
     if (preview) preview.innerHTML = _calImageUrl ? '<img src="' + escHtml(_calImageUrl) + '" style="max-height:80px; border-radius:8px;"> <button onclick="window.removeCalImage()" style="background:none; border:none; color:#ef4444; cursor:pointer; font-size:11px; text-decoration:underline;">Retirer l\'image</button>' : '';
+    _calBoutons = Array.isArray(e.boutons) ? JSON.parse(JSON.stringify(e.boutons)) : [];
+    _renderCalBoutons();
     document.getElementById('cal-form-title').innerHTML = '<i class="fas fa-edit" style="margin-right:8px;"></i>Modifier l\'entrée';
     document.getElementById('cal-save-label').textContent = 'Enregistrer les modifications';
     document.getElementById('cal-cancel-btn').style.display = '';
@@ -779,6 +985,8 @@ window.resetCalendrierForm = function() {
     var fileInput = document.getElementById('cal-image-file'); if (fileInput) fileInput.value = '';
     _calImageUrl = '';
     var preview = document.getElementById('cal-image-preview'); if (preview) preview.innerHTML = '';
+    _calBoutons = [];
+    _renderCalBoutons();
     document.getElementById('cal-form-title').innerHTML = '<i class="fas fa-plus-circle" style="margin-right:8px;"></i>Ajouter au calendrier';
     document.getElementById('cal-save-label').textContent = 'Ajouter au calendrier';
     document.getElementById('cal-cancel-btn').style.display = 'none';
@@ -793,6 +1001,7 @@ window.deleteCalendrierEntry = async function(id) {
     });
     if (!ok) return;
     db_ref.ref('calendrier/' + id).remove().then(function() {
+        db_ref.ref('inscriptions_evenement/' + id).remove(); // cascade : les inscriptions partent avec l'événement
         window.showNotification && window.showNotification('Entrée supprimée.', 'success');
         window.loadCalendrierAdmin();
     }).catch(function(err) {

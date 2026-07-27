@@ -109,7 +109,7 @@
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script defer src="notifications.min.js"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-    <script defer src="admin.min.js?v=30"></script>
+    <script defer src="admin.min.js?v=31"></script>
     <script>
         // PWA — enregistre le service worker même si l'utilisateur arrive
         // directement sur le panneau admin (installation depuis cette page).
@@ -421,6 +421,31 @@
                     <input type="file" id="cal-image-file" accept="image/*"
                         style="width:100%; padding:8px; background:#0f172a; border:1px solid #475569; color:#94a3b8; border-radius:8px; font-size:12px; box-sizing:border-box;">
                     <div id="cal-image-preview" style="margin-top:8px;"></div>
+                </div>
+
+                <!-- Boutons de l'événement (lien, fichier, inscription) -->
+                <div style="margin-bottom:18px; background:rgba(0,210,255,0.04); border:1px solid rgba(0,210,255,0.18); border-radius:10px; padding:14px;">
+                    <label style="color:#00d2ff; font-size:12px; font-weight:600; display:block; margin-bottom:4px;">
+                        <i class="fas fa-hand-pointer" style="margin-right:5px;"></i>Boutons affichés aux membres
+                    </label>
+                    <p style="color:#64748b; font-size:11px; margin:0 0 12px;">
+                        Ajoutez ce dont l'événement a besoin : un lien externe (TenUp…), un document à télécharger, ou un bouton d'inscription géré par le site.
+                    </p>
+                    <div id="cal-boutons-liste" style="display:grid; gap:10px; margin-bottom:10px;"></div>
+                    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                        <button type="button" onclick="window.calAjouterBouton('lien')"
+                            style="background:#0f172a; color:#00d2ff; border:1px solid #00d2ff44; padding:7px 14px; border-radius:8px; cursor:pointer; font-size:12px;">
+                            <i class="fas fa-link" style="margin-right:5px;"></i>Bouton lien
+                        </button>
+                        <button type="button" onclick="window.calAjouterBouton('fichier')"
+                            style="background:#0f172a; color:#a855f7; border:1px solid #a855f744; padding:7px 14px; border-radius:8px; cursor:pointer; font-size:12px;">
+                            <i class="fas fa-file-arrow-down" style="margin-right:5px;"></i>Bouton fichier
+                        </button>
+                        <button type="button" onclick="window.calAjouterBouton('inscription')"
+                            style="background:#0f172a; color:#22c55e; border:1px solid #22c55e44; padding:7px 14px; border-radius:8px; cursor:pointer; font-size:12px;">
+                            <i class="fas fa-user-check" style="margin-right:5px;"></i>Bouton inscription
+                        </button>
+                    </div>
                 </div>
                 <div style="display:flex; gap:10px; flex-wrap:wrap;">
                     <button onclick="window.saveCalendrierEntry()"

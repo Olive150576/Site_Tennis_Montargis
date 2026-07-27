@@ -2218,7 +2218,8 @@ var _CAL_TYPES_M = {
 };
 var _MOIS_FR = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
 var _calEntries = [];
-var _calFiltres = {}; // type -> actif
+var _calFiltres = {};       // type -> actif
+var _calInscriptions = {};  // eventId -> { uid: { prenom, nom, at } }
 
 window.toggleMessagesBureau = function(forceOpen) {
     var bloc = document.getElementById('member-messages-list');
@@ -2242,18 +2243,22 @@ function loadCalendrierMember() {
 
     Promise.all([
         window.db_ref.ref('calendrier').once('value'),
-        window.db_ref.ref('equipes').once('value')
+        window.db_ref.ref('equipes').once('value'),
+        window.db_ref.ref('inscriptions_evenement').once('value')
     ]).then(function(snaps) {
         _calEntries = [];
+        _calInscriptions = snaps[2].val() || {};
 
         // Entrées gérées par l'admin
         snaps[0].forEach(function(child) {
             var e = child.val(); if (!e || !e.date) return;
             _calEntries.push({
+                id: child.key,
                 date: e.date, dateFin: e.dateFin || '', heure: e.heure || '',
                 type: _CAL_TYPES_M[e.type] ? e.type : 'autre',
                 titre: e.titre || '', lieu: e.lieu || '', prix: e.prix || '',
-                description: e.description || '', image: e.image || '', isMyMatch: false
+                description: e.description || '', image: e.image || '', isMyMatch: false,
+                boutons: Array.isArray(e.boutons) ? e.boutons : []
             });
         });
 
@@ -2474,11 +2479,122 @@ function _renderCalEntryCard(e) {
         + (sousTitre.length ? '<div style="color:#94a3b8; font-size:12px; margin-top:3px;">' + escMember(sousTitre.join(' · ')) + '</div>' : '')
         + (e.description ? '<div style="color:#64748b; font-size:12px; margin-top:5px; white-space:pre-wrap;">' + escMember(e.description) + '</div>' : '')
         + (e.image ? '<img src="' + escMember(e.image) + '" alt="" loading="lazy" style="max-height:160px; max-width:100%; border-radius:8px; margin-top:8px;">' : '')
+        + _renderCalBoutonsMembre(e)
         + (e._idx !== undefined ? '<button onclick="window.calAjouterAgenda(' + e._idx + ')" title="Ajouter cet événement à l\'agenda de mon téléphone" '
             + 'style="margin-top:9px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.15); color:#94a3b8; border-radius:8px; padding:5px 11px; font-size:11px; cursor:pointer; font-family:inherit;">'
             + '<i class="fas fa-calendar-plus" style="margin-right:5px;"></i>Ajouter à mon agenda</button>' : '')
         + '</div></div>';
 }
+
+/** Boutons configurés par l'admin : lien externe, fichier, inscription */
+function _renderCalBoutonsMembre(e) {
+    if (!e.boutons || !e.boutons.length) return '';
+    var uid = _cardMemberData ? _cardMemberData._uid : null;
+    var todayISO = new Date().toISOString().substring(0, 10);
+    var blocs = [];
+
+    e.boutons.forEach(function(b) {
+        if (!b || !b.libelle) return;
+
+        if (b.type === 'lien' && b.url) {
+            blocs.push('<a href="' + escMember(b.url) + '" target="_blank" rel="noopener noreferrer" '
+                + 'style="display:inline-flex; align-items:center; gap:6px; background:rgba(0,210,255,0.12); border:1px solid rgba(0,210,255,0.4); color:#00d2ff; border-radius:8px; padding:7px 14px; font-size:12px; font-weight:600; text-decoration:none;">'
+                + '<i class="fas fa-arrow-up-right-from-square"></i>' + escMember(b.libelle) + '</a>');
+
+        } else if (b.type === 'fichier' && b.url) {
+            blocs.push('<a href="' + escMember(b.url) + '" target="_blank" rel="noopener noreferrer" download '
+                + 'style="display:inline-flex; align-items:center; gap:6px; background:rgba(168,85,247,0.12); border:1px solid rgba(168,85,247,0.4); color:#c084fc; border-radius:8px; padding:7px 14px; font-size:12px; font-weight:600; text-decoration:none;">'
+                + '<i class="fas fa-file-arrow-down"></i>' + escMember(b.libelle) + '</a>');
+
+        } else if (b.type === 'inscription' && e.id) {
+            var inscrits = _calInscriptions[e.id] || {};
+            var uids = Object.keys(inscrits);
+            var nb = uids.length;
+            var jeSuisInscrit = !!(uid && inscrits[uid]);
+            var complet = b.placesMax && nb >= b.placesMax && !jeSuisInscrit;
+            var closArg = b.dateLimite && b.dateLimite < todayISO;
+            var passe = (e.dateFin || e.date) < todayISO;
+
+            var compteur = '<span style="color:#94a3b8; font-size:11px;">'
+                + '<i class="fas fa-users" style="margin-right:5px; color:#22c55e;"></i>'
+                + nb + (b.placesMax ? ' / ' + b.placesMax + ' places' : (nb > 1 ? ' inscrits' : ' inscrit'))
+                + (b.dateLimite && !closArg ? ' · jusqu\'au ' + _calFmtDateM(b.dateLimite) : '')
+                + '</span>';
+
+            var bouton;
+            if (passe) {
+                bouton = '<span style="color:#475569; font-size:12px; font-style:italic;">Inscriptions terminées</span>';
+            } else if (jeSuisInscrit) {
+                bouton = '<button onclick="window.calDesinscrire(\'' + e.id + '\')" '
+                    + 'style="background:rgba(34,197,94,0.18); border:1px solid rgba(34,197,94,0.5); color:#4ade80; border-radius:8px; padding:7px 14px; font-size:12px; font-weight:600; cursor:pointer; font-family:inherit;">'
+                    + '<i class="fas fa-check" style="margin-right:6px;"></i>Vous participez — annuler</button>';
+            } else if (closArg) {
+                bouton = '<span style="color:#f59e0b; font-size:12px;"><i class="fas fa-clock" style="margin-right:5px;"></i>Date limite dépassée</span>';
+            } else if (complet) {
+                bouton = '<span style="color:#ef4444; font-size:12px; font-weight:600;"><i class="fas fa-ban" style="margin-right:5px;"></i>Complet</span>';
+            } else {
+                bouton = '<button onclick="window.calInscrire(\'' + e.id + '\')" '
+                    + 'style="background:linear-gradient(135deg,#22c55e,#16a34a); border:none; color:white; border-radius:8px; padding:8px 16px; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit;">'
+                    + '<i class="fas fa-user-plus" style="margin-right:6px;"></i>' + escMember(b.libelle) + '</button>';
+            }
+
+            // Liste des participants, visible par tous les membres
+            var listeNoms = '';
+            if (nb > 0) {
+                var noms = uids.map(function(u) {
+                    var i = inscrits[u];
+                    return ((i.prenom || '') + ' ' + (i.nom || '')).trim();
+                }).filter(Boolean);
+                var affiches = noms.slice(0, 6).join(', ');
+                if (noms.length > 6) affiches += ' +' + (noms.length - 6);
+                listeNoms = '<div style="color:#64748b; font-size:11px; margin-top:6px;"><i class="fas fa-user-group" style="margin-right:5px;"></i>' + escMember(affiches) + '</div>';
+            }
+
+            blocs.push('<div style="width:100%; background:rgba(34,197,94,0.06); border:1px solid rgba(34,197,94,0.25); border-radius:10px; padding:10px 12px;">'
+                + '<div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">' + bouton + compteur + '</div>'
+                + listeNoms + '</div>');
+        }
+    });
+
+    if (!blocs.length) return '';
+    return '<div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:10px;">' + blocs.join('') + '</div>';
+}
+
+/** Inscription / désinscription à un événement du calendrier */
+window.calInscrire = function(eventId) {
+    var uid = _cardMemberData ? _cardMemberData._uid : null;
+    if (!uid) return;
+    window.db_ref.ref('inscriptions_evenement/' + eventId + '/' + uid).set({
+        prenom: _cardMemberData.prenom || '',
+        nom: _cardMemberData.nom || '',
+        at: Date.now()
+    }).then(function() {
+        window.showNotification && window.showNotification('Vous êtes inscrit(e) — à bientôt !', 'success');
+        _calendrierLoaded = false;
+        loadCalendrierMember();
+    }).catch(function(err) {
+        window.showNotification && window.showNotification('Inscription impossible : ' + (err.message || err), 'error');
+    });
+};
+
+window.calDesinscrire = async function(eventId) {
+    var uid = _cardMemberData ? _cardMemberData._uid : null;
+    if (!uid) return;
+    var ok = true;
+    if (window.confirmDialog && window.confirmDialog.show) {
+        ok = await window.confirmDialog.show({
+            title: 'Annuler ma participation',
+            message: 'Confirmez-vous que vous ne participerez pas ? Votre place sera libérée pour un autre membre.',
+            type: 'danger', confirmText: 'Annuler ma participation', cancelText: 'Rester inscrit'
+        });
+    }
+    if (!ok) return;
+    window.db_ref.ref('inscriptions_evenement/' + eventId + '/' + uid).remove().then(function() {
+        window.showNotification && window.showNotification('Participation annulée.', 'info');
+        _calendrierLoaded = false;
+        loadCalendrierMember();
+    });
+};
 
 // Mois affiché dans la vue calendrier ('YYYY-MM')
 var _calMoisAffiche = new Date().toISOString().substring(0, 7);

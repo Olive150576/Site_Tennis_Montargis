@@ -136,6 +136,16 @@
       ".write": "auth != null && root.child('admins').child(auth.uid).exists()",
       ".indexOn": ["date"]
     },
+    "inscriptions_evenement": {
+      ".read": "auth != null && (root.child('admins').child(auth.uid).exists() || root.child('coaches').child(auth.uid).exists() || root.child('members').child(auth.uid).child('actif').val() === true)",
+      "$eventId": {
+        ".write": "auth != null && root.child('admins').child(auth.uid).exists()",
+        "$uid": {
+          ".write": "auth != null && (root.child('admins').child(auth.uid).exists() || (auth.uid === $uid && root.child('members').child(auth.uid).child('actif').val() === true))",
+          ".validate": "!newData.exists() || (newData.hasChildren(['prenom', 'nom', 'at']) && newData.child('prenom').isString() && newData.child('prenom').val().length < 100 && newData.child('nom').isString() && newData.child('nom').val().length < 100 && newData.child('at').isNumber())"
+        }
+      }
+    },
     "club_messages": {
       ".read": "auth != null && (root.child('admins').child(auth.uid).exists() || root.child('members').child(auth.uid).child('actif').val() === true)",
       ".write": "auth != null && root.child('admins').child(auth.uid).exists()",
