@@ -283,7 +283,7 @@
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script defer src="notifications.min.js"></script>
-    <script defer src="member.min.js?v=20"></script>
+    <script defer src="member.min.js?v=21"></script>
     <script defer src="member-auth.min.js?v=2"></script>
     <script>
         // PWA — enregistre le service worker même si l'utilisateur arrive
@@ -764,16 +764,23 @@
                     </div>
                 </details>
 
-                <!-- Barre de recherche -->
-                <div style="position:relative; margin-bottom:12px;">
-                    <i class="fas fa-search" style="position:absolute; left:14px; top:50%; transform:translateY(-50%); color:#475569; font-size:0.85rem; pointer-events:none;"></i>
-                    <input type="text" id="partenaire-search" placeholder="Rechercher un joueur par nom ou prénom…" oninput="window.applyPartenaireFilters()"
-                        style="width:100%; padding:11px 14px 11px 38px; background:rgba(10,22,40,0.8); border:1px solid rgba(255,255,255,0.12); border-radius:12px; color:#e2e8f0; font-family:inherit; font-size:0.88rem; box-sizing:border-box; outline:none; transition:border-color 0.2s;"
-                        onfocus="this.style.borderColor='rgba(255,215,0,0.4)'" onblur="this.style.borderColor='rgba(255,255,255,0.12)'">
-                </div>
+                <!-- Filtres de recherche (le niveau et les créneaux d'abord : c'est ainsi qu'on cherche un partenaire) -->
+                <div style="background:rgba(10,22,40,0.7); border:1px solid rgba(255,215,0,0.18); border-radius:14px; padding:16px 18px; margin-bottom:14px;">
 
-                <!-- Filtres -->
-                <div style="background:rgba(10,22,40,0.7); border:1px solid rgba(255,215,0,0.18); border-radius:14px; padding:16px 18px; margin-bottom:18px;">
+                    <!-- Niveau -->
+                    <div style="margin-bottom:14px;">
+                        <div style="color:#94a3b8; font-size:0.72rem; font-weight:600; letter-spacing:0.5px; text-transform:uppercase; margin-bottom:6px;">Niveau de jeu</div>
+                        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                            <button id="filter-mon-niveau" onclick="window.toggleMonNiveau()" class="pf-btn" title="Afficher les joueurs de classement proche du vôtre">
+                                <i class="fas fa-bullseye" style="margin-right:4px;"></i> Mon niveau
+                            </button>
+                            <span style="color:#475569; font-size:0.75rem;">ou de</span>
+                            <select id="filter-niveau-min" onchange="window.applyPartenaireFilters()" style="padding:7px 10px; background:#1e293b; border:1px solid rgba(255,255,255,0.15); border-radius:8px; color:#e2e8f0; font-family:inherit; font-size:0.82rem; cursor:pointer;"></select>
+                            <span style="color:#475569; font-size:0.75rem;">à</span>
+                            <select id="filter-niveau-max" onchange="window.applyPartenaireFilters()" style="padding:7px 10px; background:#1e293b; border:1px solid rgba(255,255,255,0.15); border-radius:8px; color:#e2e8f0; font-family:inherit; font-size:0.82rem; cursor:pointer;"></select>
+                        </div>
+                    </div>
+
                     <div style="display:flex; flex-wrap:wrap; gap:14px; align-items:flex-end;">
                         <!-- Disponibilités -->
                         <div>
@@ -802,6 +809,14 @@
                         <!-- Compteur -->
                         <div id="partenaire-count" style="align-self:flex-end; color:#475569; font-size:0.78rem; margin-left:auto;"></div>
                     </div>
+                </div>
+
+                <!-- Recherche par nom (usage minoritaire : on cherche surtout par niveau et créneaux) -->
+                <div style="position:relative; margin-bottom:18px;">
+                    <i class="fas fa-search" style="position:absolute; left:13px; top:50%; transform:translateY(-50%); color:#475569; font-size:0.78rem; pointer-events:none;"></i>
+                    <input type="text" id="partenaire-search" placeholder="Vous cherchez quelqu'un en particulier ? Tapez son nom…" oninput="window.applyPartenaireFilters()"
+                        style="width:100%; padding:9px 14px 9px 34px; background:rgba(10,22,40,0.5); border:1px solid rgba(255,255,255,0.08); border-radius:10px; color:#e2e8f0; font-family:inherit; font-size:0.82rem; box-sizing:border-box; outline:none; transition:border-color 0.2s;"
+                        onfocus="this.style.borderColor='rgba(255,215,0,0.4)'" onblur="this.style.borderColor='rgba(255,255,255,0.08)'">
                 </div>
 
                 <!-- Grille résultats -->

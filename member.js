@@ -786,6 +786,53 @@ window.switchMemberTab = function(tab) {
 // --- Annuaire partenaires : chargement et affichage ---
 var _partenaireAllData = [];
 var _partenaireFilters = { matin: false, midi: false, soir: false };
+var _myDispo = null;          // mes créneaux, pour le badge « Dispo comme vous »
+var _MON_NIVEAU_ECART = 3;    // nombre d'échelons FFT de part et d'autre pour « Mon niveau »
+
+/** Index du classement dans la grille FFT (-1 si inconnu ou NC) */
+function _idxClassement(c) {
+    var i = _CLASSEMENTS_FFT.indexOf(String(c || '').trim());
+    return (i === -1 || _CLASSEMENTS_FFT[i] === 'NC') ? -1 : i;
+}
+
+/** Remplit les deux listes déroulantes de niveau (une seule fois) */
+function _initNiveauSelects() {
+    ['filter-niveau-min', 'filter-niveau-max'].forEach(function(id, k) {
+        var sel = document.getElementById(id);
+        if (!sel || sel.options.length) return;
+        sel.innerHTML = '<option value="">' + (k === 0 ? 'meilleur' : 'moins bon') + '</option>'
+            + _CLASSEMENTS_FFT.map(function(c) { return '<option value="' + c + '">' + c + '</option>'; }).join('');
+    });
+}
+
+/** Bouton « Mon niveau » : cale les bornes autour de mon classement */
+window.toggleMonNiveau = function() {
+    var btn = document.getElementById('filter-mon-niveau');
+    var selMin = document.getElementById('filter-niveau-min');
+    var selMax = document.getElementById('filter-niveau-max');
+    if (!btn || !selMin || !selMax) return;
+
+    var actif = btn.classList.contains('active');
+    if (actif) {
+        btn.classList.remove('active');
+        selMin.value = ''; selMax.value = '';
+        applyAndRenderPartenaires();
+        return;
+    }
+
+    var monIdx = _idxClassement(_cardMemberData && _cardMemberData.classement);
+    if (monIdx === -1) {
+        window.showNotification && window.showNotification(
+            'Renseignez d\'abord votre classement dans Mon Profil pour utiliser ce filtre.', 'warning');
+        return;
+    }
+    var min = Math.max(0, monIdx - _MON_NIVEAU_ECART);
+    var max = Math.min(_CLASSEMENTS_FFT.length - 2, monIdx + _MON_NIVEAU_ECART); // -2 : on exclut « NC »
+    selMin.value = _CLASSEMENTS_FFT[min];
+    selMax.value = _CLASSEMENTS_FFT[max];
+    btn.classList.add('active');
+    applyAndRenderPartenaires();
+};
 
 function loadAnnuairePartenaires() {
     var grid = document.getElementById('partenaire-results');
@@ -795,8 +842,12 @@ function loadAnnuairePartenaires() {
     var myUid = _cardMemberData ? _cardMemberData._uid : null;
     if (!myUid) { grid.innerHTML = ''; return; }
 
-    window.db_ref.ref('members/' + myUid + '/partenaire/public_profile').once('value', function(optinSnap) {
-        if (!optinSnap.val()) {
+    _initNiveauSelects();
+
+    window.db_ref.ref('members/' + myUid + '/partenaire').once('value', function(monProfilSnap) {
+        var monProfil = monProfilSnap.val() || {};
+        _myDispo = monProfil.dispo || null; // sert au badge « créneaux en commun »
+        if (!monProfil.public_profile) {
             grid.innerHTML = '<div class="member-empty-state" style="padding:32px 16px; text-align:center;">'
                 + '<i class="fas fa-lock" style="font-size:2rem; color:#64748b; margin-bottom:12px; display:block;"></i>'
                 + '<p style="color:#e2e8f0; font-weight:600; margin-bottom:8px;">Accès restreint</p>'
@@ -854,11 +905,24 @@ function applyAndRenderPartenaires() {
 
     var styleFilter = (document.getElementById('filter-style') || {}).value || '';
     var searchRaw   = ((document.getElementById('partenaire-search') || {}).value || '').trim().toLowerCase();
+    var niveauMin   = (document.getElementById('filter-niveau-min') || {}).value || '';
+    var niveauMax   = (document.getElementById('filter-niveau-max') || {}).value || '';
+    var idxMin = niveauMin ? _CLASSEMENTS_FFT.indexOf(niveauMin) : -1;
+    var idxMax = niveauMax ? _CLASSEMENTS_FFT.indexOf(niveauMax) : -1;
+
     var filtered = _partenaireAllData.filter(function(p) {
         if (styleFilter && p.style_jeu !== styleFilter) return false;
         if (searchRaw) {
             var fullName = ((p.prenom || '') + ' ' + (p.nom || '')).toLowerCase();
             if (fullName.indexOf(searchRaw) === -1) return false;
+        }
+        // Plage de classement (les joueurs sans classement connu restent visibles)
+        if (idxMin !== -1 || idxMax !== -1) {
+            var idxP = _idxClassement(p.classement);
+            if (idxP !== -1) {
+                if (idxMin !== -1 && idxP < idxMin) return false;
+                if (idxMax !== -1 && idxP > idxMax) return false;
+            }
         }
         var creneaux = ['matin', 'midi', 'soir'];
         for (var i = 0; i < creneaux.length; i++) {
@@ -873,10 +937,25 @@ function applyAndRenderPartenaires() {
         return true;
     });
 
-    if (countEl) countEl.textContent = filtered.length + ' membre' + (filtered.length !== 1 ? 's' : '');
+    // Tri : les joueurs de niveau proche du mien d'abord, puis par nom
+    var monIdx = _idxClassement(_cardMemberData && _cardMemberData.classement);
+    filtered.sort(function(a, b) {
+        if (monIdx !== -1) {
+            var ia = _idxClassement(a.classement), ib = _idxClassement(b.classement);
+            var da = ia === -1 ? 999 : Math.abs(ia - monIdx);
+            var db = ib === -1 ? 999 : Math.abs(ib - monIdx);
+            if (da !== db) return da - db;
+        }
+        return ((a.prenom || '') + (a.nom || '')).localeCompare((b.prenom || '') + (b.nom || ''), 'fr');
+    });
+
+    if (countEl) {
+        countEl.textContent = filtered.length + (filtered.length !== 1 ? ' joueurs' : ' joueur')
+            + (monIdx !== -1 && filtered.length > 1 ? ' · les plus proches de votre niveau en premier' : '');
+    }
 
     if (filtered.length === 0) {
-        grid.innerHTML = '<div class="member-empty-state"><i class="fas fa-search"></i><p>Aucun membre ne correspond à ces filtres.</p></div>';
+        grid.innerHTML = '<div class="member-empty-state"><i class="fas fa-search"></i><p>Aucun joueur ne correspond à ces critères.<br><small style="color:#475569;">Essayez d\'élargir la plage de niveau ou les créneaux.</small></p></div>';
         return;
     }
     grid.innerHTML = filtered.map(renderPartenaireCard).join('');
@@ -888,7 +967,7 @@ function renderPartenaireCard(p) {
         ? `<img src="${escMember(p.photoURL)}" alt="${escMember(p.prenom)}">`
         : initiales;
 
-    var styleLabels = { loisir: 'Loisir', competitif: 'Compétitif', double: 'Double', mixte: 'Mixte', padel: 'Padel' };
+    var styleLabels = { loisir: 'Loisir', competitif: 'Compétitif', double: 'Double', mixte: 'Mixte' };
     var styleHtml = p.style_jeu
         ? `<span style="font-size:0.75rem; color:#94a3b8; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); border-radius:6px; padding:2px 8px;">${escMember(styleLabels[p.style_jeu] || p.style_jeu)}</span>`
         : '';
@@ -933,6 +1012,28 @@ function renderPartenaireCard(p) {
     if (p.classement) badges += `<span style="background:rgba(255,215,0,0.1);border:1px solid rgba(255,215,0,0.3);color:rgba(255,215,0,0.85);padding:2px 8px;border-radius:6px;font-size:0.72rem;">${escMember(p.classement)}</span>`;
     if (p.categorie)  badges += `<span style="background:rgba(0,210,255,0.07);border:1px solid rgba(0,210,255,0.2);color:rgba(0,210,255,0.75);padding:2px 8px;border-radius:6px;font-size:0.72rem;">${escMember(p.categorie)}</span>`;
 
+    // Repères de correspondance : niveau proche du mien, créneaux communs
+    var matchBadges = '';
+    var monIdx = _idxClassement(_cardMemberData && _cardMemberData.classement);
+    var sonIdx = _idxClassement(p.classement);
+    if (monIdx !== -1 && sonIdx !== -1 && Math.abs(sonIdx - monIdx) <= _MON_NIVEAU_ECART) {
+        matchBadges += `<span style="background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.4);color:#4ade80;padding:2px 8px;border-radius:6px;font-size:0.7rem;white-space:nowrap;"><i class="fas fa-bullseye" style="font-size:0.6rem;"></i> Niveau proche</span>`;
+    }
+    if (_myDispo && p.dispo) {
+        var communs = 0;
+        Object.keys(_myDispo).forEach(function(j) {
+            ['matin','midi','soir'].forEach(function(c) {
+                if (_myDispo[j] && _myDispo[j][c] && p.dispo[j] && p.dispo[j][c]) communs++;
+            });
+        });
+        if (communs > 0) {
+            matchBadges += `<span style="background:rgba(0,210,255,0.12);border:1px solid rgba(0,210,255,0.4);color:#38bdf8;padding:2px 8px;border-radius:6px;font-size:0.7rem;white-space:nowrap;"><i class="fas fa-clock" style="font-size:0.6rem;"></i> ${communs} créneau${communs > 1 ? 'x' : ''} en commun</span>`;
+        }
+    }
+    var matchHtml = matchBadges
+        ? `<div style="display:flex; flex-wrap:wrap; gap:5px; margin-top:8px;">${matchBadges}</div>`
+        : '';
+
     return `<div class="partenaire-card">
         <div style="display:flex; align-items:center; gap:12px;">
             <div class="partenaire-avatar-circle">${avatarHtml}</div>
@@ -942,6 +1043,7 @@ function renderPartenaireCard(p) {
             </div>
             ${styleHtml}
         </div>
+        ${matchHtml}
         ${dispoHtml}
         ${msgHtml}
         ${contactHtml}
@@ -956,6 +1058,16 @@ window.togglePartenaireFilter = function(key) {
 };
 
 window.applyPartenaireFilters = function() {
+    // Si les bornes sont modifiées à la main, le bouton « Mon niveau » ne reflète plus la sélection
+    var btn = document.getElementById('filter-mon-niveau');
+    if (btn && btn.classList.contains('active')) {
+        var monIdx = _idxClassement(_cardMemberData && _cardMemberData.classement);
+        var attenduMin = monIdx === -1 ? '' : _CLASSEMENTS_FFT[Math.max(0, monIdx - _MON_NIVEAU_ECART)];
+        var attenduMax = monIdx === -1 ? '' : _CLASSEMENTS_FFT[Math.min(_CLASSEMENTS_FFT.length - 2, monIdx + _MON_NIVEAU_ECART)];
+        var vMin = (document.getElementById('filter-niveau-min') || {}).value || '';
+        var vMax = (document.getElementById('filter-niveau-max') || {}).value || '';
+        if (vMin !== attenduMin || vMax !== attenduMax) btn.classList.remove('active');
+    }
     applyAndRenderPartenaires();
 };
 
@@ -969,6 +1081,11 @@ window.resetPartenaireFilters = function() {
     if (styleEl) styleEl.value = '';
     var searchEl = document.getElementById('partenaire-search');
     if (searchEl) searchEl.value = '';
+    ['filter-niveau-min', 'filter-niveau-max'].forEach(function(id) {
+        var el = document.getElementById(id); if (el) el.value = '';
+    });
+    var monNivBtn = document.getElementById('filter-mon-niveau');
+    if (monNivBtn) monNivBtn.classList.remove('active');
     applyAndRenderPartenaires();
 };
 
