@@ -6,6 +6,15 @@
     <meta name="robots" content="noindex, nofollow">
     <title>Administration — USM Tennis Montargis</title>
     <link rel="icon" href="/favicon.png">
+
+    <!-- PWA — application installable dédiée au panneau admin / coach -->
+    <link rel="manifest" href="/manifest-admin.json" crossorigin="use-credentials">
+    <meta name="theme-color" content="#0d1b2e">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-admin.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Admin USM">
+
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous">
     <link rel="stylesheet" href="style.css">
@@ -101,6 +110,17 @@
     <script defer src="notifications.min.js"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
     <script defer src="admin.min.js?v=29"></script>
+    <script>
+        // PWA — enregistre le service worker même si l'utilisateur arrive
+        // directement sur le panneau admin (installation depuis cette page).
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js', { scope: '/' })
+                    .then(reg => reg.update())
+                    .catch(err => console.log('SW Registration Error:', err));
+            });
+        }
+    </script>
 </head>
 <body>
 
