@@ -975,22 +975,42 @@ function renderPartenaireCard(p) {
     var joursShort = { lundi:'Lun', mardi:'Mar', mercredi:'Mer', jeudi:'Jeu', vendredi:'Ven', samedi:'Sam', dimanche:'Dim' };
     var joursOrder = ['lundi','mardi','mercredi','jeudi','vendredi','samedi','dimanche'];
     var creneauxLabel = { matin:'Matin', midi:'Midi', soir:'Soir' };
-    var dispoLines = [];
+    var dispoHtml = '';
     if (p.dispo && typeof p.dispo === 'object') {
-        // Nouveau format : dispo.lundi.matin etc.
+        // Nouveau format : dispo.lundi.matin etc. — les jours où l'on est libres tous les deux ressortent en bleu
+        var lignes = [];
+        var aDesCommuns = false;
         ['matin','midi','soir'].forEach(function(c) {
             var jList = joursOrder.filter(function(j) { return p.dispo[j] && p.dispo[j][c]; });
-            if (jList.length) dispoLines.push(creneauxLabel[c] + ': ' + jList.map(function(j){ return joursShort[j]; }).join(' · '));
+            if (!jList.length) return;
+            var chips = jList.map(function(j) {
+                var commun = !!(_myDispo && _myDispo[j] && _myDispo[j][c]);
+                if (commun) aDesCommuns = true;
+                var style = commun
+                    ? 'background:rgba(0,210,255,0.18); border:1px solid rgba(0,210,255,0.55); color:#38bdf8; font-weight:700;'
+                    : 'background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.1); color:#94a3b8;';
+                return '<span style="' + style + ' border-radius:5px; padding:1px 7px; font-size:0.68rem; white-space:nowrap;"'
+                    + (commun ? ' title="Vous êtes disponible aussi"' : '') + '>' + joursShort[j] + '</span>';
+            }).join('');
+            lignes.push('<div style="display:flex; align-items:center; gap:5px; flex-wrap:wrap;">'
+                + '<span style="color:#64748b; font-size:0.68rem; min-width:36px; flex-shrink:0;">' + creneauxLabel[c] + '</span>'
+                + chips + '</div>');
         });
+        if (lignes.length) {
+            dispoHtml = '<div style="display:grid; gap:5px; margin-top:8px;">' + lignes.join('')
+                + (aDesCommuns ? '<div style="color:#38bdf8; font-size:0.65rem; margin-top:2px;"><i class="fas fa-circle" style="font-size:0.4rem; vertical-align:middle; margin-right:4px;"></i>En bleu : vous êtes disponible aussi</div>' : '')
+                + '</div>';
+        }
     } else {
         // Ancien format plat (rétrocompatibilité)
-        if (p.dispo_matin)   dispoLines.push('Matin: disponible');
-        if (p.dispo_soir)    dispoLines.push('Soir: disponible');
-        if (p.dispo_weekend) dispoLines.push('Week-end: disponible');
+        var anciens = [];
+        if (p.dispo_matin)   anciens.push('Matin: disponible');
+        if (p.dispo_soir)    anciens.push('Soir: disponible');
+        if (p.dispo_weekend) anciens.push('Week-end: disponible');
+        if (anciens.length) {
+            dispoHtml = `<div style="display:flex; flex-wrap:wrap; gap:5px; margin-top:8px;">${anciens.map(function(d){ return `<span class="partenaire-dispo-tag"><i class="fas fa-clock" style="font-size:0.6rem;"></i> ${escMember(d)}</span>`; }).join('')}</div>`;
+        }
     }
-    var dispoHtml = dispoLines.length
-        ? `<div style="display:flex; flex-wrap:wrap; gap:5px; margin-top:8px;">${dispoLines.map(function(d){ return `<span class="partenaire-dispo-tag"><i class="fas fa-clock" style="font-size:0.6rem;"></i> ${escMember(d)}</span>`; }).join('')}</div>`
-        : '';
 
     var msgHtml = p.message
         ? `<div style="color:#94a3b8; font-size:0.8rem; font-style:italic; border-top:1px solid rgba(255,255,255,0.06); padding-top:8px;">"${escMember(p.message)}"</div>`
