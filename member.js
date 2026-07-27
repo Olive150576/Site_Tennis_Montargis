@@ -196,6 +196,8 @@ window.saveProfilCoordonnees = function() {
 
         window.toggleProfilEdit(false);
         setStatus('Coordonnées mises à jour ✓', true);
+        // Le bandeau « profil incomplet » disparaît dès que les manques sont comblés
+        if (typeof renderProfilAlerte === 'function') renderProfilAlerte(_cardMemberData);
     }).catch(function(err) {
         window.showErrorMessage && window.showErrorMessage(err, 'profil');
         setStatus('Erreur lors de l\'enregistrement.', false);
@@ -356,6 +358,151 @@ window.initMemberDashboard = function(memberData) {
     checkClubMessagesBadge();
     var _uid = memberData._uid;
     if (_uid) checkEquipesBadge(_uid);
+
+    // --- Onglet Profil : alerte, statistiques et progression ---
+    renderProfilAlerte(memberData);
+    if (_uid) {
+        loadProfilStats(_uid);
+        loadProfilProgression(_uid);
+    }
+};
+
+// ============================================================
+// ONGLET PROFIL — alerte, statistiques de saison, progression
+// ============================================================
+
+/** Bandeau d'alerte si des coordonnées essentielles manquent (email = convocations) */
+function renderProfilAlerte(memberData) {
+    var el = document.getElementById('profil-alerte');
+    if (!el) return;
+    var manquants = [];
+    if (!memberData.email)     manquants.push('email');
+    if (!memberData.telephone) manquants.push('téléphone');
+    if (!manquants.length) { el.style.display = 'none'; el.innerHTML = ''; return; }
+
+    var consequence = !memberData.email
+        ? 'Sans adresse email, vous ne recevrez <strong>ni vos convocations ni les informations du club</strong>.'
+        : 'Sans téléphone, vos coéquipiers ne pourront pas vous joindre rapidement avant un match.';
+
+    el.style.display = 'block';
+    el.innerHTML = '<div style="background:rgba(245,158,11,0.1); border:1px solid rgba(245,158,11,0.4); border-radius:12px; padding:14px 16px; display:flex; gap:12px; align-items:flex-start; flex-wrap:wrap;">'
+        + '<i class="fas fa-triangle-exclamation" style="color:#f59e0b; font-size:1.1rem; flex-shrink:0; margin-top:2px;"></i>'
+        + '<div style="flex:1; min-width:200px;">'
+        + '<div style="color:#f59e0b; font-weight:700; font-size:0.88rem; margin-bottom:3px;">Complétez votre profil</div>'
+        + '<div style="color:#cbd5e1; font-size:0.8rem; line-height:1.5;">Il manque votre <strong>' + manquants.join('</strong> et votre <strong>') + '</strong>. ' + consequence + '</div>'
+        + '</div>'
+        + '<button onclick="window.toggleProfilEdit(true)" style="background:#f59e0b; color:#0b1220; border:none; border-radius:8px; padding:9px 16px; font-weight:700; font-size:0.82rem; cursor:pointer; font-family:inherit; white-space:nowrap;">'
+        + '<i class="fas fa-pen"></i> Compléter</button>'
+        + '</div>';
+}
+
+/** Statistiques de la saison : matchs joués, convocations reçues, passages au club */
+function loadProfilStats(uid) {
+    var setStat = function(id, val) { var e = document.getElementById(id); if (e) e.textContent = val; };
+
+    // Convocations et matchs joués (une convocation validée où le membre figure)
+    window.db_ref.ref('equipes').once('value', function(snap) {
+        var convocations = 0, joues = 0;
+        var todayISO = new Date().toISOString().substring(0, 10);
+        snap.forEach(function(eqChild) {
+            var eq = eqChild.val(); if (!eq || !eq.convocations) return;
+            Object.entries(eq.convocations).forEach(function(entry) {
+                var rid = entry[0], conv = entry[1];
+                if (!conv || !conv.validee) return;
+                if (Object.values(conv.positions || {}).indexOf(uid) === -1) return;
+                convocations++;
+                var r = (eq.rencontres && eq.rencontres[rid]) || {};
+                var rep = conv.reponses && conv.reponses[uid];
+                // « Joué » = rencontre passée sans désistement de sa part
+                if (r.date && r.date < todayISO && !(rep && rep.statut === 'decline')) joues++;
+            });
+        });
+        setStat('stat-matchs', joues);
+        setStat('stat-convocations', convocations);
+    }, function() { setStat('stat-matchs', '—'); setStat('stat-convocations', '—'); });
+
+    // Passages au club (scans du QR à l'accueil)
+    window.db_ref.ref('scans/' + uid).once('value', function(snap) {
+        setStat('stat-passages', snap.exists() ? Object.keys(snap.val()).length : 0);
+    }, function() { setStat('stat-passages', '—'); });
+}
+
+/** Frise de progression du classement (alimentée quand le membre modifie son classement) */
+function loadProfilProgression(uid) {
+    var wrap = document.getElementById('profil-progression-wrap');
+    var el   = document.getElementById('profil-progression');
+    if (!wrap || !el) return;
+
+    window.db_ref.ref('members/' + uid + '/classementHistory').once('value', function(snap) {
+        if (!snap.exists()) return; // rien à montrer : la section reste masquée
+        var entries = [];
+        snap.forEach(function(child) {
+            var h = child.val();
+            if (h && h.to) entries.push(h);
+        });
+        if (!entries.length) return;
+        entries.sort(function(a, b) { return (a.at || 0) - (b.at || 0); });
+
+        // Première valeur connue + chaque étape
+        var etapes = [{ classement: entries[0].from || '?', at: null }];
+        entries.forEach(function(h) { etapes.push({ classement: h.to, at: h.at }); });
+
+        // Progression = a-t-on gagné des places dans la grille FFT ?
+        var idxDebut = _CLASSEMENTS_FFT.indexOf(etapes[0].classement);
+        var idxFin   = _CLASSEMENTS_FFT.indexOf(etapes[etapes.length - 1].classement);
+        var progresse = (idxDebut !== -1 && idxFin !== -1 && idxFin < idxDebut);
+
+        var html = '<div style="background:rgba(10,22,40,0.7); border:1px solid rgba(255,215,0,0.2); border-radius:14px; padding:16px 18px;">'
+            + '<div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">';
+        etapes.forEach(function(e, i) {
+            if (i > 0) html += '<i class="fas fa-arrow-right" style="color:#475569; font-size:0.7rem;"></i>';
+            var dernier = i === etapes.length - 1;
+            html += '<div style="text-align:center;">'
+                + '<div style="background:' + (dernier ? 'rgba(255,215,0,0.15)' : 'rgba(255,255,255,0.05)') + '; border:1px solid ' + (dernier ? 'rgba(255,215,0,0.5)' : 'rgba(255,255,255,0.12)') + '; color:' + (dernier ? '#ffd700' : '#94a3b8') + '; border-radius:8px; padding:6px 12px; font-weight:700; font-size:0.9rem; font-family:\'Orbitron\',sans-serif;">'
+                + escMember(e.classement) + '</div>'
+                + '<div style="color:#475569; font-size:0.65rem; margin-top:4px;">'
+                + (e.at ? new Date(e.at).toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' }) : 'départ') + '</div>'
+                + '</div>';
+        });
+        html += '</div>';
+        if (progresse) {
+            html += '<div style="margin-top:12px; padding-top:12px; border-top:1px solid rgba(255,255,255,0.07); color:#22c55e; font-size:0.8rem;">'
+                + '<i class="fas fa-arrow-trend-up" style="margin-right:6px;"></i>Belle progression depuis vos débuts — continuez !</div>';
+        }
+        html += '</div>';
+
+        el.innerHTML = html;
+        wrap.style.display = 'block';
+    }, function() { /* lecture refusée : on laisse la section masquée */ });
+}
+
+// --- Installation de l'application (PWA) ---
+var _deferredInstallPrompt = null;
+
+window.addEventListener('beforeinstallprompt', function(e) {
+    e.preventDefault();
+    _deferredInstallPrompt = e;
+    var btn = document.getElementById('pwa-install-btn');
+    if (btn) btn.style.display = '';
+});
+
+window.addEventListener('appinstalled', function() {
+    _deferredInstallPrompt = null;
+    var btn = document.getElementById('pwa-install-btn');
+    if (btn) btn.style.display = 'none';
+    window.showNotification && window.showNotification('Application installée — retrouvez-la sur votre écran d\'accueil !', 'success');
+});
+
+window.installMemberApp = function() {
+    if (!_deferredInstallPrompt) {
+        window.showNotification && window.showNotification(
+            'Sur iPhone : bouton Partager puis « Sur l\'écran d\'accueil ». Sur Android : menu ⋮ puis « Installer l\'application ».',
+            'info'
+        );
+        return;
+    }
+    _deferredInstallPrompt.prompt();
+    _deferredInstallPrompt.userChoice.finally(function() { _deferredInstallPrompt = null; });
 };
 
 // --- Chargement des sponsors depuis /sponsors/ ---
