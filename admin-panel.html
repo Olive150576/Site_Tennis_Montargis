@@ -109,7 +109,7 @@
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script defer src="notifications.min.js"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-    <script defer src="admin.min.js?v=33"></script>
+    <script defer src="admin.min.js?v=34"></script>
     <script>
         // PWA — enregistre le service worker même si l'utilisateur arrive
         // directement sur le panneau admin (installation depuis cette page).
@@ -470,13 +470,15 @@
                     <div style="border-top:1px solid rgba(245,158,11,0.2); padding-top:10px;">
                         <label style="display:flex; align-items:center; gap:8px; cursor:pointer; color:#e2e8f0; font-size:13px; margin-bottom:8px;">
                             <input type="checkbox" id="cal-notif-test" onchange="window.calToggleTest()" style="width:16px; height:16px; accent-color:#22c55e; cursor:pointer;">
-                            <span><i class="fas fa-vial" style="color:#22c55e; margin-right:4px;"></i><strong>Test : n'envoyer qu'à une seule adresse</strong></span>
+                            <span><i class="fas fa-vial" style="color:#22c55e; margin-right:4px;"></i><strong>Mode test</strong> — n'envoyer qu'à une seule adresse</span>
                         </label>
                         <div id="cal-notif-test-wrap" style="display:none;">
                             <input type="email" id="cal-notif-test-email" placeholder="votre@email.fr"
                                 style="width:100%; max-width:340px; padding:8px 10px; background:#0f172a; border:1px solid #22c55e44; color:white; border-radius:6px; font-size:12px; box-sizing:border-box;">
-                            <p style="color:#64748b; font-size:11px; margin:6px 0 0;">
-                                Rien ne part vers les autres membres. L'adresse doit être la vôtre ou celle d'un membre du club.
+                            <p style="color:#94a3b8; font-size:11px; margin:6px 0 0;">
+                                <i class="fas fa-circle-info" style="color:#22c55e; margin-right:4px;"></i>
+                                Le mode test <strong>restreint le destinataire</strong> : cochez aussi <strong>Email</strong> (ou Notification) ci-dessus pour choisir ce qui est envoyé.
+                                L'adresse doit être la vôtre ou celle d'un membre du club.
                             </p>
                         </div>
                     </div>

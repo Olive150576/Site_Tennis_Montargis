@@ -817,6 +817,13 @@ window.calToggleTest = function() {
         var user = firebase.auth().currentUser;
         champ.value = (user && user.email) || '';
     }
+    // Le test restreint le destinataire mais n'envoie rien par lui-même :
+    // si aucun canal n'est coché, on active l'email (cas d'usage courant)
+    if (actif) {
+        var push  = document.getElementById('cal-notif-push');
+        var email = document.getElementById('cal-notif-email');
+        if (push && email && !push.checked && !email.checked) email.checked = true;
+    }
 };
 
 // Mémorise la saisie en cours avant tout re-rendu de la liste
@@ -923,11 +930,17 @@ window.saveCalendrierEntry = function() {
         }
     }
 
-    // Le mode test exige une adresse
-    if ((document.getElementById('cal-notif-test') || {}).checked
-        && !((document.getElementById('cal-notif-test-email') || {}).value || '').trim()) {
-        window.showNotification && window.showNotification('Indiquez l\'adresse email de test, ou décochez le mode test.', 'error');
-        return;
+    // Le mode test exige une adresse et au moins un canal (il ne fait que restreindre le destinataire)
+    if ((document.getElementById('cal-notif-test') || {}).checked) {
+        if (!((document.getElementById('cal-notif-test-email') || {}).value || '').trim()) {
+            window.showNotification && window.showNotification('Indiquez l\'adresse email de test, ou décochez le mode test.', 'error');
+            return;
+        }
+        if (!(document.getElementById('cal-notif-push') || {}).checked
+            && !(document.getElementById('cal-notif-email') || {}).checked) {
+            window.showNotification && window.showNotification('Cochez aussi « Email » (ou « Notification ») : le mode test choisit le destinataire, pas ce qui est envoyé.', 'error');
+            return;
+        }
     }
 
     var saveBtn = document.getElementById('cal-save-label');
