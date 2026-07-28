@@ -59,3 +59,8 @@ tmpclaude-*
 *.tgz
 .yarn-integrity
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# Variantes accidentelles de fichiers .env (.env1, .env.old, env.txt...)
+*.env*
+!.env.example
+!functions/.env.example
