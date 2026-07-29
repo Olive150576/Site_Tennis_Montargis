@@ -133,7 +133,7 @@ function autoSaveForm() {
         email: document.getElementById('input-email')?.value || '',
         url: document.getElementById('input-url')?.value || '',
         featured: document.getElementById('input-featured')?.checked || false,
-        section: document.getElementById('form-title')?.innerText.split(': ')[1]?.toLowerCase() || '',
+        section: document.getElementById('form-title')?.dataset.section || '',
         timestamp: Date.now()
     };
 
@@ -234,7 +234,11 @@ if (form) {
             const index = parseInt(document.getElementById('edit-index').value);
             const title = document.getElementById('input-title').value;
             const desc = document.getElementById('input-desc').value;
-            const currentSection = document.getElementById('form-title').innerText.split(': ')[1].toLowerCase();
+            // La rubrique est mémorisée sur le titre (data-section) : ne jamais la déduire du
+            // libellé affiché, qui est traduit et ne correspond pas aux clés de la base.
+            const titleEl = document.getElementById('form-title');
+            const currentSection = (titleEl && titleEl.dataset.section)
+                || titleEl.innerText.split(': ')[1].toLowerCase();
 
             if (currentSection === 'info') {
                 const info = {
@@ -502,7 +506,10 @@ window.switchAdmin = (section) => {
     if (_specialSections.indexOf(section) !== -1) return;
 
     const _sectionTitles = { info: 'COORDONNÉES DU CLUB', news: 'ACTUALITÉS', event: 'ÉVÉNEMENTS (site public)', inst: 'INSTALLATIONS', coach: 'COACHS', rates: 'TARIFS', sponsors: 'PARTENAIRES' };
-    if (titleEl) titleEl.innerText = `Gérer : ${_sectionTitles[section] || section.toUpperCase()}`;
+    if (titleEl) {
+        titleEl.innerText = `Gérer : ${_sectionTitles[section] || section.toUpperCase()}`;
+        titleEl.dataset.section = section; // clé réelle utilisée à l'enregistrement
+    }
 
     // Note d'aide contextuelle sous le titre (évite les confusions, ex: coordonnées ≠ messages aux membres)
     var noteEl = document.getElementById('form-section-note');
@@ -1100,7 +1107,9 @@ window.editItem = async (section, index) => {
     window.tempImages = (item.images && section !== 'info' && section !== 'rates') ? [...item.images] : [];
     if (window.renderExistingImages) window.renderExistingImages();
 
-    window.scrollTo(0, document.getElementById('admin-zone').offsetTop);
+    // #admin-zone n'existe pas sur toutes les vues : on retombe sur le formulaire lui-même
+    var cible = document.getElementById('admin-zone') || document.getElementById('universal-form-container');
+    if (cible) window.scrollTo(0, cible.offsetTop);
 };
 
 window.deleteItem = async (section, index) => {
