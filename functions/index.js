@@ -512,22 +512,35 @@ exports.notifyCalendarEvent = functions.https.onCall(async (data, context) => {
     const evt = evtSnap.val();
     if (!evt) throw new functions.https.HttpsError('not-found', 'Événement introuvable.');
 
-    // Mode test : un seul destinataire, soit l'adresse de connexion, soit celle d'un membre existant
+    // Mode test : destinataires choisis (séparés par virgule ou point-virgule),
+    // limités à l'adresse de connexion ou à celles de membres du club
     const estTest = !!testEmail;
+    let adressesTest = [];
     if (estTest) {
-        const emailDemande = String(testEmail).trim().toLowerCase();
-        const emailAuth = (context.auth.token && context.auth.token.email || '').toLowerCase();
-        let autorise = emailDemande === emailAuth;
-        if (!autorise) {
-            const tousMembres = await admin.database().ref('members').once('value');
-            tousMembres.forEach(child => {
-                const m = child.val();
-                if (m && m.email && String(m.email).toLowerCase() === emailDemande) autorise = true;
-            });
+        adressesTest = String(testEmail).split(/[,;]/).map(a => a.trim()).filter(Boolean);
+        if (!adressesTest.length) {
+            throw new functions.https.HttpsError('invalid-argument', 'Aucune adresse de test valide.');
         }
-        if (!autorise) {
+        if (adressesTest.length > 10) {
+            throw new functions.https.HttpsError('invalid-argument', 'Maximum 10 adresses en mode test.');
+        }
+
+        const emailAuth = (context.auth.token && context.auth.token.email || '').toLowerCase();
+        const emailsMembres = new Set();
+        const tousMembres = await admin.database().ref('members').once('value');
+        tousMembres.forEach(child => {
+            const m = child.val();
+            if (m && m.email) emailsMembres.add(String(m.email).toLowerCase());
+        });
+
+        const refusees = adressesTest.filter(a => {
+            const bas = a.toLowerCase();
+            return bas !== emailAuth && !emailsMembres.has(bas);
+        });
+        if (refusees.length) {
             throw new functions.https.HttpsError('permission-denied',
-                'L\'adresse de test doit être votre adresse de connexion ou celle d\'un membre du club.');
+                'Adresse(s) non autorisée(s) : ' + refusees.join(', ')
+                + '. Le test n\'accepte que votre adresse de connexion ou celles de membres du club.');
         }
     }
 
@@ -550,11 +563,13 @@ exports.notifyCalendarEvent = functions.https.onCall(async (data, context) => {
         if (m && m.actif) membres.push({ uid: child.key, email: m.email, prenom: m.prenom || '' });
     });
     if (estTest) {
-        const cible = String(testEmail).trim().toLowerCase();
-        const membreCible = membres.filter(m => (m.email || '').toLowerCase() === cible);
-        membres = membreCible.length
-            ? membreCible
-            : [{ uid: context.auth.uid, email: testEmail, prenom: '' }];
+        // Une entrée par adresse de test : on réutilise la fiche membre quand elle existe
+        // (pour le prénom et les notifications push), sinon on cible l'appelant
+        membres = adressesTest.map(adresse => {
+            const bas = adresse.toLowerCase();
+            const membre = membres.filter(m => (m.email || '').toLowerCase() === bas)[0];
+            return membre || { uid: context.auth.uid, email: adresse, prenom: '' };
+        });
     }
 
     let pushEnvoyees = 0;
