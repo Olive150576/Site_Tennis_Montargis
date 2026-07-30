@@ -19,6 +19,20 @@ firebase.auth().onAuthStateChanged(function (user) {
             if (memberSnap.exists() && memberSnap.val().actif) {
                 document.getElementById('auth-loading').style.display = 'none';
                 document.getElementById('member-page').style.display  = 'block';
+
+                // Compteur de visites — une seule fois par session de navigation, et
+                // uniquement pour son propre espace (pas lors d'une prévisualisation staff)
+                if (targetUid === user.uid) {
+                    var cleSession = 'usm_visite_comptee';
+                    if (!sessionStorage.getItem(cleSession)) {
+                        sessionStorage.setItem(cleSession, '1');
+                        window.db_ref.ref('members/' + user.uid + '/derniereVisite').set(Date.now());
+                        window.db_ref.ref('members/' + user.uid + '/visites')
+                            .set(firebase.database.ServerValue.increment(1))
+                            .catch(function () { /* compteur non bloquant */ });
+                    }
+                }
+
                 if (window.initMemberDashboard) {
                     var memberData      = memberSnap.val();
                     memberData._uid     = targetUid;

@@ -97,6 +97,14 @@
             ".validate": "newData.hasChildren(['from', 'to', 'at']) && newData.child('at').isNumber()"
           }
         },
+        "derniereVisite": {
+          ".write": "auth != null && auth.uid === $uid",
+          ".validate": "newData.isNumber()"
+        },
+        "visites": {
+          ".write": "auth != null && auth.uid === $uid",
+          ".validate": "newData.isNumber() && (!data.exists() || newData.val() > data.val())"
+        },
         "photoURL": {
           ".read": true,
           ".write": "auth != null && auth.uid === $uid",

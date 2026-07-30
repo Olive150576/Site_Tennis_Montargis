@@ -2002,12 +2002,43 @@ window.filterMembers = () => {
 function renderMembersList(members) {
     const list = document.getElementById('members-admin-list');
     if (!list) return;
+    _renderAdoptionBanner();
     if (!members.length) {
         list.innerHTML = '<p style="color:#64748b; text-align:center;">Aucun membre trouvé.</p>';
         return;
     }
     const statutOptions = ['Membre','Membre Bureau','Coach','Secrétaire Général','Trésorier Général Adjoint','Trésorier Général','Vice-Président','Président'];
     list.innerHTML = members.map(m => memberRowHTML(m, statutOptions)).join('');
+}
+
+/** Synthèse d'adoption de l'espace membre, en tête de la liste */
+function _renderAdoptionBanner() {
+    var wrap = document.getElementById('members-adoption-banner');
+    if (!wrap) return;
+    var tous = (window._allMembersAdmin || []).filter(function(m) { return m.actif; });
+    if (!tous.length) { wrap.innerHTML = ''; return; }
+
+    var connectes = tous.filter(function(m) { return m.derniereVisite; });
+    var recents   = tous.filter(function(m) {
+        return m.derniereVisite && (Date.now() - m.derniereVisite) < 30 * 86400000;
+    });
+    var pct = Math.round((connectes.length / tous.length) * 100);
+    var totalVisites = tous.reduce(function(s, m) { return s + (m.visites || 0); }, 0);
+
+    wrap.innerHTML = '<div style="background:rgba(34,197,94,0.06); border:1px solid rgba(34,197,94,0.25); border-radius:12px; padding:14px 18px; margin-bottom:18px;">'
+        + '<div style="color:#22c55e; font-size:12px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; margin-bottom:10px;">'
+        + '<i class="fas fa-chart-line" style="margin-right:6px;"></i>Adoption de l\'espace membre</div>'
+        + '<div style="display:flex; gap:24px; flex-wrap:wrap; align-items:flex-end;">'
+        + '<div><span style="color:#e2e8f0; font-size:1.5rem; font-weight:800; font-family:\'Orbitron\',sans-serif;">' + connectes.length + '</span>'
+        + '<span style="color:#64748b; font-size:13px;"> / ' + tous.length + ' membres actifs se sont connectés (' + pct + ' %)</span></div>'
+        + '<div><span style="color:#22c55e; font-size:1.1rem; font-weight:700;">' + recents.length + '</span>'
+        + '<span style="color:#64748b; font-size:12px;"> actifs sur 30 jours</span></div>'
+        + '<div><span style="color:#00d2ff; font-size:1.1rem; font-weight:700;">' + totalVisites + '</span>'
+        + '<span style="color:#64748b; font-size:12px;"> visites au total</span></div>'
+        + '</div>'
+        + '<div style="background:#0f172a; border-radius:20px; height:7px; margin-top:12px; overflow:hidden;">'
+        + '<div style="width:' + pct + '%; height:100%; background:linear-gradient(90deg,#22c55e,#00d2ff);"></div>'
+        + '</div></div>';
 }
 
 window.loadMembersAdmin = () => {
@@ -2051,6 +2082,21 @@ window.toggleCoachAccess = async function(uid, grant, nom) {
     });
 };
 
+/** Ligne « dernière visite · N visites » d'une fiche membre */
+function _visiteInfoHTML(m) {
+    if (!m.derniereVisite) {
+        return '<span style="color:#64748b;"><i class="fas fa-circle" style="font-size:6px; vertical-align:middle; margin-right:5px;"></i>Jamais connecté</span>';
+    }
+    var jours = Math.floor((Date.now() - m.derniereVisite) / 86400000);
+    var quand = jours === 0 ? "aujourd'hui" : jours === 1 ? 'hier' : 'il y a ' + jours + ' jours';
+    // Vert si actif dans le mois, orange au-delà de 30 jours
+    var couleur = jours <= 30 ? '#22c55e' : '#f59e0b';
+    var nb = m.visites || 1;
+    return '<span style="color:' + couleur + ';"><i class="fas fa-right-to-bracket" style="margin-right:5px;"></i>'
+        + 'Vu ' + quand + '</span>'
+        + '<span style="color:#475569;"> · ' + nb + ' visite' + (nb > 1 ? 's' : '') + '</span>';
+}
+
 // Catégories proposées à la création d'un membre — mêmes valeurs à l'édition
 var _CATEGORIES_MEMBRE = [
     { val: 'Adulte H',  lib: 'Adulte Homme' },
@@ -2074,6 +2120,7 @@ function memberRowHTML(m, statutOptions) {
                         ${m.statut && m.statut !== 'Membre' ? `<span style="margin-left:8px; background:rgba(255,215,0,0.1); border:1px solid rgba(255,215,0,0.35); color:#ffd700; padding:2px 8px; border-radius:10px; font-size:10px; font-weight:normal;">${escapeHtml(m.statut)}</span>` : ''}
                     </div>
                     <div style="color:#64748b; font-size:12px;">${escapeHtml(m.email || '')} · Licence: ${escapeHtml(m.licence || '—')} · ${escapeHtml(m.classement || '—')}</div>
+                    <div style="font-size:11px; margin-top:3px;">${_visiteInfoHTML(m)}</div>
                 </div>
                 <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
                     <span style="padding:3px 10px; border-radius:50px; font-size:11px; font-weight:bold; background:${m.actif ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)'}; color:${m.actif ? '#22c55e' : '#ef4444'}; border:1px solid ${m.actif ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'};">

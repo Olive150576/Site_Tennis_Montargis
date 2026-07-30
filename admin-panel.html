@@ -109,7 +109,7 @@
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script defer src="notifications.min.js"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-    <script defer src="admin.min.js?v=36"></script>
+    <script defer src="admin.min.js?v=37"></script>
     <script>
         // PWA — enregistre le service worker même si l'utilisateur arrive
         // directement sur le panneau admin (installation depuis cette page).
@@ -635,6 +635,9 @@
                 </select>
                 <span id="members-count" style="color:#64748b; font-size:12px; white-space:nowrap; min-width:80px; text-align:right;"></span>
             </div>
+
+            <!-- Synthèse d'adoption (remplie par JS) -->
+            <div id="members-adoption-banner"></div>
 
             <div id="members-admin-list" style="display:grid; gap:10px;">
                 <p style="color:#64748b; text-align:center;">Chargement...</p>
