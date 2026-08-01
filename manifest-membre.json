@@ -4,7 +4,7 @@
   "description": "Carte de membre, équipes, championnats et vie du club USM Tennis Montargis",
   "id": "/espace-membre.html",
   "start_url": "/espace-membre.html",
-  "scope": "/",
+  "scope": "/espace-membre.html",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#020617",

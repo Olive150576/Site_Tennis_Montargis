@@ -4,7 +4,7 @@
   "description": "Panneau d'administration et de gestion des équipes USM Tennis Montargis",
   "id": "/admin-panel.html",
   "start_url": "/admin-panel.html",
-  "scope": "/",
+  "scope": "/admin-panel.html",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#020617",
