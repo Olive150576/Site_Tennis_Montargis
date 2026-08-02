@@ -1,4 +1,4 @@
-const CACHE_NAME = 'usm-tennis-v42';
+const CACHE_NAME = 'usm-tennis-v43';
 const ASSETS = [
     '/',
     '/index.html',
@@ -15,10 +15,9 @@ const ASSETS = [
     '/icon-membre-512.png',
     '/icon-admin-192.png',
     '/icon-admin-512.png',
-    '/logo_usm_new.png',
-    '/manifest.json',
-    '/manifest-membre.json',
-    '/manifest-admin.json'
+    '/logo_usm_new.png'
+    // Les manifest*.json ne sont volontairement PAS pré-cachés : voir le
+    // gestionnaire fetch plus bas, ils doivent toujours être revalidés en réseau.
 ];
 
 self.addEventListener('install', (e) => {
@@ -127,11 +126,15 @@ self.addEventListener('notificationclose', (event) => {
 self.addEventListener('fetch', (e) => {
     const url = new URL(e.request.url);
 
-    // Stratégie Network First pour HTML, JS, CSS (toujours récupérer la dernière version)
+    // Stratégie Network First pour HTML, JS, CSS et les manifestes PWA
+    // (les manifest*.json déterminent l'identité/portée des 3 apps installables :
+    // ils ne doivent JAMAIS être figés en cache, sous peine de bloquer les mises à jour)
     if (e.request.destination === 'document' ||
+        e.request.destination === 'manifest' ||
         url.pathname.endsWith('.html') ||
         url.pathname.endsWith('.js') ||
-        url.pathname.endsWith('.css')) {
+        url.pathname.endsWith('.css') ||
+        url.pathname.endsWith('.json')) {
         e.respondWith(
             fetch(e.request)
                 .then((response) => {
