@@ -4,7 +4,7 @@
   "description": "Club de tennis à Montargis - Réservations et actualités",
   "id": "/index.html",
   "start_url": "/index.html",
-  "scope": "/",
+  "scope": "/index.html",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#020617",
