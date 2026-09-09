@@ -2259,14 +2259,16 @@ window.imprimerPlanningFrigo = function() {
 
     var nomJoueur = (((_cardMemberData && _cardMemberData.prenom) || '') + ' ' + ((_cardMemberData && _cardMemberData.nom) || '')).trim();
 
-    var lignes = mesMatchs.map(function(e) {
+    var lignes = mesMatchs.map(function(e, idx) {
         var badge = e.domicile
             ? '<span class="frigo-badge frigo-badge-dom">🏠 Domicile</span>'
             : '<span class="frigo-badge frigo-badge-ext">🚌 Déplacement</span>';
-        return '<div class="frigo-ligne">'
+        var lieuTxt = e.lieu ? escMember(e.lieu) : (e.domicile ? '' : 'Lieu à confirmer');
+        return '<div class="frigo-ligne' + (idx === 0 ? ' frigo-next' : '') + '">'
+            + (idx === 0 ? '<div class="frigo-next-tag">🔜 Prochain match</div>' : '')
             + '<div class="frigo-date">' + escMember(_calFmtDateLongueFr(e.date)) + (e.heure ? ' — ' + escMember(e.heure) : '') + '</div>'
             + '<div class="frigo-adversaire">' + escMember(e.titre) + '</div>'
-            + '<div class="frigo-lieu">' + badge + (e.lieu ? ' <span class="frigo-adresse">' + escMember(e.lieu) + '</span>' : '') + '</div>'
+            + '<div class="frigo-lieu">' + badge + (lieuTxt ? ' <span class="frigo-adresse">' + lieuTxt + '</span>' : '') + '</div>'
             + '</div>';
     }).join('');
 
