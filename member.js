@@ -2259,16 +2259,21 @@ window.imprimerPlanningFrigo = function() {
 
     var nomJoueur = (((_cardMemberData && _cardMemberData.prenom) || '') + ' ' + ((_cardMemberData && _cardMemberData.nom) || '')).trim();
 
-    var lignes = mesMatchs.map(function(e, idx) {
+    var lignes = mesMatchs.map(function(e) {
         var badge = e.domicile
             ? '<span class="frigo-badge frigo-badge-dom">🏠 Domicile</span>'
             : '<span class="frigo-badge frigo-badge-ext">🚌 Déplacement</span>';
         var lieuTxt = e.lieu ? escMember(e.lieu) : (e.domicile ? '' : 'Lieu à confirmer');
-        return '<div class="frigo-ligne' + (idx === 0 ? ' frigo-next' : '') + '">'
-            + (idx === 0 ? '<div class="frigo-next-tag">🔜 Prochain match</div>' : '')
+        return '<div class="frigo-ligne">'
             + '<div class="frigo-date">' + escMember(_calFmtDateLongueFr(e.date)) + '</div>'
             + '<div class="frigo-adversaire">' + escMember(e.titre) + '</div>'
             + '<div class="frigo-lieu">' + badge + (lieuTxt ? ' <span class="frigo-adresse">' + lieuTxt + '</span>' : '') + '</div>'
+            + '<div class="frigo-cases">'
+            + '<span class="frigo-case"><span class="frigo-box"></span>Je participe</span>'
+            + '<span class="frigo-case"><span class="frigo-box"></span>Terminé</span>'
+            + '<span class="frigo-case"><span class="frigo-box"></span>Gagné</span>'
+            + '<span class="frigo-case"><span class="frigo-box"></span>Perdu</span>'
+            + '</div>'
             + '</div>';
     }).join('');
 
