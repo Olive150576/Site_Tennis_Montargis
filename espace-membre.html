@@ -270,6 +270,39 @@
             .member-header-actions .member-back-btn { flex: 1; justify-content: center; }
             .member-header-actions .member-logout-btn { flex-basis: 100%; justify-content: center; }
         }
+
+        /* ===== Post-it « planning frigo » : rendu uniquement à l'impression ===== */
+        #planning-frigo-print { display: none; }
+        .frigo-poster { font-family: 'Poppins', sans-serif; color: #111; }
+        .frigo-header { display: flex; align-items: center; gap: 16px; border-bottom: 3px solid #c9a227; padding-bottom: 14px; margin-bottom: 18px; }
+        .frigo-header img { height: 56px; width: 56px; object-fit: contain; }
+        .frigo-titre { font-size: 22px; font-weight: 700; margin: 0; }
+        .frigo-joueur { font-size: 14px; color: #444; margin-top: 2px; }
+        .frigo-liste { display: flex; flex-direction: column; gap: 12px; }
+        .frigo-ligne { border: 1px solid #ccc; border-left: 6px solid #c9a227; border-radius: 8px; padding: 10px 14px; page-break-inside: avoid; }
+        .frigo-date { font-size: 16px; font-weight: 700; text-transform: capitalize; }
+        .frigo-adversaire { font-size: 14px; margin-top: 2px; }
+        .frigo-lieu { font-size: 13px; margin-top: 4px; }
+        .frigo-badge { display: inline-block; padding: 2px 9px; border-radius: 12px; font-weight: 600; font-size: 12px; }
+        .frigo-badge-dom { background: #dcfce7; color: #166534; }
+        .frigo-badge-ext { background: #fef3c7; color: #92400e; }
+        .frigo-adresse { color: #555; }
+        .frigo-footer { margin-top: 20px; font-size: 11px; color: #777; text-align: center; }
+
+        @media print {
+            body.printing-frigo * { visibility: hidden; }
+            body.printing-frigo #planning-frigo-print,
+            body.printing-frigo #planning-frigo-print * { visibility: visible; }
+            body.printing-frigo #planning-frigo-print {
+                display: block !important;
+                position: fixed;
+                inset: 0;
+                width: 100%;
+                margin: 0;
+                padding: 24px;
+                background: #fff;
+            }
+        }
     </style>
 
     <!-- Firebase SDKs — defer : téléchargement parallèle, exécution après parsing HTML -->
@@ -283,7 +316,7 @@
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script defer src="notifications.min.js"></script>
-    <script defer src="member.min.js?v=24"></script>
+    <script defer src="member.min.js?v=25"></script>
     <script defer src="member-auth.min.js?v=3"></script>
     <script>
         // PWA — enregistre le service worker même si l'utilisateur arrive
@@ -864,6 +897,9 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Contenu généré uniquement pour l'impression du « planning frigo » (voir imprimerPlanningFrigo) -->
+            <div id="planning-frigo-print"></div>
 
 
             <!-- ===== ONGLET : MES ÉQUIPES ===== -->

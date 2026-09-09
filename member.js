@@ -2217,6 +2217,7 @@ var _CAL_TYPES_M = {
     autre:     { label: 'Autres',     icon: 'fa-calendar',   color: '#64748b' }
 };
 var _MOIS_FR = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+var _JOURS_FR = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
 var _calEntries = [];
 var _calFiltres = {};       // type -> actif
 var _calInscriptions = {};  // eventId -> { uid: { prenom, nom, at } }
@@ -2235,6 +2236,56 @@ function _calFmtDateM(iso) {
     var p = String(iso).split('-');
     return p.length === 3 ? p[2] + '/' + p[1] + '/' + p[0] : iso;
 }
+
+function _calFmtDateLongueFr(iso) {
+    if (!iso) return '';
+    var d = new Date(iso + 'T00:00:00');
+    if (isNaN(d.getTime())) return iso;
+    return _JOURS_FR[d.getDay()] + ' ' + d.getDate() + ' ' + _MOIS_FR[d.getMonth()].toLowerCase() + ' ' + d.getFullYear();
+}
+
+// --- Post-it « planning frigo » : liste imprimable des prochains matchs du joueur ---
+window.imprimerPlanningFrigo = function() {
+    var printEl = document.getElementById('planning-frigo-print');
+    if (!printEl) return;
+
+    var aujourdhui = new Date().toISOString().substring(0, 10);
+    var mesMatchs = _calEntries.filter(function(e) { return e.type === 'match' && e.isMyMatch && e.date >= aujourdhui; });
+
+    if (!mesMatchs.length) {
+        window.showNotification && window.showNotification('Aucun match à venir à imprimer.', 'info');
+        return;
+    }
+
+    var nomJoueur = (((_cardMemberData && _cardMemberData.prenom) || '') + ' ' + ((_cardMemberData && _cardMemberData.nom) || '')).trim();
+
+    var lignes = mesMatchs.map(function(e) {
+        var badge = e.domicile
+            ? '<span class="frigo-badge frigo-badge-dom">🏠 Domicile</span>'
+            : '<span class="frigo-badge frigo-badge-ext">🚌 Déplacement</span>';
+        return '<div class="frigo-ligne">'
+            + '<div class="frigo-date">' + escMember(_calFmtDateLongueFr(e.date)) + (e.heure ? ' — ' + escMember(e.heure) : '') + '</div>'
+            + '<div class="frigo-adversaire">' + escMember(e.titre) + '</div>'
+            + '<div class="frigo-lieu">' + badge + (e.lieu ? ' <span class="frigo-adresse">' + escMember(e.lieu) + '</span>' : '') + '</div>'
+            + '</div>';
+    }).join('');
+
+    printEl.innerHTML = '<div class="frigo-poster">'
+        + '<div class="frigo-header">'
+        + '<img src="/logo_usm_new.png" alt="USM">'
+        + '<div><div class="frigo-titre">Mes matchs à venir</div><div class="frigo-joueur">' + escMember(nomJoueur || 'Joueur') + '</div></div>'
+        + '</div>'
+        + '<div class="frigo-liste">' + lignes + '</div>'
+        + '<div class="frigo-footer">USM Tennis Montargis — imprimé le ' + escMember(_calFmtDateM(aujourdhui)) + '</div>'
+        + '</div>';
+
+    document.body.classList.add('printing-frigo');
+    window.print();
+};
+
+window.addEventListener('afterprint', function() {
+    document.body.classList.remove('printing-frigo');
+});
 
 function loadCalendrierMember() {
     var listEl = document.getElementById('calendrier-liste');
@@ -2306,6 +2357,9 @@ function loadCalendrierMember() {
                     + ' background:' + (_calFiltreMesMatchs ? '#c9a22722' : '#0f172a') + '; color:' + (_calFiltreMesMatchs ? '#c9a227' : '#475569')
                     + '; border:1px solid ' + (_calFiltreMesMatchs ? '#c9a22755' : '#33415555') + '; opacity:' + (_calFiltreMesMatchs ? '1' : '0.6') + ';">'
                     + '<i class="fas fa-star" style="margin-right:5px;"></i>Mes matchs</button>';
+                html += '<button onclick="window.imprimerPlanningFrigo()" title="Imprimer la liste de mes prochains matchs pour l\'afficher chez toi" '
+                    + 'style="border-radius:20px; padding:6px 14px; font-size:12px; cursor:pointer; font-family:inherit; transition:all .15s; background:#22c55e22; color:#22c55e; border:1px solid #22c55e55;">'
+                    + '<i class="fas fa-print" style="margin-right:5px;"></i>Imprimer pour le frigo</button>';
             }
             filtresEl.innerHTML = html;
             if (typesPresents.length > 1) typesPresents.forEach(_updateCalFiltreBtn);
