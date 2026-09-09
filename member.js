@@ -2266,7 +2266,7 @@ window.imprimerPlanningFrigo = function() {
         var lieuTxt = e.lieu ? escMember(e.lieu) : (e.domicile ? '' : 'Lieu à confirmer');
         return '<div class="frigo-ligne' + (idx === 0 ? ' frigo-next' : '') + '">'
             + (idx === 0 ? '<div class="frigo-next-tag">🔜 Prochain match</div>' : '')
-            + '<div class="frigo-date">' + escMember(_calFmtDateLongueFr(e.date)) + (e.heure ? ' — ' + escMember(e.heure) : '') + '</div>'
+            + '<div class="frigo-date">' + escMember(_calFmtDateLongueFr(e.date)) + '</div>'
             + '<div class="frigo-adversaire">' + escMember(e.titre) + '</div>'
             + '<div class="frigo-lieu">' + badge + (lieuTxt ? ' <span class="frigo-adresse">' + lieuTxt + '</span>' : '') + '</div>'
             + '</div>';
