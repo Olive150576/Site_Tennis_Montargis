@@ -468,7 +468,7 @@ exports.onDesistementAlerte = functions.database.ref('/equipes/{equipeId}/convoc
         }
 
         const nomJoueur = ((joueur.prenom || '') + ' ' + (joueur.nom || '')).trim() || 'Un joueur';
-        const dateMatch = (rencontre.date || '?') + (rencontre.heure ? ' à ' + rencontre.heure : '')
+        const dateMatch = (rencontre.date || '?') + (rencontre.heure ? ' à ' + rencontre.heure : ' (horaire à préciser)')
             + (rencontre.adversaire ? ' vs ' + rencontre.adversaire : '');
         const body = `<strong style="color:#ef4444;">${escapeHtml(nomJoueur)}</strong> vient de se désister d'une convocation.<br><br>`
             + `<strong>Équipe :</strong> ${escapeHtml(eq.nom || '—')}${champNom ? ' (' + escapeHtml(champNom) + ')' : ''}<br>`

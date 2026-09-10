@@ -2501,7 +2501,7 @@ function _renderProchainement() {
                 + '<div style="flex:1; min-width:0;">'
                 + '<div style="color:#e2e8f0; font-size:0.88rem; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">' + escMember(e.titre)
                 + (e.isMyMatch ? ' <i class="fas fa-star" style="color:#c9a227; font-size:0.7rem;" title="Votre match"></i>' : '') + '</div>'
-                + '<div style="color:#94a3b8; font-size:0.75rem; margin-top:2px;">' + _calFmtDateM(e.date) + (e.heure ? ' à ' + escMember(e.heure) : '') + '</div>'
+                + '<div style="color:#94a3b8; font-size:0.75rem; margin-top:2px;">' + _calFmtDateM(e.date) + (e.heure ? ' à ' + escMember(e.heure) : (e.type === 'match' ? ' <span style="color:#f59e0b;">(horaire à préciser)</span>' : '')) + '</div>'
                 + '</div>'
                 + (imm ? '<span style="background:' + t.color + '22; color:' + t.color + '; border:1px solid ' + t.color + '55; border-radius:20px; padding:3px 10px; font-size:0.7rem; font-weight:700; white-space:nowrap; flex-shrink:0;">' + imm + '</span>' : '')
                 + '</div>';
@@ -2524,6 +2524,7 @@ function _renderCalEntryCard(e) {
     var sousTitre = [];
     if (e.dateFin) sousTitre.push('jusqu\'au ' + _calFmtDateM(e.dateFin));
     if (e.heure) sousTitre.push(e.heure);
+    else if (e.type === 'match') sousTitre.push('horaire à préciser');
     if (e.lieu) sousTitre.push(e.lieu);
     if (e.prix) sousTitre.push(e.prix);
     return '<div style="display:flex; gap:14px; background:#1e293b; border:1px solid ' + t.color + '33; border-left:3px solid ' + t.color + '; border-radius:12px; padding:14px 16px;">'
@@ -3047,7 +3048,7 @@ function loadEquipesMember(uid) {
                                     rencontres.forEach(function(rEntry) {
                                         var rid = rEntry[0]; var r = rEntry[1];
                                         var domLabel = r.domicile ? '🏠' : '🚌';
-                                        var dateInfo = '<div style="font-size:12px; color:#e2e8f0;">' + domLabel + ' ' + escMember(r.date) + ' ' + escMember(r.heure || '') + (r.adversaire ? ' — vs ' + escMember(r.adversaire) : '') + '</div>';
+                                        var dateInfo = '<div style="font-size:12px; color:#e2e8f0;">' + domLabel + ' ' + escMember(r.date) + ' ' + (r.heure ? escMember(r.heure) : '<span style="color:#f59e0b;">(horaire à préciser)</span>') + (r.adversaire ? ' — vs ' + escMember(r.adversaire) : '') + '</div>';
                                         var dispoKey = equipeId + '_' + rid;
                                         var isDispo = dispos[dispoKey];
                                         var convRid = eq.convocations && eq.convocations[rid];
@@ -3222,7 +3223,7 @@ function loadEquipesMember(uid) {
                             + '</div>'
                             + '<div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:6px;">'
                             + domBadge
-                            + (cv.r.date ? '<span style="font-size:13px; color:#94a3b8;"><i class="fas fa-calendar-alt" style="margin-right:4px; color:#64748b;"></i>' + escMember(cv.r.date) + (cv.r.heure ? ' à ' + escMember(cv.r.heure) : '') + '</span>' : '')
+                            + (cv.r.date ? '<span style="font-size:13px; color:#94a3b8;"><i class="fas fa-calendar-alt" style="margin-right:4px; color:#64748b;"></i>' + escMember(cv.r.date) + (cv.r.heure ? ' à ' + escMember(cv.r.heure) : ' <span style="color:#f59e0b;">(horaire à préciser)</span>') + '</span>' : '')
                             + '</div>'
                             + (cv.r.adversaire ? '<div style="font-size:13px; color:#e2e8f0; margin-bottom:4px;"><span style="color:#64748b; margin-right:4px;">vs</span><strong>' + escMember(cv.r.adversaire) + '</strong></div>' : '')
                             + (cv.r.lieu ? '<div style="font-size:12px; color:#64748b;"><i class="fas fa-map-marker-alt" style="margin-right:4px;"></i>' + escMember(cv.r.lieu) + '</div>' : '')

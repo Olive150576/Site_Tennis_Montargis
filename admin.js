@@ -778,7 +778,7 @@ function _loadCalendrierMatchsAdmin() {
         el.innerHTML = matchs.map(function(m) {
             return '<div style="display:flex; align-items:center; gap:10px; padding:9px 12px; background:rgba(225,29,72,0.05); border:1px solid rgba(225,29,72,0.2); border-radius:8px; font-size:12px;">'
                 + '<span>' + (m.domicile ? '🏠' : '🚌') + '</span>'
-                + '<strong style="color:#e2e8f0;">' + _calFmtDate(m.date) + (m.heure ? ' ' + escHtml(m.heure) : '') + '</strong>'
+                + '<strong style="color:#e2e8f0;">' + _calFmtDate(m.date) + (m.heure ? ' ' + escHtml(m.heure) : ' <span style="color:#f59e0b; font-weight:normal;">(horaire à préciser)</span>') + '</strong>'
                 + '<span style="color:#94a3b8;">' + escHtml(m.eqNom) + (m.adversaire ? ' vs ' + escHtml(m.adversaire) : '') + '</span>'
                 + (m.champNom ? '<span style="color:#475569; margin-left:auto;">' + escHtml(m.champNom) + '</span>' : '')
                 + '</div>';
@@ -2706,7 +2706,7 @@ function _loadRencontresModal(equipeId) {
             var domicile = r.domicile ? '<span style="color:#22c55e; font-size:11px;"><i class="fas fa-home" style="margin-right:3px;"></i>Domicile</span>' : '<span style="color:#f59e0b; font-size:11px;"><i class="fas fa-bus" style="margin-right:3px;"></i>Extérieur</span>';
             html += '<div style="background:#1e293b; border:1px solid #334155; border-radius:8px; padding:12px; display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">'
                 + '<div style="flex:1; min-width:160px;">'
-                + '<div style="font-weight:bold; color:#e2e8f0; font-size:14px;">' + escHtml(r.date) + ' à ' + escHtml(r.heure) + ' ' + domicile + '</div>'
+                + '<div style="font-weight:bold; color:#e2e8f0; font-size:14px;">' + escHtml(r.date) + ' ' + (r.heure ? 'à ' + escHtml(r.heure) : '<span style="color:#f59e0b; font-weight:normal;">(horaire à préciser)</span>') + ' ' + domicile + '</div>'
                 + '<div style="font-size:12px; color:#94a3b8; margin-top:3px;">' + (r.adversaire ? 'vs ' + escHtml(r.adversaire) : '<em>Adversaire TBD</em>') + (r.lieu ? ' — ' + escHtml(r.lieu) : '') + (r.note ? ' · ' + escHtml(r.note) : '') + '</div>'
                 + '</div>'
                 + '<div style="display:flex; gap:8px;">'
@@ -2728,7 +2728,7 @@ window.saveRencontre = function() {
     var note = (document.getElementById('rencontre-note').value || '').trim();
     var editId = document.getElementById('rencontre-edit-id').value;
     if (!equipeId) { window.showNotification && window.showNotification('Erreur : identifiant d\'équipe manquant.', 'error'); return; }
-    if (!date || !heure) { window.showNotification && window.showNotification('Date et heure obligatoires.', 'error'); return; }
+    if (!date) { window.showNotification && window.showNotification('Date obligatoire.', 'error'); return; }
     var data = { date: date, heure: heure, adversaire: adversaire, lieu: lieu, domicile: domicile, note: note };
     var ref = editId ? db_ref.ref('equipes/' + equipeId + '/rencontres/' + editId) : db_ref.ref('equipes/' + equipeId + '/rencontres').push();
     ref.set(data).then(function() {
@@ -2989,7 +2989,7 @@ window.loadEquipesAdmin = function(champId) {
                                     + '<div style="display:flex; align-items:flex-start; justify-content:space-between; gap:6px;">'
                                     + '<div style="font-size:11px; color:#94a3b8; flex:1; min-width:0;">'
                                     + (r.domicile ? '🏠 ' : '🚌 ') + '<strong style="color:#e2e8f0;">' + escHtml(r.date) + '</strong>'
-                                    + (r.heure ? ' ' + escHtml(r.heure) : '')
+                                    + (r.heure ? ' ' + escHtml(r.heure) : ' <span style="color:#f59e0b;">(horaire à préciser)</span>')
                                     + (r.adversaire ? '<br><span style="color:#64748b; font-size:10px;">vs ' + escHtml(r.adversaire) + '</span>' : '')
                                     + joueursConvoquesHtml
                                     + dispoSummaryHtml
@@ -3339,7 +3339,7 @@ window.openConvocationModal = function(equipeId, rencontreId, champId) {
         if (!joueurUids.length) {
             document.getElementById('modal-convocation-positions').innerHTML =
                 '<p style="color:#f59e0b; font-size:13px; text-align:center;"><i class="fas fa-exclamation-triangle" style="margin-right:6px;"></i>Aucun joueur assigné à cette équipe. Utilisez "Gérer les joueurs" d\'abord.</p>';
-            var infoR0 = (r.date || '?') + (r.heure ? ' à ' + r.heure : '') + (r.adversaire ? ' — vs ' + r.adversaire : '') + (r.domicile ? ' 🏠' : ' 🚌');
+            var infoR0 = (r.date || '?') + (r.heure ? ' à ' + r.heure : ' (horaire à préciser)') + (r.adversaire ? ' — vs ' + r.adversaire : '') + (r.domicile ? ' 🏠' : ' 🚌');
             document.getElementById('modal-convocation-info').textContent = (eq.nom || '') + ' | ' + infoR0;
             return;
         }
@@ -3376,7 +3376,7 @@ window.openConvocationModal = function(equipeId, rencontreId, champId) {
                     return '<option value="' + uid + '"' + disabled + '>' + escHtml(label.trim() || uid) + '</option>';
                 }).join('');
 
-            var infoR = (r.date || '?') + (r.heure ? ' à ' + r.heure : '') + (r.adversaire ? ' — vs ' + r.adversaire : '') + (r.domicile ? ' 🏠' : ' 🚌');
+            var infoR = (r.date || '?') + (r.heure ? ' à ' + r.heure : ' (horaire à préciser)') + (r.adversaire ? ' — vs ' + r.adversaire : '') + (r.domicile ? ' 🏠' : ' 🚌');
             document.getElementById('modal-convocation-info').textContent = (eq.nom || '') + ' | ' + infoR;
 
             var positionsHtml = '';
@@ -3461,7 +3461,7 @@ window.validerEtNotifierConvocation = function() {
     ]).then(function(snaps) {
         var eq = snaps[0].val() || {};
         var r  = snaps[1].val() || {};
-        var dateLabel = (r.date || '?') + (r.heure ? ' à ' + r.heure : '') + (r.adversaire ? ' vs ' + r.adversaire : '');
+        var dateLabel = (r.date || '?') + (r.heure ? ' à ' + r.heure : ' (horaire à préciser)') + (r.adversaire ? ' vs ' + r.adversaire : '');
 
         // 1. Sauvegarder la convocation (les réponses éventuelles repartent de zéro)
         return db_ref.ref('equipes/' + equipeId + '/convocations/' + rencontreId).set({
@@ -3614,7 +3614,7 @@ window.importRencontresExcel = function() {
 
                 rencontres.push({
                     date: dateISO,
-                    heure: '14:00',
+                    heure: '',
                     domicile: domMontargis,
                     adversaire: domMontargis ? extCol : domCol,
                     lieu: domMontargis ? 'Courts USM Montargis' : '',
