@@ -61,6 +61,8 @@ firebase.auth().onAuthStateChanged(function (user) {
     window.db_ref.ref('admins/' + user.uid).once('value', function (snap) {
         if (snap.exists()) {
             window.isCurrentUserAdmin = true;
+            // Appareil admin : le site public ne chargera plus Clarity ici (statistiques visiteurs non faussées)
+            try { localStorage.setItem('usm_no_clarity', '1'); } catch (e) { }
             _revealAdminPage(user);
 
             // Charger les stats dès que l'auth est confirmée

@@ -257,6 +257,38 @@ header {
     }
 }
 
+/* Écrans intermédiaires : le menu à 5 liens ne tient pas avec la météo, on la masque */
+@media (min-width: 901px) and (max-width: 1100px) {
+    .main-nav ul {
+        gap: 6px;
+    }
+
+    .weather-widget {
+        display: none !important;
+    }
+}
+
+@media (min-width: 901px) and (max-width: 1000px) {
+    .main-nav ul {
+        gap: 3px;
+    }
+
+    .nav-link {
+        font-size: 0.66rem !important;
+        padding: 6px !important;
+    }
+
+    .header-actions {
+        gap: 6px !important;
+    }
+
+    .btn-tenup,
+    .btn-membre {
+        padding: 8px 10px !important;
+        font-size: 0.7rem !important;
+    }
+}
+
 @media (max-width: 900px) {
     header {
         position: relative;
@@ -281,6 +313,27 @@ header {
 /* Mobile toggle hidden on desktop */
 .mobile-toggle {
     display: none;
+    color: var(--electric-cyan);
+    background: rgba(0, 210, 255, 0.12);
+    border: 1px solid rgba(0, 210, 255, 0.5);
+    border-radius: 10px;
+    padding: 8px 14px;
+    min-height: 44px;
+    cursor: pointer;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.8rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.mobile-toggle i {
+    font-size: 1.2rem;
+    vertical-align: middle;
+}
+
+.mobile-toggle span {
+    margin-left: 8px;
+    vertical-align: middle;
 }
 
 

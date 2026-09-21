@@ -6,7 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- DÉTECTION SECTION ACTIVE (nav links) ---
     const navLinks = document.querySelectorAll('.nav-link');
-    const navSectionIds = ['news-section', 'event-section', 'inst-section', 'contact-section'];
+    const navSectionIds = ['news-section', 'event-section', 'inst-section', 'rates-section', 'contact-section'];
     const navObserver = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
@@ -21,12 +21,39 @@ document.addEventListener('DOMContentLoaded', () => {
         if (el) navObserver.observe(el);
     });
 
+    // Téléphone et email du club : liens cliquables (appel direct sur mobile)
+    function setContactLink(id, value, scheme) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.textContent = '';
+        if (!value) return;
+        const target = scheme === 'tel:' ? value.replace(/[^\d+]/g, '') : value.trim();
+        if (!target) { el.textContent = value; return; }
+        const a = document.createElement('a');
+        a.href = scheme + target;
+        a.textContent = value;
+        a.style.cssText = 'color:inherit; text-decoration:underline; text-decoration-color:rgba(0,210,255,0.5); text-underline-offset:4px;';
+        el.appendChild(a);
+    }
+
     // --- CLARITY TRACKING HELPER ---
     function clarityEvent(name, data) {
         if (typeof window.clarity === 'function') {
             window.clarity('event', name);
             if (data) Object.entries(data).forEach(([k, v]) => window.clarity('set', k, v));
         }
+    }
+
+    // Les visites de l'admin ne doivent pas fausser les statistiques : on coupe Clarity et on
+    // mémorise l'appareil (les pages ne chargent plus Clarity quand ce drapeau est présent)
+    function stopTrackingForAdmin() {
+        try { localStorage.setItem('usm_no_clarity', '1'); } catch (e) { }
+        try {
+            if (typeof window.clarity === 'function') {
+                window.clarity('set', 'role', 'admin');
+                window.clarity('stop');
+            }
+        } catch (e) { }
     }
 
     window.isCurrentUserAdmin = false;
@@ -70,8 +97,8 @@ document.addEventListener('DOMContentLoaded', () => {
             db.info = snap.val();
             if (db.info) {
                 if (document.getElementById('display-address')) document.getElementById('display-address').innerText = db.info.address || "";
-                if (document.getElementById('display-phone')) document.getElementById('display-phone').innerText = db.info.phone || "";
-                if (document.getElementById('display-email')) document.getElementById('display-email').innerText = db.info.email || "";
+                setContactLink('display-phone', db.info.phone, 'tel:');
+                setContactLink('display-email', db.info.email, 'mailto:');
             }
         };
         infoRef.on('value', infoCallback);
@@ -845,6 +872,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- UTILS ---
     function toggleAdminUI(isAdmin) {
+        if (isAdmin) stopTrackingForAdmin();
         // Si admin vient de se connecter (flag sessionStorage) : rediriger vers la page admin
         if (isAdmin && sessionStorage.getItem('_adminLogin')) {
             sessionStorage.removeItem('_adminLogin');
@@ -1107,6 +1135,16 @@ document.addEventListener('DOMContentLoaded', () => {
         window.openModalWithHistory('gallery-modal');
         clarityEvent('modal_gallery_key', { gallery_section: section });
     };
+
+    // Actions clés suivies dans Clarity : appel, email, réservation Ten'Up
+    document.addEventListener('click', (e) => {
+        const a = e.target.closest('a');
+        if (!a) return;
+        const href = a.getAttribute('href') || '';
+        if (href.startsWith('tel:')) clarityEvent('appel_telephone');
+        else if (a.closest('#display-email')) clarityEvent('email_club');
+        else if (href.includes('tenup.fft.fr')) clarityEvent('reserver_tenup');
+    });
 
     // Listener délégué pour les boutons "Contacter pour cette offre"
     // Remplace les onclick inline pour éviter l'injection via les données Firebase
@@ -1374,6 +1412,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (mobileToggle) {
         mobileToggle.addEventListener('click', () => {
+            clarityEvent('menu_mobile_ouvert');
             mobileNavOverlay.classList.add('active');
         });
     }
@@ -1513,6 +1552,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Ouvrir le modal des archives
     window.openNewsArchives = () => {
+        clarityEvent('archives_actus');
         const modal = document.getElementById('news-archives-modal');
         if (modal) {
             modal.classList.remove('hidden');
