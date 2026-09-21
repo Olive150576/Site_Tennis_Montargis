@@ -649,6 +649,81 @@ function _newsAdminNormalize(data) {
         });
 }
 
+var _NEWS_PURGE_MONTHS = 13;
+
+// Date de l'actu : createdAt, sinon "JJ/MM/AAAA" ; null si inconnue (dans ce cas on ne purge jamais)
+function _newsItemTime(item) {
+    if (item.createdAt) return item.createdAt;
+    if (!item.date) return null;
+    var p = String(item.date).split('/');
+    var t = p.length === 3 ? new Date(p[2], p[1] - 1, p[0]).getTime() : new Date(item.date).getTime();
+    return isNaN(t) ? null : t;
+}
+
+function _newsPurgeCutoff() {
+    var d = new Date();
+    d.setMonth(d.getMonth() - _NEWS_PURGE_MONTHS);
+    return d.getTime();
+}
+
+function _newsIsOld(item, cutoff) {
+    var t = _newsItemTime(item);
+    return t !== null && t < cutoff;
+}
+
+function _newsOldEntries(rows) {
+    var cutoff = _newsPurgeCutoff();
+    return rows.filter(function (r) { return _newsIsOld(r.item, cutoff); });
+}
+
+// Suppression définitive des actus trop anciennes (avec leurs images), après confirmation.
+// Le tableau est relu puis réécrit compacté, comme le fait déjà la suppression d'une actu.
+window.purgeOldNews = async function () {
+    var cutoff = _newsPurgeCutoff();
+    var old = _newsOldEntries(_newsAdmin.items);
+    if (!old.length) return;
+
+    var sample = old.slice(0, 3).map(function (r) { return '« ' + (r.item.title || 'sans titre') + ' »'; }).join(', ');
+    var confirmed = await window.askConfirmation(
+        'Purger les anciennes actualités',
+        old.length + ' actualité' + (old.length > 1 ? 's' : '') + ' avant le ' +
+            new Date(cutoff).toLocaleDateString('fr-FR') + ' ' + (old.length > 1 ? 'seront supprimées' : 'sera supprimée') +
+            ' définitivement, images comprises (' + sample + (old.length > 3 ? '…' : '') + '). Cette action est irréversible.',
+        'danger'
+    );
+    if (!confirmed) return;
+
+    try {
+        var snap = await db_ref.ref('news').once('value');
+        var data = snap.val();
+        if (!data) return;
+        var entries = _newsAdminNormalize(data).reverse(); // ordre croissant d'index = ordre du tableau
+        var keep = [], images = [], removed = 0;
+        entries.forEach(function (r) {
+            if (_newsIsOld(r.item, cutoff)) {
+                removed++;
+                (r.item.images || []).forEach(function (u) { images.push(u); });
+            } else {
+                keep.push(r.item);
+            }
+        });
+        if (!removed) return;
+
+        await db_ref.ref('news').set(keep);
+
+        for (var i = 0; i < images.length; i++) {
+            try {
+                if (images[i].indexOf('firebasestorage.googleapis.com') !== -1) await storage.refFromURL(images[i]).delete();
+            } catch (e) { /* image déjà supprimée ou introuvable */ }
+        }
+
+        window.showSuccessMessage('Purge terminée', removed + ' actualité' + (removed > 1 ? 's' : '') + ' supprimée' + (removed > 1 ? 's' : '') + '.');
+        if (window.updateAdminStats) window.updateAdminStats();
+    } catch (error) {
+        window.showErrorMessage(error, 'delete');
+    }
+};
+
 function _newsAdminThumb(item) {
     var first = item.images && item.images[0];
     if (!first) return '<div style="width:56px;height:56px;background:#1e293b;border:1px solid #334155;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#475569;"><i class="fas fa-newspaper"></i></div>';
@@ -694,6 +769,13 @@ window.renderNewsAdminList = function (resetLimit, showMore) {
         var drafts = all.filter(function (r) { return r.item.draft; }).length;
         countEl.textContent = '— ' + all.length + ' au total' + (drafts ? ', dont ' + drafts + ' brouillon' + (drafts > 1 ? 's' : '') : '') +
             (filtering ? ' · ' + rows.length + ' affichée' + (rows.length > 1 ? 's' : '') : '');
+    }
+
+    var purgeBtn = document.getElementById('news-purge-btn');
+    if (purgeBtn) {
+        var oldCount = _newsOldEntries(all).length;
+        purgeBtn.classList.toggle('hidden', oldCount === 0);
+        purgeBtn.innerHTML = '<i class="fas fa-broom" style="margin-right:6px;"></i>Purger ' + oldCount + ' actu' + (oldCount > 1 ? 's' : '') + ' de plus de ' + _NEWS_PURGE_MONTHS + ' mois';
     }
 
     var more = document.getElementById('news-admin-more');
