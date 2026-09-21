@@ -52,28 +52,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 db[sec] = snap.val();
                 if (sec === 'news') {
                     window.allNews = snap.val() || {};
-                    cleanupOldNews();
-                    if (window.isCurrentUserAdmin) {
-                        renderGrid(`${sec}-grid`, getAllItemsWithKeys(db[sec]), sec);
-                    } else {
-                        renderGrid(`${sec}-grid`, getLatestItemsWithKeys(db[sec], 6), sec);
-                    }
+                    cleanupOldNews(window.allNews);
+                    renderSection(sec);
                     handleUrlParams();
-                } else if (sec === 'rates') {
-                    window.allRates = snap.val() || {};
-                    if (window.isCurrentUserAdmin) {
-                        renderGrid(`${sec}-grid`, getAllItemsWithKeys(db[sec]), sec);
-                    } else {
-                        renderGrid(`${sec}-grid`, getFirstItemsWithKeys(db[sec], 3), sec);
-                    }
-                } else if (sec === 'event') {
-                    if (window.isCurrentUserAdmin) {
-                        renderGrid(`${sec}-grid`, getAllItemsWithKeys(db[sec]), sec);
-                    } else {
-                        renderGrid(`${sec}-grid`, db[sec], sec);
-                    }
                 } else {
-                    renderGrid(`${sec}-grid`, db[sec], sec);
+                    if (sec === 'rates') window.allRates = snap.val() || {};
+                    renderSection(sec);
                 }
             };
             ref.on('value', callback);
@@ -348,17 +332,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Fonction pour récupérer les N derniers éléments (conserve les clés Firebase)
-    function getLatestItemsWithKeys(data, count) {
+    // excludeDrafts : à utiliser pour les visiteurs, sinon un brouillon parmi les N derniers réduit l'affichage
+    function getLatestItemsWithKeys(data, count, excludeDrafts) {
         if (!data) return null;
+        const keep = item => item && !(excludeDrafts && item.draft === true);
 
         if (Array.isArray(data)) {
             // Si c'est un array, prendre les derniers éléments avec leurs index comme clés
-            const items = data.map((item, index) => ({ _key: index, ...item }));
+            const items = data.map((item, index) => keep(item) ? { _key: index, ...item } : null);
             return items.filter(item => item !== null).slice(-count);
         } else {
             // Si c'est un objet, convertir en array avec les clés, trier par date et prendre les derniers
             const items = Object.entries(data)
-                .filter(([key, item]) => item !== null)
+                .filter(([key, item]) => keep(item))
                 .map(([key, item]) => ({ _key: key, ...item }))
                 .sort((a, b) => {
                     const dateA = a.createdAt || new Date(a.date || 0).getTime();
@@ -429,17 +415,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Fonction de nettoyage des actualités de plus de 13 mois
-    async function cleanupOldNews() {
+    async function cleanupOldNews(allNews) {
         if (!window.isCurrentUserAdmin) return; // Seul un admin peut déclencher le nettoyage
+        if (!allNews || !Object.keys(allNews).length) return;
 
         const thirteenMonthsAgo = Date.now() - (13 * 30 * 24 * 60 * 60 * 1000); // 13 mois en ms
         const newsRef = db_ref.ref('news');
 
         try {
-            const snapshot = await newsRef.once('value');
-            const allNews = snapshot.val();
-            if (!allNews) return;
-
             const keysToDelete = [];
             const imagesToDelete = [];
 
@@ -513,8 +496,24 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Rendu d'une section de la page d'accueil.
+    // Actualités : l'admin voit les mêmes 6 dernières que le visiteur (brouillons inclus) ;
+    // la liste complète se gère dans le panel admin (onglet Actualités).
+    function renderSection(sec) {
+        const grid = `${sec}-grid`;
+        if (sec === 'news') {
+            renderGrid(grid, getLatestItemsWithKeys(db[sec], 6, !window.isCurrentUserAdmin), sec);
+        } else if (sec === 'rates') {
+            renderGrid(grid, window.isCurrentUserAdmin ? getAllItemsWithKeys(db[sec]) : getFirstItemsWithKeys(db[sec], 3), sec);
+        } else if (sec === 'event' && window.isCurrentUserAdmin) {
+            renderGrid(grid, getAllItemsWithKeys(db[sec]), sec);
+        } else {
+            renderGrid(grid, db[sec], sec);
+        }
+    }
+
     function renderAll() {
-        ['news', 'inst', 'event', 'coach', 'rates', 'sponsors'].forEach(sec => renderGrid(`${sec}-grid`, db[sec], sec));
+        ['news', 'inst', 'event', 'coach', 'rates', 'sponsors'].forEach(renderSection);
     }
 
     // --- SÉCURITÉ : Échappement HTML pour prévenir XSS ---
@@ -864,6 +863,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 btn.onclick = () => window.location.href = '/admin-panel.html';
             });
             document.querySelectorAll('.admin-actions').forEach(el => el.classList.remove('hidden'));
+            document.getElementById('news-admin-link')?.classList.remove('hidden');
             // Stubs : boutons Modifier/Supprimer/Déplacer → redirection vers le panel admin
             window.editItem = (section, index) => {
                 window.location.href = `/admin-panel.html?section=${encodeURIComponent(section)}&edit=${index}`;
@@ -901,6 +901,7 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.onclick = () => document.getElementById('login-modal').classList.remove('hidden');
         });
         document.querySelectorAll('.admin-actions').forEach(el => el.classList.add('hidden'));
+        document.getElementById('news-admin-link')?.classList.add('hidden');
     }
 
     function toggleMemberUI(isMember, memberData) {

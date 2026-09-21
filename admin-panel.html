@@ -109,7 +109,7 @@
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script defer src="notifications.min.js"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-    <script defer src="admin.min.js?v=38"></script>
+    <script defer src="admin.min.js?v=39"></script>
     <script>
         // PWA — enregistre le service worker même si l'utilisateur arrive
         // directement sur le panneau admin (installation depuis cette page).
@@ -1055,6 +1055,39 @@
             </div>
             <div id="contacts-admin-list" style="display:grid; gap:10px;">
                 <p style="color:#64748b; text-align:center;">Chargement...</p>
+            </div>
+        </div>
+
+        <!-- LISTE DES ACTUALITÉS (onglet Actualités) -->
+        <div id="news-list-admin" class="hidden" style="background:rgba(2,6,23,0.8); padding:25px; border-radius:15px; border:1px solid rgba(0,210,255,0.4); margin-bottom:30px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:16px; border-bottom:1px solid #334155; padding-bottom:12px;">
+                <h3 style="color:#00d2ff; font-family:'Orbitron'; font-size:1rem; margin:0;">
+                    <i class="fas fa-list" style="margin-right:8px;"></i>Actualités publiées <span id="news-admin-count" style="color:#94a3b8; font-family:inherit; font-size:0.8rem; font-weight:normal;"></span>
+                </h3>
+                <button type="button" onclick="document.getElementById('universal-form-container').scrollIntoView({behavior:'smooth'})"
+                    style="background:linear-gradient(135deg,#00d2ff,#00a8cc); color:#020617; border:none; padding:9px 16px; border-radius:8px; font-weight:bold; cursor:pointer; font-size:13px;">
+                    <i class="fas fa-plus" style="margin-right:6px;"></i>Nouvelle actualité
+                </button>
+            </div>
+            <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px;">
+                <input type="search" id="news-admin-search" placeholder="Rechercher un titre..." oninput="window.renderNewsAdminList(true)"
+                    style="flex:1; min-width:180px; padding:10px 12px; background:#1e293b; border:1px solid #475569; color:white; border-radius:8px; font-size:14px; box-sizing:border-box;">
+                <select id="news-admin-filter" onchange="window.renderNewsAdminList(true)"
+                    style="padding:10px 12px; background:#1e293b; border:1px solid #475569; color:white; border-radius:8px; font-size:14px;">
+                    <option value="all">Toutes</option>
+                    <option value="published">Publiées</option>
+                    <option value="draft">Brouillons</option>
+                    <option value="featured">À la une</option>
+                </select>
+            </div>
+            <div id="news-admin-list-body">
+                <p style="color:#64748b; font-size:13px;">Chargement...</p>
+            </div>
+            <div style="text-align:center; margin-top:14px;">
+                <button type="button" id="news-admin-more" onclick="window.renderNewsAdminList(false, true)" class="hidden"
+                    style="background:transparent; border:1px solid #475569; color:#e2e8f0; padding:9px 22px; border-radius:20px; cursor:pointer; font-size:13px;">
+                    Voir plus
+                </button>
             </div>
         </div>
 

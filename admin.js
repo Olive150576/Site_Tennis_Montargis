@@ -452,6 +452,7 @@ window.switchAdmin = (section) => {
     const clubMessagesAdmin = document.getElementById('club-messages-admin');
     const equipesAdmin = document.getElementById('equipes-admin');
     const calendrierAdmin = document.getElementById('calendrier-admin');
+    const newsListAdmin = document.getElementById('news-list-admin');
 
     // Gérer l'affichage spécial pour les sections documents, contacts, membres et messages
     const hideSpecialSections = () => {
@@ -462,6 +463,7 @@ window.switchAdmin = (section) => {
         if (sponsorsListAdmin) sponsorsListAdmin.classList.add('hidden');
         if (equipesAdmin) equipesAdmin.classList.add('hidden');
         if (calendrierAdmin) calendrierAdmin.classList.add('hidden');
+        if (newsListAdmin) newsListAdmin.classList.add('hidden');
     };
 
     if (section === 'documents') {
@@ -491,6 +493,10 @@ window.switchAdmin = (section) => {
     } else {
         if (universalForm) universalForm.style.display = 'block';
         hideSpecialSections();
+        if (newsListAdmin && section === 'news') {
+            newsListAdmin.classList.remove('hidden');
+            window.loadNewsAdminList();
+        }
         if (sponsorsListAdmin) {
             if (section === 'sponsors') {
                 sponsorsListAdmin.classList.remove('hidden');
@@ -620,6 +626,123 @@ function loadSponsorsAdminList() {
     });
 }
 window.loadSponsorsAdminList = loadSponsorsAdminList;
+
+// =====================================================================
+// LISTE DES ACTUALITÉS (onglet Actualités) — recherche, filtre, pagination
+// Même ordre que le site public (dernier index du tableau en premier),
+// donc Monter/Descendre garde exactement le même sens.
+// =====================================================================
+var _NEWS_ADMIN_PAGE = 10;
+var _newsAdmin = { items: [], limit: _NEWS_ADMIN_PAGE, listening: false };
+
+function _newsAdminNormalize(data) {
+    if (!data) return [];
+    var entries = Array.isArray(data)
+        ? data.map(function (item, i) { return [i, item]; })
+        : Object.keys(data).map(function (k) { return [/^\d+$/.test(k) ? parseInt(k, 10) : k, data[k]]; });
+    return entries
+        .filter(function (e) { return e[1]; })
+        .map(function (e) { return { idx: e[0], item: e[1] }; })
+        .sort(function (a, b) {
+            if (typeof a.idx === 'number' && typeof b.idx === 'number') return b.idx - a.idx;
+            return (b.item.createdAt || 0) - (a.item.createdAt || 0);
+        });
+}
+
+function _newsAdminThumb(item) {
+    var first = item.images && item.images[0];
+    if (!first) return '<div style="width:56px;height:56px;background:#1e293b;border:1px solid #334155;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#475569;"><i class="fas fa-newspaper"></i></div>';
+    var src = first;
+    if (first.indexOf('youtube.com/embed/') !== -1) {
+        src = 'https://img.youtube.com/vi/' + first.split('/embed/')[1].split('?')[0] + '/mqdefault.jpg';
+    }
+    return '<img src="' + escapeHtml(src) + '" loading="lazy" alt="" style="width:56px;height:56px;object-fit:cover;border-radius:8px;border:1px solid #334155;flex-shrink:0;">';
+}
+
+function _newsAdminArrow(idx, dir, disabled) {
+    var icon = dir === 'up' ? 'fa-arrow-up' : 'fa-arrow-down';
+    var label = dir === 'up' ? 'Monter' : 'Descendre';
+    return '<button onclick="window.moveItem(\'news\', ' + idx + ', \'' + dir + '\')" title="' + label + '" ' + (disabled ? 'disabled' : '') +
+        ' style="background:' + (disabled ? 'rgba(100,116,139,0.3)' : 'rgba(34,197,94,0.15)') +
+        ';border:1px solid ' + (disabled ? '#475569' : 'rgba(34,197,94,0.5)') +
+        ';color:' + (disabled ? '#64748b' : '#22c55e') +
+        ';padding:7px 10px;border-radius:8px;font-size:12px;flex-shrink:0;cursor:' + (disabled ? 'not-allowed' : 'pointer') +
+        ';"><i class="fas ' + icon + '"></i></button>';
+}
+
+window.renderNewsAdminList = function (resetLimit, showMore) {
+    var body = document.getElementById('news-admin-list-body');
+    if (!body) return;
+    if (resetLimit) _newsAdmin.limit = _NEWS_ADMIN_PAGE;
+    if (showMore) _newsAdmin.limit += _NEWS_ADMIN_PAGE;
+
+    var all = _newsAdmin.items;
+    var q = (document.getElementById('news-admin-search')?.value || '').trim().toLowerCase();
+    var filter = document.getElementById('news-admin-filter')?.value || 'all';
+    var filtering = !!q || filter !== 'all';
+
+    var rows = all.filter(function (r) {
+        if (q && (r.item.title || '').toLowerCase().indexOf(q) === -1) return false;
+        if (filter === 'published') return !r.item.draft;
+        if (filter === 'draft') return !!r.item.draft;
+        if (filter === 'featured') return !!r.item.featured;
+        return true;
+    });
+
+    var countEl = document.getElementById('news-admin-count');
+    if (countEl) {
+        var drafts = all.filter(function (r) { return r.item.draft; }).length;
+        countEl.textContent = '— ' + all.length + ' au total' + (drafts ? ', dont ' + drafts + ' brouillon' + (drafts > 1 ? 's' : '') : '') +
+            (filtering ? ' · ' + rows.length + ' affichée' + (rows.length > 1 ? 's' : '') : '');
+    }
+
+    var more = document.getElementById('news-admin-more');
+    if (rows.length === 0) {
+        body.innerHTML = '<p style="color:#64748b; font-size:13px;">' + (all.length ? 'Aucune actualité ne correspond.' : 'Aucune actualité.') + '</p>';
+        if (more) more.classList.add('hidden');
+        return;
+    }
+
+    var firstIdx = all[0].idx, lastIdx = all[all.length - 1].idx;
+    var visible = rows.slice(0, _newsAdmin.limit);
+    var btn = 'border-radius:8px;cursor:pointer;font-size:12px;flex-shrink:0;';
+    body.innerHTML = visible.map(function (r) {
+        var it = r.item;
+        var badges = (it.draft ? '<span style="background:#fb923c;color:#fff;font-size:10px;padding:1px 7px;border-radius:6px;margin-left:6px;">BROUILLON</span>' : '') +
+            (it.featured ? '<span style="background:#e3ff00;color:#020617;font-size:10px;padding:1px 7px;border-radius:6px;margin-left:6px;">À LA UNE</span>' : '');
+        var arrows = filtering ? '' : _newsAdminArrow(r.idx, 'up', r.idx === firstIdx) + _newsAdminArrow(r.idx, 'down', r.idx === lastIdx);
+        return '<div style="display:flex;align-items:center;gap:12px;padding:10px 4px;border-bottom:1px solid #1e293b;flex-wrap:wrap;">' +
+            _newsAdminThumb(it) +
+            '<div style="flex:1;min-width:160px;">' +
+                '<div style="color:#e2e8f0;font-size:14px;font-weight:600;word-break:break-word;">' + escapeHtml(it.title || '(sans titre)') + badges + '</div>' +
+                '<div style="color:#64748b;font-size:12px;margin-top:2px;">' + escapeHtml(it.date || '') + '</div>' +
+            '</div>' +
+            '<div style="display:flex;gap:6px;flex-shrink:0;">' + arrows +
+                '<button onclick="window.editItem(\'news\', ' + r.idx + ')" style="background:rgba(0,210,255,0.1);border:1px solid rgba(0,210,255,0.4);color:#00d2ff;padding:7px 14px;' + btn + '"><i class="fas fa-edit"></i> Modifier</button>' +
+                '<button onclick="window.deleteItem(\'news\', ' + r.idx + ')" title="Supprimer" style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.3);color:#ef4444;padding:7px 12px;' + btn + '"><i class="fas fa-trash"></i></button>' +
+            '</div>' +
+        '</div>';
+    }).join('') + (filtering ? '<p style="color:#64748b;font-size:11px;margin-top:10px;"><i class="fas fa-info-circle"></i> Monter/Descendre est masqué pendant une recherche ou un filtre.</p>' : '');
+
+    if (more) {
+        more.classList.toggle('hidden', rows.length <= visible.length);
+        more.textContent = 'Voir plus (' + (rows.length - visible.length) + ' restantes)';
+    }
+};
+
+window.loadNewsAdminList = function () {
+    if (_newsAdmin.listening) { window.renderNewsAdminList(false); return; }
+    _newsAdmin.listening = true;
+    // Un seul listener temps réel : la liste se met à jour après chaque ajout, modification, suppression ou déplacement
+    db_ref.ref('news').on('value', function (snap) {
+        _newsAdmin.items = _newsAdminNormalize(snap.val());
+        window.renderNewsAdminList(false);
+    }, function () {
+        _newsAdmin.listening = false;
+        var body = document.getElementById('news-admin-list-body');
+        if (body) body.innerHTML = '<p style="color:#ef4444;font-size:13px;">Impossible de charger les actualités.</p>';
+    });
+};
 
 // =====================================================================
 // CALENDRIER DU CLUB (onglet admin dédié)
