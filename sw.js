@@ -1,4 +1,4 @@
-const CACHE_NAME = 'usm-tennis-v43';
+const CACHE_NAME = 'usm-tennis-v44';
 const ASSETS = [
     '/',
     '/index.html',
