@@ -181,6 +181,7 @@
   /* MAQUETTE : l'espace membre n'est pas encore branché sur Firebase (connexion, profil, équipes…).
      Il reste en démonstration, données fictives dans ce navigateur, même quand le site est en mode Firebase.
      L'ancien espace membre reste en service à la bascule (voir README, étape C). */
+  window.USM_REAL_MODE = window.USM_CONFIG.mode; // pour lire quand même les réglages Équipes / Boutique de l'admin
   window.USM_CONFIG.mode = 'local';
   document.addEventListener('DOMContentLoaded', function () {
     var b = document.createElement('div');

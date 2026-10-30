@@ -70,6 +70,7 @@ window.USM_SEED = {
   },
   "weather": true,
   "showTeams": true,
+  "showShop": false,
   "reviews": {
    "rating": "4,3",
    "count": "35",

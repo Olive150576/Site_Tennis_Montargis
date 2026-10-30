@@ -164,18 +164,36 @@
   /* ---------- Réglages club (repris du site) ---------- */
   var CLUB = { tenup: 'https://tenup.fft.fr/club/53450084', phone: '02 38 85 44 30', email: 'usmmtennis@orange.fr', logo: 'assets/img/brand/logo-usm.webp', whatsapp: '' };
   var TEAMS_ON = true; // Admin › Paramètres › Espace membre : afficher ou non la section Équipes
+  var SHOP_ON = false;  // idem pour la Boutique : masquée tant qu'elle n'est pas explicitement activée
+  var REMOTE_FLAGS = null;
   var PREVIEW = ((window.USM_CONFIG || {}).mode || 'local') === 'local';
   function applySettings(st) {
     if (!st) return;
     var l = st.links || {};
     CLUB.tenup = l.tenup || CLUB.tenup; CLUB.phone = st.phone || CLUB.phone; CLUB.email = st.email || CLUB.email;
     CLUB.whatsapp = String(l.whatsapp || '').trim();
-    TEAMS_ON = st.showTeams !== false;
+    var f = REMOTE_FLAGS || st; // les réglages de l'admin (Firebase) priment sur ceux de la démo
+    TEAMS_ON = f.showTeams !== false;
+    SHOP_ON = f.showShop === true;
   }
   try {
     var seedSite = window.USM_SEED && window.USM_SEED.settings;
     applySettings(seedSite);
   } catch (e) {}
+  /* Les interrupteurs Équipes / Boutique (Admin › Paramètres › Espace membre) sont lus dans
+     Firebase (site_v2/settings, lecture publique) même quand la maquette tourne en démo. */
+  var settingsReady = (function () {
+    var C = window.USM_CONFIG || {};
+    if (window.USM_REAL_MODE !== 'firebase' || !C.firebase || !window.fetch) return Promise.resolve();
+    return fetch(C.firebase.databaseURL + '/' + (C.dbRoot || 'site_v2') + '/settings.json')
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (st) {
+        if (!st) return;
+        REMOTE_FLAGS = { showTeams: st.showTeams, showShop: st.showShop };
+        applySettings(seedSite || {});
+      })
+      .catch(function () { /* réglages par défaut */ });
+  })();
   /* Partenaires : même contenu que le site public (Admin › Partenaires).
      En mode Firebase, USM.store lit site_v2/sponsors : rien à changer ici. */
   /* Exemple de démonstration ajouté seulement tant qu'aucune vraie offre membre n'existe */
@@ -250,8 +268,9 @@
     set('equipes', pendingConvocs().length);
     set('agenda', unreadMsgs().length);
     set('jouer', freshPosts().length);
-    set('boutique', unseenShop().length);
-    set('plus', unreadMsgs().length + unseenShop().length);
+    var shopN = SHOP_ON ? unseenShop().length : 0;
+    set('boutique', shopN);
+    set('plus', unreadMsgs().length + shopN);
   }
 
   /* ---------- Navigation ---------- */
@@ -259,9 +278,12 @@
   var RENDER = {};
   function applyTeamsNav() {
     $$('[data-nav="equipes"]').forEach(function (a) { var li = a.closest('li') || a; li.style.display = TEAMS_ON ? '' : 'none'; });
+    $$('[data-nav="boutique"]').forEach(function (a) { var li = a.closest('li') || a; li.style.display = SHOP_ON ? '' : 'none'; });
   }
+  /* Vue désactivée dans Admin › Paramètres › Espace membre → retour à l'accueil */
+  function viewOff(v) { return (v === 'equipes' && !TEAMS_ON) || (v === 'boutique' && !SHOP_ON); }
   function go(view) {
-    if (VIEWS.indexOf(view) < 0 || (view === 'equipes' && !TEAMS_ON)) view = 'accueil';
+    if (VIEWS.indexOf(view) < 0 || viewOff(view)) view = 'accueil';
     applyTeamsNav();
     VIEWS.forEach(function (v) { var el = $('#v-' + v); if (el) el.hidden = v !== view; });
     $$('[data-nav]').forEach(function (a) { if (a.getAttribute('data-nav') === view) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
@@ -322,7 +344,7 @@
         '<a href="' + esc(CLUB.tenup) + '" target="_blank" rel="noopener"><span class="q-ico ball">' + ic('calendar') + '</span><span>Réserver un court<small>Sur Ten\'Up</small></span></a>' +
         '<button type="button" data-qr><span class="q-ico">' + ic('qr') + '</span><span>Montrer ma carte<small>QR plein écran</small></span></button>' +
         '<a href="#jouer"><span class="q-ico">' + ic('users') + '</span><span>Trouver un partenaire<small>' + (fresh ? fresh + ' annonce' + (fresh > 1 ? 's' : '') + ' à mon niveau' : 'Annonces et annuaire') + '</small></span></a>' +
-        '<a href="#boutique"><span class="q-ico">' + ic('bag') + '</span><span>Boutique du club<small>Commandes groupées</small></span></a>' +
+        (SHOP_ON ? '<a href="#boutique"><span class="q-ico">' + ic('bag') + '</span><span>Boutique du club<small>Commandes groupées</small></span></a>' : '') +
       '</div>' +
       waCard() +
       perksTeaser() +
@@ -736,6 +758,7 @@
 
   /* Bandeau d'accueil */
   function shopBanner() {
+    if (!SHOP_ON) return '';
     var open = openOrders(); if (!open.length) return '';
     var p = open[0], pr = progress(p), n = daysLeft(p);
     var when = n === 0 ? 'dernier jour' : n === 1 ? 'jusqu\'à demain' : n <= 7 ? 'plus que ' + n + ' jours' : 'jusqu\'au ' + fmt.short(dEnd(p));
@@ -925,9 +948,10 @@
   }
   function shopMsgs() { return (SHOP.notes || []).map(function (n) { return { id: 'bn-' + n.id, type: n.type || 'warning', titre: n.title, texte: n.text, createdAt: n.at, shop: true }; }); }
   function allMsgs() { return S.msgs.concat(shopMsgs()); }
-  function currentView() { var v = (location.hash || '#accueil').slice(1); return VIEWS.indexOf(v) < 0 || (v === 'equipes' && !TEAMS_ON) ? 'accueil' : v; }
+  function currentView() { var v = (location.hash || '#accueil').slice(1); return VIEWS.indexOf(v) < 0 || viewOff(v) ? 'accueil' : v; }
   function rerender() { if ($('#app').hidden) return; RENDER[currentView()](); updateBadges(); }
   function shopReminder() {
+    if (!SHOP_ON) return '';
     var mine = allMine().filter(function (x) { return x.r.status !== 'annulee' && x.p.status !== 'annulee' && !x.r.pickedUp; });
     if (!mine.length) return '';
     var due = mine.filter(function (x) { return !x.r.paid && x.r.status !== 'reservee'; }).length, ready = mine.filter(function (x) { return x.r.status === 'disponible'; }).length;
@@ -986,9 +1010,9 @@
       h('users', 'Jouer', 'Publiez une annonce (« cherche un double samedi ») ou parcourez l\'annuaire des joueurs visibles.') +
       (TEAMS_ON ? h('trophy', 'Équipes', 'Répondez aux convocations, donnez vos disponibilités, discutez avec l\'équipe, inscrivez-vous aux championnats.') : '') +
       h('calendar', 'Agenda', 'Événements du club, inscription en un geste, ajout à votre agenda.') +
-      h('bag', 'Boutique', 'Commandes groupées aux couleurs du club : choisissez votre taille, suivez le compteur, et ne payez qu\'une fois le minimum atteint.') +
+      (SHOP_ON ? h('bag', 'Boutique', 'Commandes groupées aux couleurs du club : choisissez votre taille, suivez le compteur, et ne payez qu\'une fois le minimum atteint.') : '') +
       h('user', 'Profil', 'Coordonnées, classement et progression, créneaux et notifications.') +
-      '</div><p class="muted" style="font-size:.9rem">Sur téléphone, Agenda, Boutique et Profil sont dans l\'onglet « Plus », en bas à droite.</p><p class="login-note" style="margin-top:8px">Une question ? Le club : <a href="tel:' + CLUB.phone.replace(/\s/g, '') + '">' + esc(CLUB.phone) + '</a></p>');
+      '</div><p class="muted" style="font-size:.9rem">Sur téléphone, Agenda' + (SHOP_ON ? ', Boutique' : '') + ' et Profil sont dans l\'onglet « Plus », en bas à droite.</p><p class="login-note" style="margin-top:8px">Une question ? Le club : <a href="tel:' + CLUB.phone.replace(/\s/g, '') + '">' + esc(CLUB.phone) + '</a></p>');
   }
 
   /* ---------- Actions déléguées ---------- */
@@ -1121,7 +1145,7 @@
   function init() {
     load();
     initFramedPreview();
-    Promise.all([loadSponsors(), loadShop()]).then(function () { if (!$('#app').hidden) route(); });
+    Promise.all([loadSponsors(), loadShop(), settingsReady]).then(function () { if (!$('#app').hidden) route(); });
     $('#more').addEventListener('click', function (e) { if (e.target.id === 'more') closeMore(); });
     /* Aperçu : une modification faite dans l'admin (autre onglet) apparaît ici aussitôt */
     window.addEventListener('storage', function (e) { if (e.key === 'usm_boutique_v1' || e.key === 'usm_v2_content_ping') loadShop(e.key === 'usm_v2_content_ping').then(rerender); });

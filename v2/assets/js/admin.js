@@ -1125,7 +1125,7 @@
       <section class="card form-card"><h2>Coordonnées</h2><div id="s-club"></div></section>
       <section class="card form-card"><h2>Horaires d'ouverture</h2><p class="muted small">Affiché en haut de l'accueil et sur la page Contact sous la forme « Accueil du lundi au vendredi de 17 h à 20 h ». Jours en clair : « Lundi – vendredi », « Samedi »… Une ligne sans heures n'est pas affichée.</p><div class="rows-edit" id="s-hours"></div><div><button type="button" class="btn btn-sm" id="h-add">${icon('plus')} Ajouter une ligne</button></div></section>
       <section class="card form-card"><h2>Liens</h2><div id="s-links"></div></section>
-      <section class="card form-card"><h2>Espace membre</h2><p class="muted small">Si les équipes s'organisent sur WhatsApp, désactivez la section Équipes : l'onglet, le bloc « Mon équipe » de l'accueil et les convocations disparaissent de l'espace membre. Vous pouvez la réactiver à tout moment, rien n'est supprimé.</p><div id="s-member"></div></section>
+      <section class="card form-card"><h2>Espace membre</h2><p class="muted small">Si les équipes s'organisent sur WhatsApp, désactivez la section Équipes : l'onglet, le bloc « Mon équipe » de l'accueil et les convocations disparaissent de l'espace membre. Vous pouvez la réactiver à tout moment, rien n'est supprimé.</p><div class="callout" style="margin:8px 0 12px">${icon('info')}<div>Ces réglages pilotent le <b>nouvel</b> espace membre, encore en maquette sur l'aperçu. Ils sont <b>sans effet</b> sur l'espace membre actuel de tennismontargis.fr tant que le nouveau n'est pas en service.</div></div><div id="s-member"></div></section>
       <section class="card form-card"><h2>${icon('star')} Avis Google</h2><p class="muted small">Note affichée au-dessus des citations sur l'accueil. Relevez-la de temps en temps sur la fiche Google du club (laissez la note vide pour ne montrer que les liens).</p><div id="s-rev"></div></section>
       <section class="card form-card"><h2>Référencement (Google)</h2><div id="s-seo"></div></section>
       ${store.isLocal ? `<section class="card form-card"><h2>${icon('shield')} Mot de passe de l'aperçu</h2><p class="muted small">En mode aperçu, l'accès à l'admin est protégé par ce mot de passe. En production, chaque administrateur se connecte avec son compte Firebase.</p><div class="fields"><div class="field half"><label for="pw1">Nouveau mot de passe</label><input type="password" id="pw1" autocomplete="new-password"></div><div class="field half"><label for="pw2">Confirmer</label><input type="password" id="pw2" autocomplete="new-password"></div></div><div><button type="button" class="btn" id="pw-save">Changer le mot de passe</button></div></section>` : ''}
@@ -1157,7 +1157,8 @@
       { k: 'instagram', t: 'url', l: 'Instagram', hint: 'Laissez vide pour masquer l\'icône.' }, { k: 'whatsapp', t: 'url', l: 'Communauté WhatsApp (lien d\'invitation)', hint: 'Laissez vide pour masquer l\'icône du site et la carte « Communauté WhatsApp » de l\'espace membre.' }
     ], s.links, mark);
     const fMember = Form($('#s-member', v), [
-      { k: 'showTeams', t: 'switch', l: 'Afficher la section Équipes (championnats, convocations)' }
+      { k: 'showTeams', t: 'switch', l: 'Afficher la section Équipes (championnats, convocations)' },
+      { k: 'showShop', t: 'switch', l: 'Afficher la Boutique (commandes groupées)', hint: 'À activer quand une première commande groupée est prête. Désactivée, l\'onglet, le bandeau d\'accueil et le raccourci disparaissent ; les produits restent gérables ici.' }
     ], s, mark);
     const fRev = Form($('#s-rev', v), [
       { k: 'rating', t: 'text', l: 'Note moyenne', half: true, placeholder: '4,3' },

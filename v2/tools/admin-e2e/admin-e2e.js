@@ -89,6 +89,14 @@ const OVERRIDE = `;(function(c){c.mode='firebase';c.firebase=Object.assign({},c.
   const news = await (await fetch(DB('site_v2/news'))).json();
   ok("Modification d'une actualité enregistrée dans Firebase", Object.values(news).some((n) => n.title === newTitle));
 
+  // Paramètres › Espace membre : interrupteur Boutique (désactivé par défaut)
+  await go('#/reglages');
+  const sw = await page.$eval('[data-f="showShop"] input', (i) => i.id).catch(() => null);
+  const shopBefore = await (await fetch(DB('site_v2/settings/showShop'))).json();
+  if (sw) { await page.locator('#' + sw).check({ force: true }); await page.keyboard.press('Control+s'); await page.waitForTimeout(1500); }
+  const shopAfter = await (await fetch(DB('site_v2/settings/showShop'))).json();
+  ok('Interrupteur Boutique : désactivé au départ, activation enregistrée dans Firebase', sw && shopBefore === false && shopAfter === true, `champ:${sw} avant:${shopBefore} après:${shopAfter}`);
+
   // Envoi d'image et de PDF (Storage)
   const up = await page.evaluate(async () => {
     const c = document.createElement('canvas'); c.width = 800; c.height = 600; const g = c.getContext('2d'); g.fillStyle = '#0046ad'; g.fillRect(0, 0, 800, 600);

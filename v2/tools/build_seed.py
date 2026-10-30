@@ -336,7 +336,7 @@ settings = {
  'stats':[{'value':'150+','label':'licenciés'},{'value':'7','label':'courts dont 2 couverts'},{'value':'44','label':"éditions de l'Open USM"},{'value':'7j/7','label':"ouvert toute l'année"}],
  'seo':{'title':'USM Tennis Montargis – Club de tennis à Montargis (45)','description':"Club de tennis affilié FFT à Montargis : 7 courts dont 2 couverts et de la terre battue, école de tennis dès le baby tennis, cours adultes, compétitions et l'Open USM."},
  'weather':True,
- 'showTeams':True,
+ 'showTeams':True, 'showShop':False,
  'reviews':{'rating':'4,3','count':'35','url':GMAPS_REVIEWS,'writeUrl':'https://g.page/r/CS4v-oIuCFxgEAE/review'},
 }
 
