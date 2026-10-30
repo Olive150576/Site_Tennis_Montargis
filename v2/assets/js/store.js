@@ -150,9 +150,45 @@
     const v = '10.12.2', b = 'https://www.gstatic.com/firebasejs/' + v + '/';
     fbReady = loadScript(b + 'firebase-app-compat.js')
       .then(() => Promise.all(['auth', 'database', 'storage'].map((m) => loadScript(b + 'firebase-' + m + '-compat.js'))))
-      .then(() => { if (!firebase.apps.length) firebase.initializeApp(CFG.firebase); return firebase; });
+      .then(() => {
+        if (!firebase.apps.length) {
+          firebase.initializeApp(CFG.firebase);
+          const E = CFG.emulators;
+          if (E) { // tests uniquement (voir config.js)
+            firebase.auth().useEmulator('http://' + E.host + ':' + E.auth);
+            firebase.database().useEmulator(E.host, E.database);
+            firebase.storage().useEmulator(E.host, E.storage);
+          }
+        }
+        return firebase;
+      });
     return fbReady;
   }
+  /* Adresse REST de la base (lecture publique sans charger le SDK) */
+  function restUrl(path) {
+    const E = CFG.emulators;
+    if (E) return 'http://' + E.host + ':' + E.database + '/' + path + '.json?ns=' + E.ns;
+    return CFG.firebase.databaseURL + '/' + path + '.json';
+  }
+  /* Storage n'a pas accès à la liste admins/ de la base : il vérifie le « custom claim »
+     admin du compte. On le fait poser par la Cloud Function grantAdminClaim (qui contrôle
+     admins/{uid}) puis on rafraîchit le jeton, sinon les envois de photos/PDF sont refusés. */
+  let claimReady = null;
+  function ensureAdminClaim(fb, user) {
+    if (claimReady) return claimReady;
+    claimReady = (async () => {
+      const tok = await user.getIdTokenResult();
+      if (tok.claims && tok.claims.admin === true) return true;
+      if (!fb.functions) await loadScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-functions-compat.js');
+      if (CFG.emulators) fb.functions().useEmulator(CFG.emulators.host, CFG.emulators.functions);
+      await fb.functions().httpsCallable('grantAdminClaim')();
+      await user.getIdToken(true);
+      return true;
+    })().catch((e) => { claimReady = null; console.warn('[USM] Droit admin Storage non accordé', e); return false; });
+    return claimReady;
+  }
+  /* Ne jamais publier l'empreinte du mot de passe de l'aperçu (site_v2 est lisible par tous) */
+  const publicSettings = (s) => { const o = Object.assign({}, s || {}); delete o.adminPasswordHash; return o; };
   const root = () => (CFG.dbRoot || 'site_v2');
   const msgRoot = () => root() + '_messages'; // nœud séparé : lisible uniquement par les admins
 
@@ -477,7 +513,7 @@
         this.content = demoDates(withSeed(saved));
       } else {
         try {
-          const res = await fetch(CFG.firebase.databaseURL + '/' + root() + '.json');
+          const res = await fetch(restUrl(root()));
           const raw = res.ok ? await res.json() : null;
           this.content = normalizeRemote(raw);
         } catch (e) {
@@ -506,7 +542,18 @@
         return writeLocal(latest);
       }
       const fb = await firebaseSDK();
-      if (part === 'messages') { await fb.database().ref(msgRoot()).set(toObj(value)); return true; }
+      if (part === 'messages') {
+        // Pas de set() global : un message envoyé depuis le site pendant que l'admin
+        // lit la liste serait effacé. On ne touche qu'aux messages connus de l'admin.
+        const known = this._msgIds || [];
+        const next = toObj(value), upd = {};
+        Object.keys(next).forEach((id) => { upd[id] = next[id]; });
+        known.forEach((id) => { if (!next[id]) upd[id] = null; });
+        if (Object.keys(upd).length) await fb.database().ref(msgRoot()).update(upd);
+        this._msgIds = Object.keys(next);
+        return true;
+      }
+      if (part === 'settings') value = publicSettings(value);
       const data = COLLECTIONS.includes(part) ? toObj(value) : value;
       await fb.database().ref(root() + '/' + part).set(data);
       await fb.database().ref(root() + '/updatedAt').set(this.content.updatedAt);
@@ -518,7 +565,7 @@
       this.content = content;
       if (this.isLocal) { content._edited = COLLECTIONS.filter((c) => c !== 'messages').concat('texts'); return writeLocal(content); }
       const fb = await firebaseSDK();
-      const payload = { settings: content.settings, texts: content.texts || {}, updatedAt: new Date().toISOString() };
+      const payload = { settings: publicSettings(content.settings), texts: content.texts || {}, updatedAt: new Date().toISOString() };
       COLLECTIONS.filter((c) => c !== 'messages').forEach((c) => { payload[c] = toObj(c === 'shopProducts' ? (content[c] || []).filter((p) => !p.demo) : content[c]); });
       await fb.database().ref(root()).update(payload);
       return true;
@@ -542,7 +589,7 @@
         if (this.content) this.content.messages = latest.messages;
         return m;
       }
-      const res = await fetch(CFG.firebase.databaseURL + '/' + msgRoot() + '/' + m.id + '.json', { method: 'PUT', body: JSON.stringify(m) });
+      const res = await fetch(restUrl(msgRoot() + '/' + m.id), { method: 'PUT', body: JSON.stringify(m) });
       if (!res.ok) throw new Error('Envoi impossible');
       return m;
     },
@@ -556,7 +603,9 @@
       }
       const fb = await firebaseSDK();
       const snap = await fb.database().ref(msgRoot()).once('value');
-      return toArr(snap.val()).sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+      const list = toArr(snap.val()).sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+      this._msgIds = list.map((m) => m.id);
+      return list;
     },
 
     /* Authentification admin */
@@ -574,6 +623,7 @@
       const ok = await fb.database().ref('admins/' + cred.user.uid).once('value');
       if (!ok.exists()) { await fb.auth().signOut(); throw new Error("Ce compte n'a pas les droits d'administration."); }
       this.user = { email: cred.user.email, uid: cred.user.uid };
+      await ensureAdminClaim(fb, cred.user);
       return this.user;
     },
     async restoreSession() {
@@ -588,12 +638,13 @@
           if (!u) return resolve(null);
           const ok = await fb.database().ref('admins/' + u.uid).once('value');
           this.user = ok.exists() ? { email: u.email, uid: u.uid } : null;
+          if (this.user) await ensureAdminClaim(fb, u);
           resolve(this.user);
         });
       });
     },
     async logout() {
-      this.user = null;
+      this.user = null; claimReady = null;
       if (this.isLocal) { try { sessionStorage.removeItem('usm_admin'); } catch (e) { /* ignore */ } return; }
       const fb = await firebaseSDK(); await fb.auth().signOut();
     },

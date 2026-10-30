@@ -1,0 +1,9 @@
+{
+  "name": "usm-recette-admin-firebase",
+  "private": true,
+  "description": "Recette de l'admin v2 en mode Firebase (connexion, droits, import, rubriques, édition, photos/PDF, messages, site public) contre les émulateurs.",
+  "scripts": {
+    "test": "cd ../../.. && firebase emulators:exec --only auth,database,storage,functions --project demo-usm \"node v2/tools/admin-e2e/admin-e2e.js\""
+  },
+  "devDependencies": { "playwright": "1.47.2" }
+}

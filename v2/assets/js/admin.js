@@ -1168,7 +1168,7 @@
     const stamp = new Date().toISOString().slice(0, 10);
     $('#b-exp', v).addEventListener('click', () => { download(`usm-tennis-site-${stamp}.json`, JSON.stringify(C, null, 1)); toast('Sauvegarde téléchargée'); });
     $('#b-exp-fb', v).addEventListener('click', () => {
-      const out = { settings: C.settings, texts: C.texts || {}, updatedAt: new Date().toISOString() };
+      const st = Object.assign({}, C.settings); delete st.adminPasswordHash; const out = { settings: st, texts: C.texts || {}, updatedAt: new Date().toISOString() };
       store.COLLECTIONS.filter((c) => c !== 'messages').forEach((c) => { out[c] = {}; (C[c] || []).filter((x) => !(c === 'shopProducts' && x.demo)).forEach((x, i) => { out[c][x.id] = Object.assign({ order: i + 1 }, x); }); });
       download(`usm-tennis-firebase-site_v2-${stamp}.json`, JSON.stringify(out, null, 1)); toast('Export Firebase téléchargé');
     });

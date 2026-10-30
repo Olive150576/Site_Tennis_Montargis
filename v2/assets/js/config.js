@@ -37,6 +37,10 @@ window.USM_CONFIG = {
     waitForConsent: false  // false : sans choix ou refus = mesure sans cookie (comme le site actuel) ; true : rien avant « Accepter »
   },
 
+  // Tests automatiques uniquement : brancher le mode 'firebase' sur les émulateurs locaux.
+  // Laisser à null en ligne.
+  emulators: null,
+
   // Mot de passe de l'admin en mode aperçu uniquement (modifiable dans Paramètres)
   localAdminPassword: 'usm2026'
 };
