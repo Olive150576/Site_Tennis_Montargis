@@ -1,2 +1,0 @@
-// Remplacé par firebase/storage.rules : fichier complet (règles du site actuel + dossier site_v2/),
-// identique à celui du patch firebase/functions/brancher-site-v2.patch. Testé avec tools/firebase-tests.

@@ -6,7 +6,7 @@ async function t(name, p, expect) {
   catch (e) { results.push(['KO', name + ' — ' + (e.message || e).split('\n')[0]]); }
 }
 (async () => {
-  const env = await initializeTestEnvironment({ projectId: 'demo-usm', database: { rules: fs.readFileSync(__dirname + '/../../firebase/database.rules.json', 'utf8'), host: '127.0.0.1', port: 9000 } });
+  const env = await initializeTestEnvironment({ projectId: 'demo-usm', database: { rules: fs.readFileSync(__dirname + '/../../../database.rules.json', 'utf8'), host: '127.0.0.1', port: 9000 } });
   const day = 864e5, now = Date.now();
   await env.withSecurityRulesDisabled(async (ctx) => {
     await ctx.database().ref().set({

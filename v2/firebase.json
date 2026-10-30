@@ -1,5 +1,6 @@
 {
   "hosting": {
+    "site": "usm-tennis-v2",
     "public": ".",
     "ignore": [
       "firebase.json",
@@ -7,6 +8,7 @@
       "**/.*",
       "src/**",
       "tools/**",
+      "docs/**",
       "firebase/**",
       "README.md",
       "**/node_modules/**"

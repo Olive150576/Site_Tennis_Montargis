@@ -56,35 +56,45 @@ Vêtements et accessoires du club vendus en **commande groupée**, dans l'espace
 
 ## 4. Montrer le site au bureau sans toucher au site actuel
 
-Depuis ce dossier, avec l'outil Firebase déjà utilisé pour le site actuel :
+Le nouveau site est publié sur un **site Firebase séparé**, `usm-tennis-v2` (`firebase.json` › `"site"`). Un `firebase deploy` lancé depuis `v2/` ne peut donc **pas** remplacer tennismontargis.fr.
+
+Une seule fois, depuis `v2/` : `firebase hosting:sites:create usm-tennis-v2`
+
+Ensuite, depuis `v2/` :
 
 ```
-firebase hosting:channel:deploy apercu --expires 30d
+firebase deploy --only hosting
 ```
 
-Firebase donne une adresse temporaire du type `usm-tennis--apercu-xxxx.web.app`. Le site en ligne n'est pas modifié.
+Adresse : `https://usm-tennis-v2.web.app`. Pour une adresse temporaire : `firebase hosting:channel:deploy apercu --expires 30d`.
 
 ## 5. Mise en production
 
 Le site actuel vit dans le dépôt GitHub `Olive150576/Site_Tennis_Montargis` (projet Firebase `usm-tennis`). Le nouveau site s'appuie sur le même projet : mêmes comptes, mêmes admins (`admins/`), mêmes membres (`members/`, champ `actif`), même envoi d'e-mails (fonctions Cloud + Gmail).
 
-### Étape A — préparer le serveur (sans effet visible sur le site actuel)
+### Étape A — serveur (règles + fonctions)
 
-Dans le dépôt GitHub, appliquer `firebase/functions/brancher-site-v2.patch` (`git apply firebase/functions/brancher-site-v2.patch`, ou demander à Claude dans le dépôt). Le patch modifie 5 fichiers :
+Ce dépôt est organisé ainsi depuis le 30/10/2026 :
 
-- `database.rules.json` : règles du site actuel, inchangées, plus `site_v2`, `site_v2_messages` et la boutique. Copie identique dans `firebase/database.rules.json`.
-- `storage.rules` : ajoute le dossier `site_v2/`.
-- `functions/site-v2.js` (nouveau) et 16 lignes dans `functions/index.js`, pour 3 fonctions :
-  - formulaires du nouveau site → e-mail au bureau ;
-  - réservation boutique → e-mail de confirmation ;
-  - commande lancée / disponible / annulée → e-mail au membre.
+- branche `main` = site en ligne ;
+- branche `refonte` = `main` + le nouveau site dans `v2/` + le serveur déjà branché pour le nouveau site.
 
-  Les actus publiées automatiquement depuis Facebook (Metricool / Make) sont aussi recopiées dans le nouveau site.
-- `verify.html` : la page ouverte en scannant une carte membre affiche les partenaires du nouvel admin quand ils existent.
+Le patch `brancher-site-v2.patch` est **appliqué** dans la branche `refonte`, rejoué par-dessus les correctifs de sécurité du 30/10. Les règles et les fonctions n'existent plus qu'à un seul endroit, à la racine du dépôt (`database.rules.json`, `storage.rules`, `functions/`). Il n'y a plus de copie dans `v2/firebase/`.
 
-Puis `firebase deploy --only functions,database,storage`.
+Ajouts côté serveur :
 
-Avant tout déploiement de règles, relancer `tools/firebase-tests` (voir son `LISEZMOI.md`). Résultat attendu : 50/50 et 6/6.
+- règles `site_v2`, `site_v2_messages` et boutique ;
+- dossier Storage `site_v2/` ;
+- `functions/site-v2.js` : formulaires, e-mails boutique, recopie des actus Metricool/Make ;
+- `verify.html` : affiche les partenaires du nouvel admin.
+
+Ces ajouts sont sans effet sur le site actuel. Pour les mettre en service, depuis la **racine** du dépôt, branche `refonte` :
+
+```
+firebase deploy --only functions,database,storage
+```
+
+Avant tout déploiement de règles, lancer `v2/tools/firebase-tests` (voir son `LISEZMOI.md`). Résultat attendu : 50/50, 9/9 et 20/20.
 
 ### Étape B — contenu
 
@@ -105,6 +115,7 @@ Copier les fichiers du nouveau site à la racine du dépôt. **Garder** ceux de 
 - `index.html`, `sitemap.xml`, `robots.txt` ;
 - `sw.js` : la nouvelle version efface les anciens caches mais garde les notifications push des membres ;
 - la partie `hosting` de `firebase.json`, en gardant `database`, `storage`, `functions` et `firestore`.
+  **Retirer la ligne `"site": "usm-tennis-v2"`** en recopiant cette partie : à la racine, l'hébergement doit viser le site principal.
 
 La nouvelle partie `hosting` garde, comme aujourd'hui :
 
@@ -178,7 +189,7 @@ Durée : 6 à 7 minutes. Le robot est aussi lancé par Claude avant chaque livra
 - **Packs de sponsoring** : prix « Sur devis » et contreparties proposées, à ajuster.
 - **Avantages partenaires** : « Offres à venir » repris tel quel.
 - **Instagram / WhatsApp** : liens vides (icônes masquées) — à renseigner dans *Paramètres* si besoin.
-- **Règles Firebase du dépôt** : l'expression régulière de `members/{uid}/email` (`[^@\\s]`) est refusée par l'émulateur officiel. Dans les règles fusionnées, elle est remplacée par `[^@ ]`, au comportement équivalent. Si un `firebase deploy` des règles a déjà échoué, c'est la cause probable.
+- **Règles Firebase** : la regex email (`[^@\\s]`, refusée par l'émulateur) est corrigée en `[^@ ]` dans le dépôt (30/10).
 - **Boutique** :
   - supprimer les 3 produits « Exemple » (ils ne partent de toute façon pas en ligne) et créer les vrais ;
   - choisir le prestataire de paiement (HelloAsso conseillé) ;
