@@ -1,0 +1,22 @@
+<!--{"title": "Actualités du club | USM Tennis Montargis", "description": "Toute l'actualité de l'USM Tennis Montargis : résultats des équipes et tournois, école de tennis, vie du club, animations et événements.", "nav": "actus", "crumb": "Actualités"}-->
+<section class="page-hero draw-lines">
+  <div class="container">
+    <div class="court">
+      {{court}}
+      <nav class="crumbs" aria-label="Fil d'Ariane"><a href="index.html">Accueil</a><span>/</span><span>Actualités</span></nav>
+      <h1 data-text="actus.hero.title">Actualités</h1>
+      <p class="lead" data-text="actus.hero.lead">Résultats, vie du club, école de tennis et animations : tout ce qui se passe sur les courts de l'USM.</p>
+    </div>
+  </div>
+</section>
+<section class="section-tight">
+  <div class="container">
+    <div class="news-toolbar">
+      <div class="filters" id="news-filters" role="group" aria-label="Filtrer par catégorie"></div>
+      <label class="search"><span class="sr-only">Rechercher une actualité</span><svg class="icon" aria-hidden="true"><use href="#i-search"></use></svg><input type="search" id="news-search" placeholder="Rechercher (TMC, Open, stage…)"></label>
+    </div>
+    <p class="muted" id="news-count" aria-live="polite" style="margin-bottom:16px;font-size:.9rem"></p>
+    <div class="news-grid" data-render="news-list"></div>
+    <p style="text-align:center;margin-top:32px"><button type="button" class="btn" id="news-more" hidden>Voir plus d'actualités</button></p>
+  </div>
+</section>

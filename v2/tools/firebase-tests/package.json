@@ -1,0 +1,12 @@
+{
+  "name": "usm-tests-regles-firebase",
+  "private": true,
+  "description": "Vérifie les règles de sécurité Firebase (Realtime Database + Storage) dans l'émulateur officiel, avant tout déploiement.",
+  "scripts": {
+    "test": "firebase emulators:exec --only database,storage --project demo-usm \"node test-regles-database.js && node test-regles-storage.js\""
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^3.0.4",
+    "firebase": "^10.12.2"
+  }
+}

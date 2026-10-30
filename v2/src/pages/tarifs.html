@@ -1,0 +1,97 @@
+<!--{"title": "Tarifs et inscription 2026-2027 | USM Tennis Montargis", "description": "Tarifs de l'USM Tennis Montargis pour la saison 2026-2027 : formules adultes dès 140 €, jeunes dès 160 €, baby tennis 101 €, licence FFT incluse. Documents d'inscription et questions fréquentes.", "nav": "tarifs", "crumb": "Tarifs & inscription"}-->
+<section class="page-hero draw-lines">
+  <div class="container">
+    <div class="court">
+      {{court}}
+      <nav class="crumbs" aria-label="Fil d'Ariane"><a href="index.html">Accueil</a><span>/</span><span>Tarifs &amp; inscription</span></nav>
+      <h1 data-text="tarifs.hero.title">Tarifs <em>&amp; inscription</em></h1>
+      <p class="lead" data-text="tarifs.hero.lead">Licence FFT incluse dans toutes les formules, 3 invitations offertes et des tarifs inchangés pour la saison 2026-2027.</p>
+      <div class="hero-ctas">
+        <a class="btn btn-ball" href="#tarifs">Voir les formules<svg class="icon" aria-hidden="true"><use href="#i-arrow"></use></svg></a>
+        <a class="btn btn-ghost-light" href="#documents">Documents d'inscription</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="tarifs" aria-labelledby="formules">
+  <div class="container">
+    <div class="section-head">
+      <div><p class="eyebrow">Saison <span data-set="season">2026-2027</span></p><h2 class="h2" id="formules">Nos formules</h2><p class="lead">Prix à la saison (du 1<sup>er</sup> septembre au 31 août), licence fédérale comprise.</p></div>
+      <div class="tabs" role="tablist" aria-label="Catégories de tarifs" data-rate-tabs></div>
+    </div>
+    <div class="rates" data-render="rates"></div>
+  </div>
+</section>
+
+<section class="section-tight" id="question" aria-labelledby="question-title">
+  <div class="container">
+    <div class="ask">
+      <div>
+        <p class="eyebrow">Une question ?</p>
+        <h2 class="h2" id="question-title" data-text="tarifs.ask.title">On vous répond <em>vite</em></h2>
+        <p class="lead" data-text="tarifs.ask.lead">Cliquez sur « Je suis intéressé(e) » sous une formule ou écrivez-nous directement : un membre du bureau vous recontacte rapidement.</p>
+        <div class="ask-actions">
+          <a class="btn btn-wa" data-wa href="#" target="_blank" rel="noopener" hidden><svg class="icon" aria-hidden="true"><use href="#i-whatsapp"></use></svg>Écrire sur WhatsApp</a>
+          <a class="btn" data-href="phone" href="tel:0238854430"><svg class="icon" aria-hidden="true"><use href="#i-phone"></use></svg><span data-set="phone">02 38 85 44 30</span></a>
+        </div>
+      </div>
+      <div class="panel">
+        <form class="form" data-form="contact" data-prefill id="question-form" novalidate>
+          <input type="hidden" name="formule" value="">
+          <div class="field"><label for="qf-subject">Votre demande</label>
+            <select id="qf-subject" name="subject">
+              <option value="renseignement">Un renseignement</option>
+              <option value="inscription">Une inscription</option>
+              <option value="essai">Une séance d'essai</option>
+              <option value="cours">Des cours ou un stage</option>
+              <option value="autre">Autre chose</option>
+            </select></div>
+          <div class="row">
+            <div class="field"><label for="qf-name">Nom et prénom</label><input id="qf-name" name="name" autocomplete="name" required></div>
+            <div class="field"><label for="qf-phone">Téléphone <span class="muted">(facultatif)</span></label><input id="qf-phone" name="phone" type="tel" autocomplete="tel"></div>
+          </div>
+          <div class="field"><label for="qf-email">E-mail</label><input id="qf-email" name="email" type="email" autocomplete="email" required></div>
+          <div class="field"><label for="qf-message">Message</label><textarea id="qf-message" name="message" required placeholder="Âge du joueur, niveau, disponibilités…"></textarea></div>
+          <div class="hp" aria-hidden="true"><label for="qf-website">Site web</label><input id="qf-website" name="website" tabindex="-1" autocomplete="off"></div>
+          <label class="check"><input type="checkbox" id="qf-rgpd" required><span>J'accepte que mes données soient utilisées pour traiter ma demande. <a href="confidentialite.html">Confidentialité</a></span></label>
+          <button type="submit" class="btn btn-blue">Envoyer<svg class="icon" aria-hidden="true"><use href="#i-arrow"></use></svg></button>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section-tight" aria-labelledby="finder-title">
+  <div class="container">
+    <div class="finder" id="finder">
+      <div class="finder-intro">
+        {{court}}
+        <p class="eyebrow">Vous hésitez ?</p>
+        <h2 class="h2" id="finder-title" style="font-size:var(--step-3)">Trouvez votre formule en 3 questions</h2>
+        <p>On vous indique la formule la plus adaptée et son prix, licence comprise.</p>
+      </div>
+      <div class="finder-body" data-render="finder"></div>
+    </div>
+  </div>
+</section>
+
+<section class="section" aria-labelledby="inscription">
+  <div class="container">
+    <div class="section-head"><div><p class="eyebrow">Inscription</p><h2 class="h2" id="inscription">S'inscrire en 3 étapes</h2></div></div>
+    <div class="steps">
+      <div class="step"><h3>Choisissez votre formule</h3><p>Adulte, jeune ou baby tennis, avec ou sans cours. En cas de doute, demandez une séance d'essai.</p></div>
+      <div class="step"><h3>Remplissez le dossier</h3><p>Le formulaire d'inscription de la saison et le questionnaire de santé (adulte ou mineur), à télécharger ci-dessous.</p></div>
+      <div class="step"><h3>Déposez-le au club</h3><p>Rapportez le dossier et le règlement au club, ou envoyez-le par e-mail. Vous recevez ensuite votre carte d'accès.</p></div>
+    </div>
+    <h3 class="h3" id="documents" style="margin:clamp(36px,5vw,56px) 0 18px">Documents à télécharger</h3>
+    <div class="docs" data-render="documents"></div>
+  </div>
+</section>
+
+<section class="section section-alt" aria-labelledby="faq-title">
+  <div class="container">
+    <div class="section-head"><div><p class="eyebrow">Questions fréquentes</p><h2 class="h2" id="faq-title">Bon à savoir</h2></div><a class="link-arrow" href="contact.html">Une autre question ?<svg class="icon" aria-hidden="true"><use href="#i-arrow"></use></svg></a></div>
+    <div class="faq" data-render="faq"></div>
+  </div>
+</section>

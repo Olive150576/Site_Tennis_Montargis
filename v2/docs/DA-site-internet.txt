@@ -1,0 +1,24 @@
+DA / Identité visuelle — USM Tennis Montargis
+
+Univers
+Dark mode tech-sport. Ambiance nocturne, premium, dynamique. Inspiré des apps sportives modernes (Nike, Roland Garros app). Deux modes : fond fixe sombre (défaut) et fond photo plein écran (parallax).
+
+Palette
+
+Rôle	Couleur
+Fond principal	#020617 — bleu nuit quasi-noir
+Fond secondaire	#01040f — noir profond
+Accent primaire	#0046ad — bleu marine fédéral
+Accent électrique	#00d2ff — cyan électrique (interactif, titres, liens)
+Accent sport	#e3ff00 — jaune balle de tennis (highlights, badges)
+Texte principal	#e2e8f0 — blanc cassé doux
+Texte secondaire	#94a3b8 — gris ardoise
+Vert membre	#22c55e — pour l'espace membre
+Effets / Style
+
+Glassmorphism : cards en rgba(255,255,255,0.03–0.05) + border rgba(255,255,255,0.08) + backdrop-filter: blur
+Glows : lueur cyan sur les cards hover, lueur jaune sur les titres clés
+Gradients : titres en dégradé cyan → bleu ou cyan → jaune
+Typographie : sans-serif moderne, espacements généreux, hiérarchie forte
+Ton général
+Club amateur sérieux, pas institutionnel. Moderne sans être froid. Le jaune tennis ancre l'identité sport, le cyan apporte le dynamisme tech.

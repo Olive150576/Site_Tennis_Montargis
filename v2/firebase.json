@@ -1,0 +1,186 @@
+{
+  "hosting": {
+    "public": ".",
+    "ignore": [
+      "firebase.json",
+      ".firebaserc",
+      "**/.*",
+      "src/**",
+      "tools/**",
+      "firebase/**",
+      "README.md",
+      "**/node_modules/**"
+    ],
+    "trailingSlash": false,
+    "redirects": [
+      {
+        "source": "/inscription",
+        "destination": "https://firebasestorage.googleapis.com/v0/b/usm-tennis.firebasestorage.app/o/documents%2F_Formulaire_inscription_final_USM_Tennis_Montargis_REMPLISSABLE.pdf?alt=media&token=c5d64d79-1b7f-430c-859f-53d4a7dca855",
+        "type": 302
+      },
+      {
+        "source": "/index.html",
+        "destination": "/",
+        "type": 301
+      }
+    ],
+    "headers": [
+      {
+        "source": "**/*.@(webp|jpg|jpeg|png|ico|svg)",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=2592000"
+          }
+        ]
+      },
+      {
+        "source": "**/*.@(css|js)",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache, must-revalidate"
+          }
+        ]
+      },
+      {
+        "source": "**/*.html",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=600, must-revalidate"
+          }
+        ]
+      },
+      {
+        "source": "/@(espace-membre|member-dashboard|admin-panel).html",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-store"
+          }
+        ]
+      },
+      {
+        "source": "/verify.html",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-store"
+          }
+        ]
+      },
+      {
+        "source": "/admin",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-store"
+          }
+        ]
+      },
+      {
+        "source": "/admin/**",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-store"
+          }
+        ]
+      },
+      {
+        "source": "/sw.js",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache"
+          }
+        ]
+      },
+      {
+        "source": "/manifest*.json",
+        "headers": [
+          {
+            "key": "Content-Type",
+            "value": "application/manifest+json"
+          },
+          {
+            "key": "Cache-Control",
+            "value": "no-cache"
+          }
+        ]
+      },
+      {
+        "source": "**",
+        "headers": [
+          {
+            "key": "X-Content-Type-Options",
+            "value": "nosniff"
+          },
+          {
+            "key": "Referrer-Policy",
+            "value": "strict-origin-when-cross-origin"
+          },
+          {
+            "key": "X-Frame-Options",
+            "value": "SAMEORIGIN"
+          }
+        ]
+      }
+    ],
+    "rewrites": [
+      {
+        "source": "/v/**",
+        "destination": "/verify.html"
+      },
+      {
+        "source": "/qr-accueil",
+        "destination": "/qr-accueil.html"
+      },
+      {
+        "source": "/le-club",
+        "destination": "/le-club.html"
+      },
+      {
+        "source": "/ecole-de-tennis",
+        "destination": "/ecole-de-tennis.html"
+      },
+      {
+        "source": "/competition",
+        "destination": "/competition.html"
+      },
+      {
+        "source": "/agenda",
+        "destination": "/agenda.html"
+      },
+      {
+        "source": "/tarifs",
+        "destination": "/tarifs.html"
+      },
+      {
+        "source": "/actualites",
+        "destination": "/actualites.html"
+      },
+      {
+        "source": "/actualite",
+        "destination": "/actualite.html"
+      },
+      {
+        "source": "/partenaires",
+        "destination": "/partenaires.html"
+      },
+      {
+        "source": "/contact",
+        "destination": "/contact.html"
+      },
+      {
+        "source": "/mentions-legales",
+        "destination": "/mentions-legales.html"
+      },
+      {
+        "source": "/confidentialite",
+        "destination": "/confidentialite.html"
+      }
+    ]
+  }
+}

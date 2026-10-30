@@ -1,0 +1,73 @@
+<!--{"title": "Partenaires et sponsoring | USM Tennis Montargis", "description": "Les partenaires de l'USM Tennis Montargis et les offres de sponsoring : visibilité sur les courts, le site, les réseaux sociaux et l'Open USM, le grand tournoi de l'agglomération.", "nav": "partenaires", "crumb": "Partenaires"}-->
+<section class="page-hero draw-lines">
+  <div class="container">
+    <div class="court">
+      {{court}}
+      <nav class="crumbs" aria-label="Fil d'Ariane"><a href="index.html">Accueil</a><span>/</span><span>Partenaires</span></nav>
+      <h1 data-text="partners.hero.title">Ils font <em>vivre</em> le club</h1>
+      <p class="lead" data-text="partners.hero.lead">Entreprises et commerces locaux soutiennent l'USM Tennis Montargis. En retour, ils gagnent en visibilité auprès d'une communauté sportive fidèle de l'agglomération.</p>
+      <div class="hero-ctas"><a class="btn btn-ball" href="#devenir-partenaire">Devenir partenaire<svg class="icon" aria-hidden="true"><use href="#i-arrow"></use></svg></a></div>
+    </div>
+  </div>
+</section>
+
+<section class="section" aria-labelledby="nos-partenaires">
+  <div class="container">
+    <div class="section-head"><div><p class="eyebrow">Merci à eux</p><h2 class="h2" id="nos-partenaires">Nos partenaires</h2><p class="lead">Membres du club : pensez à eux, et surveillez les avantages qu'ils réservent aux licenciés.</p></div></div>
+    <div class="sponsors" data-render="sponsors"></div>
+  </div>
+</section>
+
+<section class="section section-alt" aria-labelledby="pourquoi">
+  <div class="container">
+    <div class="section-head"><div><p class="eyebrow">Pourquoi nous soutenir</p><h2 class="h2" id="pourquoi">Une vitrine locale, toute l'année</h2><p class="lead">Associer votre marque au club, c'est être vu par des familles, des sportifs et des décideurs du Montargois, sur les courts comme en ligne.</p></div></div>
+    <div class="audience">
+      <div><b class="num">150+</b><p>licenciés et leurs familles, présents au club chaque semaine</p></div>
+      <div><b class="num">44</b><p>éditions de l'Open USM, le tournoi phare de l'agglomération</p></div>
+      <div><b class="num">7</b><p>courts, dont les bâches restent visibles toute la saison</p></div>
+      <div><b class="num">49</b><p>actualités publiées depuis janvier 2026, relayées sur Facebook</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="section" aria-labelledby="packs">
+  <div class="container">
+    <div class="section-head"><div><p class="eyebrow">Offres</p><h2 class="h2" id="packs">Trois façons de s'engager</h2><p class="lead">Chaque partenariat est construit avec vous, selon votre budget et vos objectifs. Dotations en matériel ou en lots bienvenues.</p></div></div>
+    <div class="packs" data-render="packs"></div>
+    <p class="packs-note" data-text="partners.packs.note">Tarifs saison 2026-2027. Inclus dans chaque pack : un espace avantages réservé aux 150 membres du club, pour leur présenter vos offres.</p>
+  </div>
+</section>
+
+<section class="section-tight" id="devenir-partenaire" aria-labelledby="form-partner">
+  <div class="container">
+    <div class="split" style="align-items:start">
+      <div>
+        <p class="eyebrow">Parlons-en</p>
+        <h2 class="h2" id="form-partner" style="margin-top:14px">Devenir partenaire</h2>
+        <p class="lead" style="margin-top:16px">Laissez-nous vos coordonnées : le responsable des partenariats vous recontacte pour construire une offre sur mesure.</p>
+        <ul class="feature-list">
+          <li><span class="ic"><svg class="icon" aria-hidden="true"><use href="#i-handshake"></use></svg></span><span><b>Un interlocuteur unique</b><span>Pour la visibilité, les bâches, les publications et vos avantages membres.</span></span></li>
+          <li><span class="ic"><svg class="icon" aria-hidden="true"><use href="#i-sparkle"></use></svg></span><span><b>Des contreparties concrètes</b><span>Logo sur le site, publications dédiées, présence lors de l'Open.</span></span></li>
+        </ul>
+      </div>
+      <div class="panel">
+        <form class="form" data-form="partenariat" id="partner-form" novalidate>
+          <div class="row">
+            <div class="field"><label for="pf-name">Nom et prénom</label><input id="pf-name" name="name" autocomplete="name" required></div>
+            <div class="field"><label for="pf-company">Entreprise</label><input id="pf-company" name="company" autocomplete="organization" required></div>
+          </div>
+          <div class="row">
+            <div class="field"><label for="pf-email">E-mail</label><input id="pf-email" name="email" type="email" autocomplete="email" required></div>
+            <div class="field"><label for="pf-phone">Téléphone</label><input id="pf-phone" name="phone" type="tel" autocomplete="tel"></div>
+          </div>
+          <div class="field"><label for="pf-pack">Offre qui vous intéresse</label>
+            <select id="pf-pack" name="subject"><option value="Partenaire Club">Partenaire Club · 200 €</option><option value="Partenaire Court">Partenaire Court · 500 €</option><option value="Partenaire Open USM">Partenaire Open USM · 800 €</option><option value="Je ne sais pas encore">Je ne sais pas encore</option></select></div>
+          <div class="field"><label for="pf-message">Votre message</label><textarea id="pf-message" name="message" placeholder="Votre activité, vos objectifs, vos questions…"></textarea></div>
+          <div class="hp" aria-hidden="true"><label for="pf-website">Site web</label><input id="pf-website" name="website" tabindex="-1" autocomplete="off"></div>
+          <label class="check"><input type="checkbox" id="pf-rgpd" required><span>J'accepte que le club utilise ces informations pour me recontacter au sujet d'un partenariat. <a href="confidentialite.html">En savoir plus</a></span></label>
+          <button type="submit" class="btn btn-blue">Envoyer ma demande<svg class="icon" aria-hidden="true"><use href="#i-arrow"></use></svg></button>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>

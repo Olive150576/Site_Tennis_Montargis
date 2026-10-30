@@ -1,0 +1,80 @@
+<!--{"title": "Contact et accès | USM Tennis Montargis", "description": "Contacter l'USM Tennis Montargis : 43 avenue Louis Maurice Chautemps, 45200 Montargis. Téléphone 02 38 85 44 30. Horaires, plan d'accès, séance d'essai et inscription.", "nav": "contact", "crumb": "Contact", "org": true}-->
+<section class="page-hero draw-lines">
+  <div class="container">
+    <div class="court">
+      {{court}}
+      <nav class="crumbs" aria-label="Fil d'Ariane"><a href="index.html">Accueil</a><span>/</span><span>Contact</span></nav>
+      <h1 data-text="contact.hero.title">Contact <em>&amp; accès</em></h1>
+      <p class="lead" data-text="contact.hero.lead">Une question, une séance d'essai, une inscription ? Écrivez-nous ou passez au club, on vous répond rapidement.</p>
+    </div>
+  </div>
+</section>
+
+<section class="section-tight">
+  <div class="container contact-grid">
+    <div class="panel" id="essai">
+      <h2 class="h3" style="font-size:var(--step-3);text-transform:uppercase;font-stretch:112%">Nous écrire</h2>
+      <p class="muted" style="margin:8px 0 22px">Tous les champs sont obligatoires, sauf le téléphone.</p>
+      <form class="form" data-form="contact" data-prefill id="contact-form" novalidate>
+        <input type="hidden" name="formule" value="">
+        <div class="field"><label for="cf-subject">Votre demande</label>
+          <select id="cf-subject" name="subject">
+            <option value="renseignement">Un renseignement</option>
+            <option value="essai">Une séance d'essai</option>
+            <option value="inscription">Une inscription</option>
+            <option value="cours">Des cours ou un stage</option>
+            <option value="partenariat">Un partenariat</option>
+            <option value="autre">Autre chose</option>
+          </select></div>
+        <div class="row">
+          <div class="field"><label for="cf-name">Nom et prénom</label><input id="cf-name" name="name" autocomplete="name" required></div>
+          <div class="field"><label for="cf-phone">Téléphone <span class="muted">(facultatif)</span></label><input id="cf-phone" name="phone" type="tel" autocomplete="tel"></div>
+        </div>
+        <div class="field"><label for="cf-email">E-mail</label><input id="cf-email" name="email" type="email" autocomplete="email" required></div>
+        <div class="field"><label for="cf-message">Message</label><textarea id="cf-message" name="message" required placeholder="Âge du joueur, niveau, disponibilités…"></textarea></div>
+        <div class="hp" aria-hidden="true"><label for="cf-website">Site web</label><input id="cf-website" name="website" tabindex="-1" autocomplete="off"></div>
+        <label class="check"><input type="checkbox" id="cf-rgpd" required><span>J'accepte que mes données soient utilisées pour traiter ma demande. Elles ne sont ni revendues ni utilisées à d'autres fins. <a href="confidentialite.html">Politique de confidentialité</a></span></label>
+        <button type="submit" class="btn btn-blue">Envoyer le message<svg class="icon" aria-hidden="true"><use href="#i-arrow"></use></svg></button>
+      </form>
+    </div>
+
+    <div style="display:grid;gap:16px">
+      <div class="panel">
+        <div class="info-list">
+          <div class="info-item"><span class="ic"><svg class="icon" aria-hidden="true"><use href="#i-pin"></use></svg></span><div><b>Adresse</b><span data-address>43 avenue Louis Maurice Chautemps<br>45200 Montargis</span></div></div>
+          <div class="info-item"><span class="ic"><svg class="icon" aria-hidden="true"><use href="#i-phone"></use></svg></span><div><b>Téléphone</b><a data-href="phone" href="tel:0238854430" data-set="phone">02 38 85 44 30</a></div></div>
+          <div class="info-item"><span class="ic"><svg class="icon" aria-hidden="true"><use href="#i-mail"></use></svg></span><div><b>E-mail</b><a data-href="email" href="mailto:usmmtennis@orange.fr" data-set="email">usmmtennis@orange.fr</a></div></div>
+        </div>
+        <a class="btn btn-wa btn-block" data-wa href="#" target="_blank" rel="noopener" hidden style="margin-top:18px"><svg class="icon" aria-hidden="true"><use href="#i-whatsapp"></use></svg>Écrire sur WhatsApp</a>
+      </div>
+      <div class="panel">
+        <h3 style="font-size:1.05rem;margin-bottom:10px">Horaires</h3>
+        <div data-render="hours"></div>
+      </div>
+      <div class="panel">
+        <h3 style="font-size:1.05rem;margin-bottom:14px">Contacts directs</h3>
+        <div class="team-grid" style="grid-template-columns:1fr" data-render="team" data-group="bureau,coach" data-phone-only></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section-tight" aria-labelledby="acces">
+  <div class="container">
+    <div class="section-head"><div><p class="eyebrow">Accès</p><h2 class="h2" id="acces">Venir au club</h2><p class="lead">L'entrée se fait depuis l'avenue Louis Maurice Chautemps, par l'allée qui mène aux courts.</p></div></div>
+    <div class="map-facade">
+      <img src="assets/img/club/plan-club-md.webp" alt="" loading="lazy">
+      <div class="inner">
+        <span class="pin"><svg class="icon" aria-hidden="true"><use href="#i-pin"></use></svg></span>
+        <p style="font-weight:600;font-size:1.1rem" data-address>43 avenue Louis Maurice Chautemps<br>45200 Montargis</p>
+        <button type="button" class="btn btn-ball btn-sm" data-load-map>Afficher la carte</button>
+        <p style="font-size:.8rem;opacity:.8">La carte OpenStreetMap se charge uniquement si vous cliquez.</p>
+      </div>
+    </div>
+    <div class="route-links" style="margin-top:16px">
+      <a class="btn btn-sm" data-route="google" href="#" target="_blank" rel="noopener">Itinéraire Google Maps</a>
+      <a class="btn btn-sm" data-route="waze" href="#" target="_blank" rel="noopener">Waze</a>
+      <a class="btn btn-sm" data-route="apple" href="#" target="_blank" rel="noopener">Plans (Apple)</a>
+    </div>
+  </div>
+</section>

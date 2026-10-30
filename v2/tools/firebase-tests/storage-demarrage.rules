@@ -1,0 +1,3 @@
+rules_version = '2';
+// Règles de démarrage de l'émulateur uniquement : les tests chargent ../../firebase/storage.rules.
+service firebase.storage { match /b/{bucket}/o { match /{allPaths=**} { allow read, write: if false; } } }

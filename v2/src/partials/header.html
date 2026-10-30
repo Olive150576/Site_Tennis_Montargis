@@ -1,0 +1,53 @@
+<div class="announce" data-render="announce" hidden></div>
+<header class="site-header">
+  <div class="container header-inner">
+    <a class="brand" href="{{base}}index.html" aria-label="USM Tennis Montargis, accueil">
+      <img src="{{base}}assets/img/brand/logo-usm.webp" width="240" height="177" alt="">
+      <span class="brand-text"><b>USM Tennis</b><span>Montargis · Loiret</span></span>
+    </a>
+    <nav class="main-nav" aria-label="Navigation principale">
+      <ul>
+        <li><a href="{{base}}le-club.html"{{nav_club}}>Le club</a></li>
+        <li><a href="{{base}}ecole-de-tennis.html"{{nav_cours}}>Cours</a></li>
+        <li><a href="{{base}}competition.html"{{nav_competition}}>Compétition</a></li>
+        <li><a href="{{base}}agenda.html"{{nav_agenda}}>Agenda</a></li>
+        <li><a href="{{base}}tarifs.html"{{nav_tarifs}}>Tarifs</a></li>
+        <li><a href="{{base}}actualites.html"{{nav_actus}}>Actualités</a></li>
+        <li><a href="{{base}}partenaires.html"{{nav_partenaires}}>Partenaires</a></li>
+        <li><a href="{{base}}contact.html"{{nav_contact}}>Contact</a></li>
+      </ul>
+    </nav>
+    <div class="header-actions">
+      <a class="weather hide-sm" data-weather href="https://meteofrance.com/previsions-meteo-france/montargis/45200" target="_blank" rel="noopener" hidden></a>
+      <button type="button" class="icon-btn theme-toggle" aria-label="Changer de thème"><svg class="icon i-moon" aria-hidden="true"><use href="#i-moon"></use></svg><svg class="icon i-sun" aria-hidden="true"><use href="#i-sun"></use></svg></button>
+      <a class="icon-btn hide-sm" data-href="links.espaceMembre" href="espace-membre.html" aria-label="Espace membre" title="Espace membre"><svg class="icon" aria-hidden="true"><use href="#i-user"></use></svg></a>
+      <a class="btn btn-ball btn-sm btn-reserve" data-href="links.tenup" href="https://tenup.fft.fr/club/53450084" target="_blank" rel="noopener" aria-label="Réserver un court sur Ten'Up"><svg class="icon" aria-hidden="true"><use href="#i-calendar"></use></svg><span class="lbl">Réserver un court</span></a>
+      <button type="button" class="icon-btn menu-toggle" aria-controls="mobile-panel" aria-expanded="false" aria-label="Ouvrir le menu"><svg class="icon" aria-hidden="true"><use href="#i-menu"></use></svg></button>
+    </div>
+  </div>
+</header>
+<div class="mobile-panel" id="mobile-panel" role="dialog" aria-modal="true" aria-label="Menu">
+  <div class="mp-top">
+    <a class="brand" href="{{base}}index.html"><img src="{{base}}assets/img/brand/logo-usm.webp" width="240" height="177" alt=""><span class="brand-text"><b>USM Tennis</b><span>Montargis</span></span></a>
+    <button type="button" class="icon-btn" data-close-menu aria-label="Fermer le menu"><svg class="icon" aria-hidden="true"><use href="#i-close"></use></svg></button>
+  </div>
+  <nav aria-label="Navigation mobile">
+    <ul>
+      <li><a href="{{base}}index.html"{{nav_home}}>Accueil<svg class="icon" aria-hidden="true"><use href="#i-arrow"></use></svg></a></li>
+      <li><a href="{{base}}le-club.html"{{nav_club}}>Le club<svg class="icon" aria-hidden="true"><use href="#i-arrow"></use></svg></a></li>
+      <li><a href="{{base}}ecole-de-tennis.html"{{nav_cours}}>Cours &amp; école<svg class="icon" aria-hidden="true"><use href="#i-arrow"></use></svg></a></li>
+      <li><a href="{{base}}competition.html"{{nav_competition}}>Compétition<svg class="icon" aria-hidden="true"><use href="#i-arrow"></use></svg></a></li>
+      <li><a href="{{base}}agenda.html"{{nav_agenda}}>Agenda<svg class="icon" aria-hidden="true"><use href="#i-arrow"></use></svg></a></li>
+      <li><a href="{{base}}tarifs.html"{{nav_tarifs}}>Tarifs<svg class="icon" aria-hidden="true"><use href="#i-arrow"></use></svg></a></li>
+      <li><a href="{{base}}actualites.html"{{nav_actus}}>Actualités<svg class="icon" aria-hidden="true"><use href="#i-arrow"></use></svg></a></li>
+      <li><a href="{{base}}partenaires.html"{{nav_partenaires}}>Partenaires<svg class="icon" aria-hidden="true"><use href="#i-arrow"></use></svg></a></li>
+      <li><a href="{{base}}contact.html"{{nav_contact}}>Contact<svg class="icon" aria-hidden="true"><use href="#i-arrow"></use></svg></a></li>
+    </ul>
+  </nav>
+  <div class="mp-actions">
+    <a class="btn btn-ball btn-block" data-href="links.tenup" href="https://tenup.fft.fr/club/53450084" target="_blank" rel="noopener"><svg class="icon" aria-hidden="true"><use href="#i-calendar"></use></svg>Réserver un court</a>
+    <a class="btn btn-ghost-light btn-block" data-href="links.espaceMembre" href="espace-membre.html"><svg class="icon" aria-hidden="true"><use href="#i-user"></use></svg>Espace membre</a>
+  </div>
+  <p class="mp-foot"><span data-address>43 avenue Louis Maurice Chautemps<br>45200 Montargis</span><br><a data-href="phone" href="tel:0238854430" data-set="phone">02 38 85 44 30</a></p>
+</div>
+<main id="contenu">
