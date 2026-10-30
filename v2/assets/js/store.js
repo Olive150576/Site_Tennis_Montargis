@@ -113,7 +113,7 @@
   };
   function normalizeRemote(raw) {
     const base = seed();
-    if (!raw) return base;
+    if (!raw) return noDemoShop(base);
     const out = Object.assign({}, base, { settings: Object.assign({}, base.settings, raw.settings || {}), texts: raw.texts || {} });
     COLLECTIONS.forEach((c) => { if (raw[c] !== undefined) out[c] = toArr(raw[c]); });
     ['team', 'facilities', 'sponsors', 'faq', 'rates', 'reviews', 'shopProducts'].forEach((c) => out[c].sort((a, b) => (a.order || 0) - (b.order || 0)));
@@ -515,6 +515,7 @@
         try {
           const res = await fetch(restUrl(root()));
           const raw = res.ok ? await res.json() : null;
+          this.remoteEmpty = res.ok && !raw; // rien encore publié dans site_v2 : on affiche le contenu de départ
           this.content = normalizeRemote(raw);
         } catch (e) {
           console.warn('[USM] Base indisponible, contenu de secours utilisé', e);

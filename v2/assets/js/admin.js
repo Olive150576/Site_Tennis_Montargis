@@ -679,6 +679,7 @@
     else if (lastRev && lastRev < +t.slice(0, 4) - 1) checks.push(['warn', `L'avis le plus récent affiché date de ${lastRev}. Demandez à quelques membres de laisser un avis Google, puis ajoutez les meilleurs ici.`, '#/avis', 'Voir']);
     if (!(C.documents || []).some((d) => d.category === 'inscription' && d.url)) checks.push(['err', 'Aucun formulaire d\'inscription téléchargeable.', '#/documents', 'Ajouter']);
     (C.shopProducts || []).filter((p) => !p.draft && shopLate(p)).forEach((p) => checks.push(['err', `Boutique : la date limite de « ${p.name} » est passée. Passez la commande ou annulez-la.`, `#/boutique/${p.id}/suivi`, 'Suivi']));
+    if (!store.isLocal && store.remoteEmpty) checks.push(['err', 'Le contenu du site n\'est pas encore publié dans Firebase : les visiteurs voient le contenu de départ, et vos modifications ne s\'enregistreront qu\'après publication.', '#/sauvegarde', 'Publier']);
     if (store.isLocal) checks.push(['warn', 'Mode aperçu : les modifications restent dans ce navigateur. Exportez une sauvegarde régulièrement.', '#/sauvegarde', 'Sauvegarder']);
     const shopLive = (C.shopProducts || []).filter((p) => !p.draft && ['ouverte', 'commandee', 'disponible'].includes(p.status));
     const shopOpen = shopLive.filter((p) => p.status === 'ouverte' && !shopLate(p));
@@ -1219,10 +1220,18 @@
         <p class="hint small muted">Le format Firebase s'importe directement dans la Realtime Database (Console Firebase › Realtime Database › nœud <code>site_v2</code> › Importer JSON).</p></section>
       <section class="card form-card"><h2>${icon('upload')} Restaurer</h2><p class="muted">Remplace le contenu actuel par celui d'un fichier de sauvegarde.</p>
         <label class="dropzone" style="min-height:90px">${icon('upload')}<span>Choisir un fichier .json</span><input type="file" accept="application/json,.json" class="sr-only" id="b-imp"></label></section>
+      ${!store.isLocal && store.remoteEmpty ? `<section class="card form-card" style="border-color:var(--accent,#0046ad)"><h2>${icon('upload')} Publier le contenu de départ</h2><p class="muted">Première mise en service : envoie dans Firebase le contenu repris du site actuel (actualités, agenda, tarifs, équipe, partenaires, documents, textes…). Les produits d'exemple de la boutique ne sont pas publiés. Ensuite, récupérez les actualités manquantes ci-dessous.</p><div><button type="button" class="btn btn-primary" id="b-publish">Publier le contenu de départ</button></div></section>` : ''}
       <section class="card form-card"><h2>${icon('download')} Actualités de l'ancien site</h2><p class="muted">Ajoute les actualités publiées sur l'ancien site qui manquent ici (saisies dans l'ancien panneau ou venues de Facebook). Rien n'est modifié ni supprimé, les doublons sont ignorés : vous pouvez relancer sans risque, notamment le jour de la bascule.</p><div><button type="button" class="btn" id="b-legacy">Récupérer les actualités manquantes</button></div></section>
       ${store.isLocal ? `<section class="card form-card"><h2>Repartir du contenu d'origine</h2><p class="muted">Efface les modifications faites dans ce navigateur et recharge le contenu repris du site actuel.</p><div><button type="button" class="btn btn-danger" id="b-reset">Réinitialiser l'aperçu</button></div></section>` : ''}
     </div>`;
     const stamp = new Date().toISOString().slice(0, 10);
+    const pub = $('#b-publish', v);
+    pub && pub.addEventListener('click', async () => {
+      if (!(await modal({ title: 'Publier le contenu de départ ?', body: 'Le contenu repris du site actuel sera enregistré dans Firebase. À faire une seule fois.', confirm: 'Publier' }))) return;
+      pub.disabled = true;
+      try { await store.saveAll(store.seed()); store.remoteEmpty = false; C = await store.reload(); toast('Contenu publié dans Firebase'); route(); }
+      catch (err) { pub.disabled = false; toast(err.message, 'err'); }
+    });
     $('#b-legacy', v).addEventListener('click', async (e) => {
       const b = e.currentTarget; b.disabled = true;
       try {

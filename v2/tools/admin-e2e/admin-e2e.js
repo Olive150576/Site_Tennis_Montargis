@@ -50,6 +50,11 @@ const OVERRIDE = `;(function(c){c.mode='firebase';c.firebase=Object.assign({},c.
   const claim = await page.evaluate(async () => (await firebase.auth().currentUser.getIdTokenResult()).claims.admin);
   ok('Droit admin Storage posé automatiquement (claim)', claim === true, String(claim));
 
+  // Première mise en service : bouton « Publier le contenu de départ » (site_v2 vide)
+  ok('Tableau de bord : alerte « contenu non publié »', /pas encore publié/.test(await page.innerText('body')));
+  await go('#/sauvegarde'); await page.click('#b-publish'); await page.click('.modal [data-a="1"]'); await page.waitForTimeout(2500);
+  const pubd = await (await fetch(DB('site_v2'))).json();
+  ok('Publier le contenu de départ : site_v2 rempli, bouton disparu', pubd && pubd.news && Object.keys(pubd.news).length > 10 && !(await page.$('#b-publish')), pubd && Object.keys(pubd).join(','));
   // Import du contenu de départ (même chemin que Sauvegarde › Restaurer)
   await page.evaluate(async () => { const s = window.USM.store; const c = Object.assign(s.seed(), { settings: Object.assign({}, s.seed().settings, { adminPasswordHash: 'secret-hash' }) }); await s.saveAll(c); });
   const remote = await (await fetch(DB('site_v2'))).json();

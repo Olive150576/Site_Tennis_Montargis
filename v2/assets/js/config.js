@@ -8,7 +8,7 @@
                         Firebase ci-dessous (voir README, étape « Mise en ligne »).
    ===================================================================== */
 window.USM_CONFIG = {
-  mode: 'local',
+  mode: 'firebase',
 
   // Projet Firebase existant du club (clés publiques, identiques au site actuel)
   firebase: {
