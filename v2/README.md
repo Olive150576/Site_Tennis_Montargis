@@ -100,6 +100,9 @@ Avant tout déploiement de règles, lancer `v2/tools/firebase-tests` (voir son `
 
 1. **Admin › Sauvegarde › Format d'import Firebase** → importer le fichier dans la Realtime Database, au nœud `site_v2`. Les produits d'exemple de la boutique sont exclus d'office.
 2. Dans `assets/js/config.js`, passer `mode: 'local'` à `mode: 'firebase'`.
+3. **Actualités publiées depuis la reprise** : Admin › Sauvegarde › **Récupérer les actualités manquantes**. Le bouton lit les actualités publiques de l'ancien site, ajoute celles qui manquent (photos, texte nettoyé, catégorie) et ignore les doublons. On peut le relancer sans risque : à refaire **le jour de la bascule**, juste avant l'étape C. Relire ensuite les titres ajoutés.
+   Attention : l'ancien site range ses actualités dans une liste dont la purge (> 13 mois) décale les numéros. La reconnaissance se fait donc par date de création et par texte, jamais par numéro.
+   Les **événements** ne sont pas concernés : ceux de l'ancien site sont tous repris (au 30/10/2026). Un événement créé dans l'ancien panneau d'ici la bascule est à recréer dans le nouvel admin.
 
 ### Étape C — bascule de l'hébergement
 

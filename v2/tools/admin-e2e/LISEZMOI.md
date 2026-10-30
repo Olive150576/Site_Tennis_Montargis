@@ -2,7 +2,7 @@
 
 Vérifie, **sans toucher aux vraies données**, que l'admin du nouveau site fonctionne branché sur Firebase. Le test tourne contre les émulateurs officiels (Auth, base, Storage, fonctions), avec les vraies règles et les vraies fonctions du dépôt.
 
-20 contrôles :
+23 contrôles :
 - connexion : pas de mot de passe d'aperçu, mauvais mot de passe refusé, compte non admin refusé, admin accepté ;
 - droit admin Storage posé automatiquement ;
 - import du contenu dans `site_v2`, sans empreinte de mot de passe ni produit d'exemple ;
@@ -11,6 +11,7 @@ Vérifie, **sans toucher aux vraies données**, que l'admin du nouveau site fonc
 - envoi de photo et de PDF ;
 - message du formulaire public reçu dans l'admin, marqué lu, et un message arrivé entre-temps n'est pas effacé ;
 - site public à jour ;
+- reprise des actualités de l'ancien site sans doublon ;
 - session conservée.
 
 ## Une seule fois
@@ -21,6 +22,6 @@ Vérifie, **sans toucher aux vraies données**, que l'admin du nouveau site fonc
 
 ## Lancer
 
-Dans ce dossier : `npm test`. Résultat attendu : `20/20 contrôles admin (mode Firebase)`.
+Dans ce dossier : `npm test`. Résultat attendu : `23/23 contrôles admin (mode Firebase)`.
 
 À lancer avant la bascule, et après toute modification de `store.js`, `admin.js`, des règles ou des fonctions.

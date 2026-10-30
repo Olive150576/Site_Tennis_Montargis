@@ -57,6 +57,20 @@ const OVERRIDE = `;(function(c){c.mode='firebase';c.firebase=Object.assign({},c.
   ok("Import : empreinte du mot de passe d'aperçu non publiée", remote && remote.settings && !('adminPasswordHash' in remote.settings));
   ok('Import : aucun produit d\'exemple publié', !remote.shopProducts || !Object.values(remote.shopProducts).some((p) => p.demo));
 
+  // Reprise des actualités de l'ancien site (liste numérotée, numéros décalés par la purge)
+  const seedN56 = await page.evaluate(() => window.USM.store.seed().news.find((n) => n.id === 'n56'));
+  await fetch(DB('news'), { method: 'PUT', headers: OWN, body: JSON.stringify([
+    { title: 'Déjà reprise (même date de création)', desc: 'x', date: '24/10/2026', createdAt: seedN56.createdAt, images: [] },
+    { title: '🎾 NOUVELLE ACTU DE L\'ANCIEN PANNEAU 🎾', desc: 'Texte <b>gras</b><br>ligne 2 &amp; fin', date: '29/10/2026', createdAt: Date.now() - 864e5, images: ['https://exemple.fr/a.jpg'] }]) });
+  await go('#/sauvegarde'); await page.click('#b-legacy'); await page.waitForSelector('.modal', { timeout: 15000 });
+  const mtxt = await page.innerText('.modal');
+  ok("Ancien site : 1 actu proposée, l'actu déjà reprise est ignorée", /Ajouter 1 actualité/.test(mtxt) && /Nouvelle actu de l.ancien panneau/.test(mtxt), mtxt.slice(0, 150));
+  await page.click('.modal [data-a="1"]'); await page.waitForTimeout(1500);
+  const nv = Object.values(await (await fetch(DB('site_v2/news'))).json()).find((n) => n.source === 'ancien-site');
+  ok('Ancien site : actu ajoutée dans Firebase (texte nettoyé, photo, date)', nv && nv.body === 'Texte gras\nligne 2 & fin' && nv.images[0].src === 'https://exemple.fr/a.jpg' && nv.date === '2026-10-29', JSON.stringify(nv).slice(0, 200));
+  await go('#/sauvegarde'); await page.click('#b-legacy'); await page.waitForTimeout(2000);
+  ok('Ancien site : 2e passage sans doublon', /Rien à récupérer/.test(await page.innerText('body')));
+
   // Chaque rubrique s'ouvre sans erreur
   const routes = ['tableau','actualites','agenda','tarifs','planning','equipe','installations','galerie','documents','faq','partenaires','offres','boutique','messages','textes','reglages','sauvegarde','avis'];
   const before = errors.length;

@@ -526,6 +526,13 @@
 
     async reload() { this.content = null; return this.load(); },
 
+    /* Lecture publique d'un nœud de l'ancien site (ex. 'news'), même en mode aperçu */
+    async fetchLegacy(node) {
+      const res = await fetch(restUrl(node));
+      if (!res.ok) throw new Error('Lecture de l\'ancien site impossible (' + res.status + ')');
+      return res.json();
+    },
+
     /* Enregistre une partie du contenu (collection, 'settings' ou 'texts') */
     async save(part, value) {
       await this.load();

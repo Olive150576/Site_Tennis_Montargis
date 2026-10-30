@@ -773,6 +773,62 @@
     });
   }
 
+  /* ---------- Reprise des actualités de l'ancien site (nœud public « news ») ----------
+     Même conversion que tools/build_seed.py. L'ancien site range ses actus dans une LISTE :
+     la purge (> 13 mois) décale les numéros, donc on reconnaît une actu par sa date de
+     création ou son texte, jamais par son numéro. */
+  const EMOJI_RE = /[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\u{FE0F}\u{200D}\u{200B}]/gu;
+  const KEEP_UP = ['USM', 'FFT', 'TMC', 'FAST4', 'BEA', 'JTC', 'NC'];
+  function softTitle(t) {
+    t = String(t || '').replace(EMOJI_RE, '').replace(/\s+/g, ' ').trim();
+    const letters = t.replace(/[^A-Za-zÀ-ÖØ-öø-ÿ]/g, ''); const up = letters.replace(/[^A-ZÀ-ÖØ-Þ]/g, '');
+    if (letters.length > 6 && up.length / letters.length > 0.7) { // titre tout en majuscules → phrase normale
+      t = t.toLowerCase().replace(/[a-zà-öø-ÿ0-9]+/gi, (w) => (KEEP_UP.indexOf(w.toUpperCase()) !== -1 ? w.toUpperCase() : w));
+      t = t.replace(/(^|[.!?•—–-]\s+)([a-zà-öø-ÿ])/g, (m, a, c) => a + c.toUpperCase()).replace(/\bmontargis\b/g, 'Montargis');
+    }
+    return t;
+  }
+  function legacyBody(h) {
+    let t = String(h || '').replace(/<a [^>]*href="([^"]+)"[^>]*>(.*?)<\/a>/gi, (m, u, x) => `[${x.replace(/[<>]/g, '').trim() || 'lien'}](${u})`);
+    t = t.replace(/<br\s*\/?>/gi, '\n').replace(/<\/p>/gi, '\n\n').replace(/<[^>]+>/g, '').replace(/​/g, '');
+    const ta = document.createElement('textarea'); ta.innerHTML = t; t = ta.value;
+    return t.replace(/\n{3,}/g, '\n\n').trim();
+  }
+  function legacyExcerpt(t, n = 170) {
+    t = t.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').replace(EMOJI_RE, '').replace(/\s+/g, ' ').trim();
+    return t.length <= n ? t : t.slice(0, n).replace(/\s+\S*$/, '').replace(/[,;:—-]+$/, '') + '…';
+  }
+  function legacyCat(title) {
+    const t = title.toLowerCase();
+    if (t.includes('dunlop')) return 'evenement';
+    if (['stage', 'école', 'jeunes', 'initiation', 'père noël'].some((w) => t.includes(w))) return 'ecole';
+    if (['championnat', 'tmc', 'tournoi', 'open', 'résultat', 'finale', 'fast4', 'champion', 'radar', 'trophées'].some((w) => t.includes(w))) return 'competition';
+    return 'vie-du-club';
+  }
+  const slugOf = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-zA-Z0-9]+/g, '-').replace(/^-+|-+$/g, '').toLowerCase().slice(0, 70).replace(/-+$/, '');
+  function legacyNewsToAdd(raw, current) {
+    const ids = new Set(current.map((n) => n.id));
+    const norm = (s) => String(s || '').replace(/\s+/g, ' ').trim();
+    const bodies = new Set(current.map((n) => norm(n.body)));
+    const stamps = current.map((n) => n.createdAt || 0).filter(Boolean);
+    const items = Array.isArray(raw) ? raw.map((v, k) => [String(k), v]) : Object.entries(raw || {});
+    const out = [];
+    items.forEach(([k, v]) => {
+      if (!v || !v.title) return;
+      const body = legacyBody(v.desc);
+      // Déjà présente sous un autre id (recopie automatique Facebook → nouveau site)
+      if (bodies.has(norm(body)) || (v.createdAt && stamps.some((s) => Math.abs(s - v.createdAt) < 120000))) return; // eslint-disable-line
+      const title = softTitle(v.title);
+      const m = String(v.date || '').match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+      let id = 'n' + (v.createdAt || Date.now()).toString(36); while (ids.has(id)) id += 'x'; ids.add(id);
+      stamps.push(v.createdAt || 0); bodies.add(norm(body));
+      out.push({ id, slug: slugOf(title), title, date: m ? `${m[3]}-${m[2]}-${m[1]}` : new Date(v.createdAt || Date.now()).toISOString().slice(0, 10),
+        category: legacyCat(title), excerpt: legacyExcerpt(body), body, images: (v.images || []).filter(Boolean).map((u) => ({ src: u, sm: u, alt: title })),
+        featured: false, draft: !!v.draft, createdAt: v.createdAt || 0, source: 'ancien-site' });
+    });
+    return out;
+  }
+
   async function persist(key, value, msg) {
     try { await store.save(key, value); C[key] = value; if (key !== 'messages' && store.content && store.content.messages) C.messages = store.content.messages; if (msg) toast(store.isLocal ? msg + ' · visible uniquement dans ce navigateur (aperçu)' : msg); return true; }
     catch (e) { console.error(e); toast('Enregistrement impossible : ' + (e.message || e), 'err'); return false; }
@@ -1163,9 +1219,21 @@
         <p class="hint small muted">Le format Firebase s'importe directement dans la Realtime Database (Console Firebase › Realtime Database › nœud <code>site_v2</code> › Importer JSON).</p></section>
       <section class="card form-card"><h2>${icon('upload')} Restaurer</h2><p class="muted">Remplace le contenu actuel par celui d'un fichier de sauvegarde.</p>
         <label class="dropzone" style="min-height:90px">${icon('upload')}<span>Choisir un fichier .json</span><input type="file" accept="application/json,.json" class="sr-only" id="b-imp"></label></section>
+      <section class="card form-card"><h2>${icon('download')} Actualités de l'ancien site</h2><p class="muted">Ajoute les actualités publiées sur l'ancien site qui manquent ici (saisies dans l'ancien panneau ou venues de Facebook). Rien n'est modifié ni supprimé, les doublons sont ignorés : vous pouvez relancer sans risque, notamment le jour de la bascule.</p><div><button type="button" class="btn" id="b-legacy">Récupérer les actualités manquantes</button></div></section>
       ${store.isLocal ? `<section class="card form-card"><h2>Repartir du contenu d'origine</h2><p class="muted">Efface les modifications faites dans ce navigateur et recharge le contenu repris du site actuel.</p><div><button type="button" class="btn btn-danger" id="b-reset">Réinitialiser l'aperçu</button></div></section>` : ''}
     </div>`;
     const stamp = new Date().toISOString().slice(0, 10);
+    $('#b-legacy', v).addEventListener('click', async (e) => {
+      const b = e.currentTarget; b.disabled = true;
+      try {
+        const add = legacyNewsToAdd(await store.fetchLegacy('news'), C.news || []);
+        if (!add.length) { toast('Rien à récupérer : toutes les actualités de l\'ancien site sont déjà là.'); return; }
+        const list = add.map((n) => `<li>${esc(n.date.split('-').reverse().join('/'))} · ${esc(n.title)}${n.draft ? ' <span class="pill">Brouillon</span>' : ''}</li>`).join('');
+        if (!(await modal({ title: `Ajouter ${add.length} actualité${add.length > 1 ? 's' : ''} ?`, html: `<ul style="margin:8px 0 0 18px;line-height:1.6">${list}</ul><p class="muted small" style="margin-top:10px">Titres repris tels quels (majuscules adoucies, émojis retirés) : relisez-les ensuite dans Actualités.</p>`, confirm: 'Ajouter' }))) return;
+        const all = (C.news || []).concat(add).sort((a, b2) => (b2.date || '').localeCompare(a.date || '') || (b2.createdAt || 0) - (a.createdAt || 0));
+        if (await persist('news', all, `${add.length} actualité${add.length > 1 ? 's' : ''} ajoutée${add.length > 1 ? 's' : ''}`)) route();
+      } catch (err) { toast(err.message, 'err'); } finally { b.disabled = false; }
+    });
     $('#b-exp', v).addEventListener('click', () => { download(`usm-tennis-site-${stamp}.json`, JSON.stringify(C, null, 1)); toast('Sauvegarde téléchargée'); });
     $('#b-exp-fb', v).addEventListener('click', () => {
       const st = Object.assign({}, C.settings); delete st.adminPasswordHash; const out = { settings: st, texts: C.texts || {}, updatedAt: new Date().toISOString() };
