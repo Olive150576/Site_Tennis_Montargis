@@ -1,14 +1,14 @@
-const CACHE_NAME = 'usm-tennis-v44';
+const CACHE_NAME = 'usm-tennis-v45';
 const ASSETS = [
     '/',
     '/index.html',
     '/espace-membre.html',
     '/admin-panel.html',
     '/style.css',
-    '/script.js',
-    '/member.js',
-    '/admin.js',
-    '/notifications.js',
+    '/script.min.js',
+    '/member.min.js',
+    '/admin.min.js',
+    '/notifications.min.js',
     '/icon-192.png',
     '/icon-512.png',
     '/icon-membre-192.png',

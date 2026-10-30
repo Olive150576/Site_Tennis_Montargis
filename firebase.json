@@ -23,7 +23,22 @@
       "**/node_modules/**",
       "setup-admin.html",
       "get-uids.html",
-      "add-existing-admins.html"
+      "add-existing-admins.html",
+      "functions/**",
+      "*.md",
+      "package.json",
+      "package-lock.json",
+      "database.rules.json",
+      "firestore.rules",
+      "storage.rules",
+      "cors.json",
+      "script.js",
+      "admin.js",
+      "member.js",
+      "notifications.js",
+      "firebase-init.js",
+      "admin-auth.js",
+      "member-auth.js"
     ],
     "redirects": [
       {
