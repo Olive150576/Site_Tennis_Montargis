@@ -4,7 +4,7 @@
   "description": "Cloud Functions for USM Tennis notifications",
   "main": "index.js",
   "engines": {
-    "node": "20"
+    "node": "22"
   },
   "scripts": {
     "serve": "firebase emulators:start --only functions",
