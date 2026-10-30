@@ -115,7 +115,7 @@ Copier les fichiers du nouveau site à la racine du dépôt. **Garder** ceux de 
 - `index.html`, `sitemap.xml`, `robots.txt` ;
 - `sw.js` : la nouvelle version efface les anciens caches mais garde les notifications push des membres ;
 - la partie `hosting` de `firebase.json`, en gardant `database`, `storage`, `functions` et `firestore`.
-  **Retirer la ligne `"site": "usm-tennis-v2"`** en recopiant cette partie : à la racine, l'hébergement doit viser le site principal.
+  **Retirer la ligne `"site": "usm-tennis-v2"` et l'en-tête `X-Robots-Tag: noindex`** en recopiant cette partie : à la racine, l'hébergement doit viser le site principal et être indexé par Google.
 
 La nouvelle partie `hosting` garde, comme aujourd'hui :
 
