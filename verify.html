@@ -461,8 +461,10 @@
                 db.ref('members/' + uid + '/classement').once('value'),
                 db.ref('members/' + uid + '/categorie').once('value'),
                 db.ref('members/' + uid + '/licence').once('value'),
-                db.ref('sponsors').once('value')
-            ]).then(([prenomSnap, nomSnap, actifSnap, classementSnap, categorieSnap, licenceSnap, sponsorsSnap]) => {
+                db.ref('sponsors').once('value'),
+                // Nouveau site : partenaires gérés dans site_v2 (ignoré si absent ou illisible)
+                db.ref('site_v2/sponsors').once('value').catch(() => null)
+            ]).then(([prenomSnap, nomSnap, actifSnap, classementSnap, categorieSnap, licenceSnap, sponsorsSnap, v2Snap]) => {
                 // Si prenom et nom sont null → UID inconnu
                 if (prenomSnap.val() === null && nomSnap.val() === null) { showError(); return; }
                 const member = {
@@ -476,9 +478,19 @@
                 if (!member.actif && !member.prenom) { showError(); return; }
 
                 const sponsorsData = sponsorsSnap.val();
-                const sponsors = sponsorsData
+                let sponsors = sponsorsData
                     ? (Array.isArray(sponsorsData) ? sponsorsData : Object.values(sponsorsData))
                     : [];
+                const v2 = v2Snap && v2Snap.val();
+                if (v2) {
+                    const today = new Date().toISOString().slice(0, 10);
+                    const isOffer = (p) => p.perk && !/à venir|bientôt/i.test(p.perk) && (!p.perkUntil || p.perkUntil >= today);
+                    const abs = (u) => (/^https?:/.test(u) ? u : '/' + String(u).replace(/^\/+/, ''));
+                    sponsors = (Array.isArray(v2) ? v2 : Object.values(v2))
+                        .filter((p) => p && p.name && !p.draft && !/^USM\b/.test(p.name))
+                        .sort((a, b) => (a.order || 0) - (b.order || 0))
+                        .map((p) => ({ title: p.name, images: p.logo && p.logo.src ? [abs(p.logo.sm || p.logo.src)] : [], avantage: isOffer(p) ? p.perk : null }));
+                }
 
                 showResult(member, sponsors);
             }).catch(() => showError());

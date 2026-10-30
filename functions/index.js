@@ -825,6 +825,14 @@ exports.createNewsWebhook = functions.https.onRequest(async (req, res) => {
     items.push(newItem);
     await newsRef.set(items);
 
+    // Nouveau site : recopie l'actu dans site_v2/news (sans effet tant que le nouveau site n'est pas importé)
+    try {
+        const r = await siteV2.mirrorNewsToSiteV2({ title: autoTitle, text: cleanText, imageUrl: finalImageUrl });
+        console.log('[createNewsWebhook] site_v2 :', JSON.stringify(r));
+    } catch (e) {
+        console.warn('[createNewsWebhook] recopie site_v2 impossible :', e.message);
+    }
+
     console.log(`[createNewsWebhook] Actualité créée : "${autoTitle}"`);
     res.status(200).json({
         success: true,
@@ -964,3 +972,11 @@ exports.toggleMemberStatus = functions.https.onCall(async (data, context) => {
 
     return { success: true };
 });
+
+// ─────────────────────────────────────────────────────────────────────────
+//  NOUVEAU SITE (site_v2) ET BOUTIQUE DU CLUB — voir functions/site-v2.js
+// ─────────────────────────────────────────────────────────────────────────
+const siteV2 = require('./site-v2')({ functions, admin, getMailTransporterSafe, escapeHtml });
+exports.onSiteV2Message = siteV2.onSiteV2Message;             // formulaires du nouveau site → e-mail au bureau
+exports.onBoutiqueReservation = siteV2.onBoutiqueReservation; // réservation → e-mail de confirmation au membre
+exports.onBoutiqueAvis = siteV2.onBoutiqueAvis;               // commande lancée / disponible / annulée → e-mail au membre

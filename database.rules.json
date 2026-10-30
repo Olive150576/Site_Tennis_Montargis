@@ -143,7 +143,9 @@
     "calendrier": {
       ".read": "auth != null && (root.child('admins').child(auth.uid).exists() || root.child('coaches').child(auth.uid).exists() || root.child('members').child(auth.uid).child('actif').val() === true)",
       ".write": "auth != null && root.child('admins').child(auth.uid).exists()",
-      ".indexOn": ["date"]
+      ".indexOn": [
+        "date"
+      ]
     },
     "inscriptions_evenement": {
       ".read": "auth != null && (root.child('admins').child(auth.uid).exists() || root.child('coaches').child(auth.uid).exists() || root.child('members').child(auth.uid).child('actif').val() === true)",
@@ -276,6 +278,110 @@
         "$tokenHash": {
           ".validate": "newData.hasChildren(['token', 'keys', 'subscribedAt']) && newData.child('token').isString() && newData.child('token').val().length > 50 && newData.child('token').val().length < 500 && newData.child('subscribedAt').isNumber()"
         }
+      }
+    },
+    "site_v2": {
+      ".read": true,
+      ".write": "auth != null && root.child('admins').child(auth.uid).exists()"
+    },
+    "site_v2_messages": {
+      ".read": "auth != null && root.child('admins').child(auth.uid).exists()",
+      ".write": "auth != null && root.child('admins').child(auth.uid).exists()",
+      "$id": {
+        ".write": "!data.exists() || (auth != null && root.child('admins').child(auth.uid).exists())",
+        ".validate": "newData.hasChildren(['id', 'name', 'email', 'createdAt']) && newData.child('message').isString() && newData.child('message').val().length < 5000"
+      }
+    },
+    "boutique_reservations": {
+      ".read": "auth != null && root.child('admins').child(auth.uid).exists()",
+      ".write": "auth != null && root.child('admins').child(auth.uid).exists()",
+      "$pid": {
+        "$uid": {
+          ".read": "auth != null && auth.uid === $uid",
+          ".write": "auth != null && auth.uid === $uid && root.child('members').child(auth.uid).child('actif').val() === true && root.child('site_v2/shopProducts/' + $pid + '/status').val() === 'ouverte' && root.child('site_v2/shopProducts/' + $pid + '/draft').val() !== true && now <= root.child('site_v2/shopProducts/' + $pid + '/deadlineTs').val()",
+          "$rid": {
+            ".validate": "!newData.exists() || (newData.hasChildren(['size', 'qty', 'unitPrice', 'total', 'status', 'paid', 'pickedUp', 'createdAt']) && newData.child('qty').isNumber() && newData.child('qty').val() >= 1 && newData.child('qty').val() <= 20 && newData.child('total').val() >= newData.child('unitPrice').val() * newData.child('qty').val() - 0.01 && (root.child('admins').child(auth.uid).exists() || (newData.child('status').val() === 'reservee' && newData.child('paid').val() === false && newData.child('pickedUp').val() === false && newData.child('unitPrice').val() >= root.child('site_v2/shopProducts/' + $pid + '/priceMember').val())))",
+            "size": {
+              ".validate": "newData.isString() && newData.val().length <= 30"
+            },
+            "color": {
+              ".validate": "newData.isString() && newData.val().length <= 40"
+            },
+            "marking": {
+              ".validate": "newData.isString() && newData.val().length <= 12"
+            },
+            "name": {
+              ".validate": "newData.isString() && newData.val().length <= 80"
+            },
+            "status": {
+              ".validate": "newData.val() === 'reservee' || newData.val() === 'commandee' || newData.val() === 'disponible' || newData.val() === 'retiree' || newData.val() === 'annulee'"
+            },
+            "paid": {
+              ".validate": "newData.isBoolean()"
+            },
+            "pickedUp": {
+              ".validate": "newData.isBoolean()"
+            },
+            "createdAt": {
+              ".validate": "newData.isNumber()"
+            },
+            "updatedAt": {
+              ".validate": "newData.isNumber()"
+            },
+            "qty": {
+              ".validate": "newData.isNumber()"
+            },
+            "unitPrice": {
+              ".validate": "newData.isNumber() && newData.val() >= 0"
+            },
+            "total": {
+              ".validate": "newData.isNumber() && newData.val() >= 0"
+            },
+            "$other": {
+              ".validate": false
+            }
+          }
+        }
+      }
+    },
+    "boutique_compteurs": {
+      ".read": "auth != null && (root.child('admins').child(auth.uid).exists() || root.child('coaches').child(auth.uid).exists() || root.child('members').child(auth.uid).child('actif').val() === true)",
+      ".write": "auth != null && root.child('admins').child(auth.uid).exists()",
+      "$pid": {
+        ".write": "auth != null && root.child('members').child(auth.uid).child('actif').val() === true && root.child('site_v2/shopProducts/' + $pid).exists()",
+        ".validate": "root.child('admins').child(auth.uid).exists() || ((newData.child('total').exists() ? newData.child('total').val() : 0) - (data.child('total').exists() ? data.child('total').val() : 0) <= 20 && (data.child('total').exists() ? data.child('total').val() : 0) - (newData.child('total').exists() ? newData.child('total').val() : 0) <= 20 && (newData.child('attente').exists() ? newData.child('attente').val() : 0) - (data.child('attente').exists() ? data.child('attente').val() : 0) <= 1 && (data.child('attente').exists() ? data.child('attente').val() : 0) - (newData.child('attente').exists() ? newData.child('attente').val() : 0) <= 1)",
+        "total": {
+          ".validate": "newData.isNumber() && newData.val() >= 0"
+        },
+        "attente": {
+          ".validate": "newData.isNumber() && newData.val() >= 0"
+        },
+        "parTaille": {
+          "$taille": {
+            ".validate": "newData.isNumber() && newData.val() >= 0"
+          }
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
+    "boutique_attente": {
+      ".read": "auth != null && root.child('admins').child(auth.uid).exists()",
+      ".write": "auth != null && root.child('admins').child(auth.uid).exists()",
+      "$pid": {
+        "$uid": {
+          ".read": "auth != null && auth.uid === $uid",
+          ".write": "auth != null && auth.uid === $uid && root.child('members').child(auth.uid).child('actif').val() === true && root.child('site_v2/shopProducts/' + $pid).exists()",
+          ".validate": "newData.isNumber()"
+        }
+      }
+    },
+    "boutique_avis": {
+      ".read": "auth != null && root.child('admins').child(auth.uid).exists()",
+      ".write": "auth != null && root.child('admins').child(auth.uid).exists()",
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid"
       }
     },
     "$other": {
