@@ -3238,8 +3238,16 @@ function loadEquipesMember(uid) {
 
                 if (convUids.length) {
                     Promise.all(convUids.map(function(mUid) {
-                        return window.db_ref.ref('members/' + mUid).once('value').then(function(s) {
-                            var d = s.val() || {};
+                        // Lecture champ par champ : les règles n'autorisent plus un membre
+                        // à lire la fiche complète (email, historique...) d'un autre membre.
+                        var fields = ['prenom', 'nom', 'classement', 'telephone'];
+                        return Promise.all(fields.map(function(f) {
+                            return window.db_ref.ref('members/' + mUid + '/' + f).once('value')
+                                .then(function(s) { return s.val(); })
+                                .catch(function() { return null; });
+                        })).then(function(vals) {
+                            var d = {};
+                            fields.forEach(function(f, i) { if (vals[i] != null) d[f] = vals[i]; });
                             var ex = membresMap[mUid] || {};
                             membresMap[mUid] = {
                                 prenom:     d.prenom     || ex.prenom     || '',
