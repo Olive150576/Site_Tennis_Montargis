@@ -97,6 +97,28 @@ const OVERRIDE = `;(function(c){c.mode='firebase';c.firebase=Object.assign({},c.
   const shopAfter = await (await fetch(DB('site_v2/settings/showShop'))).json();
   ok('Interrupteur Boutique : désactivé au départ, activation enregistrée dans Firebase', sw && shopBefore === false && shopAfter === true, `champ:${sw} avant:${shopBefore} après:${shopAfter}`);
 
+  // Agenda : ouvrir les inscriptions des membres + liste des inscrits
+  const evId = await page.evaluate(() => (window.USM.store.content.events || []).find((e) => e.dateStart).id);
+  await go('#/agenda/' + evId);
+  const msId = await page.$eval('[data-f="memberSignup"] input', (i) => i.id);
+  await page.locator('#' + msId).check({ force: true }); await page.keyboard.press('Control+s'); await page.waitForTimeout(1500);
+  ok("Agenda : « Inscriptions dans l'espace membre » enregistré", (await (await fetch(DB('site_v2/events/' + evId + '/memberSignup'))).json()) === true);
+  await fetch(DB('inscriptions_evenement/' + evId + '/m1'), { method: 'PUT', headers: OWN, body: JSON.stringify({ prenom: 'Léa', nom: 'Martin', at: Date.now() }) });
+  await go('#/agenda'); await go('#/agenda/' + evId); await page.waitForTimeout(1200);
+  ok('Agenda : liste des inscrits affichée sous le formulaire', /Inscrits depuis l'espace membre \(1\)/.test(await page.innerText('body')) && /Léa Martin/.test(await page.innerText('#ev-signups')));
+  // Messages aux membres (club_messages, format de l'ancien panneau)
+  await go('#/annonces');
+  const fld = async (k) => page.$eval(`#cm-form [data-f="${k}"] input, #cm-form [data-f="${k}"] textarea, #cm-form [data-f="${k}"] select`, (i) => i.id);
+  await page.fill('#' + await fld('titre'), 'Courts couverts fermés'); await page.selectOption('#' + await fld('type'), 'urgent');
+  await page.fill('#' + await fld('contenu'), 'Entretien jeudi matin.'); await page.click('#cm-save'); await page.waitForTimeout(1500);
+  let cms = Object.entries(await (await fetch(DB('club_messages'), { headers: OWN })).json() || {});
+  const cm = cms.find(([, m]) => m.titre === 'Courts couverts fermés');
+  ok('Messages aux membres : publié au format actuel (titre, contenu, type, actif, createdAt)', cm && cm[1].contenu === 'Entretien jeudi matin.' && cm[1].type === 'urgent' && cm[1].actif === true && cm[1].createdAt > 0, JSON.stringify(cms).slice(0, 200));
+  await page.click(`[data-cm-toggle="${cm[0]}"]`); await page.waitForTimeout(1200);
+  ok('Messages aux membres : masquer', (await (await fetch(DB('club_messages/' + cm[0] + '/actif'), { headers: OWN })).json()) === false);
+  await page.click(`[data-cm-del="${cm[0]}"]`); await page.click('.modal [data-a="1"]'); await page.waitForTimeout(1200);
+  ok('Messages aux membres : supprimer', (await (await fetch(DB('club_messages/' + cm[0]), { headers: OWN })).json()) === null);
+
   // Envoi d'image et de PDF (Storage)
   const up = await page.evaluate(async () => {
     const c = document.createElement('canvas'); c.width = 800; c.height = 600; const g = c.getContext('2d'); g.fillStyle = '#0046ad'; g.fillRect(0, 0, 800, 600);

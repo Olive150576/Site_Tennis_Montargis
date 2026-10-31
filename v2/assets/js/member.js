@@ -292,9 +292,47 @@
             db.ref('members/' + UID + '/visites').set(fb.database.ServerValue.increment(1)).catch(function () {});
           }
         } catch (e) {}
-        showApp();
+        return liveLoadClub(fb).catch(function () {}).then(function () { showApp(); });
       });
     });
+  }
+  /* ---------- Agenda unique (site_v2/events, Admin › Agenda) + inscriptions ----------
+     inscriptions_evenement/{idEvénement}/{uid} {prenom, nom, at} — nœud et règles existants
+     Messages du bureau : club_messages (Admin › Messages aux membres, format de l'ancien panneau) */
+  var EV_CAT = { tournoi: 'tournoi', animation: 'animation', competition: 'competition', stage: 'stage' };
+  function evStart(e) {
+    var d = new Date(e.dateStart + 'T00:00:00'), m = /(\d{1,2})\s*h\s*(\d{2})?/i.exec(e.time || '');
+    if (m) d.setHours(+m[1], +(m[2] || 0));
+    return d.getTime();
+  }
+  function liveLoadClub(fb) {
+    var db = fb.database(), none = function () { return null; };
+    return Promise.all([window.USM.store.load(), db.ref('inscriptions_evenement').once('value').catch(none), db.ref('club_messages').once('value').catch(none)])
+      .then(function (res) {
+        var c = res[0] || {}, ins = (res[1] && res[1].val()) || {}, cm = (res[2] && res[2].val()) || {};
+        S.eventsIn = {};
+        S.events = (c.events || []).filter(function (e) { return e && !e.draft && e.dateStart; }).map(function (e) {
+          var reg = ins[e.id] || {};
+          if (reg[UID]) S.eventsIn[e.id] = true;
+          return { id: e.id, titre: e.title || '', cat: EV_CAT[e.category] || 'vie', start: evStart(e),
+            endTs: new Date((e.dateEnd || e.dateStart) + 'T23:59:59').getTime(), end: 2, lieu: e.location || 'Au club',
+            inscription: !!e.memberSignup, desc: e.summary || '', timeTxt: e.time || '', count: Object.keys(reg).length };
+        });
+        S.msgs = Object.keys(cm).map(function (k) {
+          var m = cm[k] || {};
+          return { id: k, actif: m.actif, type: ['warning', 'urgent'].indexOf(m.type) >= 0 ? m.type : 'info', titre: m.titre || 'Message du club', texte: m.contenu || m.message || '', createdAt: m.createdAt || 0 };
+        }).filter(function (m) { return m.actif !== false; });
+      });
+  }
+  function liveEventToggle(id) {
+    var ev = S.events.filter(function (e) { return e.id === id; })[0]; if (!ev || !ev.inscription) return;
+    var on = !S.eventsIn[id];
+    S.eventsIn[id] = on; ev.count = Math.max(0, (ev.count || 0) + (on ? 1 : -1)); route();
+    sdk().then(function (fb) {
+      var r = fb.database().ref('inscriptions_evenement/' + id + '/' + UID);
+      return on ? r.set({ prenom: S.me.prenom, nom: S.me.nom, at: fb.database.ServerValue.TIMESTAMP }) : r.remove();
+    }).then(function () { toast(on ? 'Inscription enregistrée' : 'Inscription annulée'); })
+      .catch(function (x) { S.eventsIn[id] = !on; ev.count = Math.max(0, ev.count + (on ? -1 : 1)); route(); toast('Inscription impossible : ' + liveErr(x), 6000); });
   }
   function liveLogout() {
     return sdk().then(function (fb) { return fb.auth().signOut(); }).then(function () {
@@ -476,7 +514,7 @@
       todos.push('<div class="todo-item is-info"><span class="ti-ico">' + ic('trophy') + '</span><div><b>Votre classement a-t-il changé ?</b><span>Le classement FFT est mis à jour chaque mois. Ici, vous êtes à ' + esc(me.classement) + '.</span></div><div class="todo-actions"><button class="btn btn-sm" data-rank>' + ic('edit') + 'Mettre à jour</button><button class="btn btn-sm" data-rank-same>Rien n\'a changé</button></div></div>');
     }
     var next = S.matches.filter(function (m) { return m.date > Date.now(); }).sort(function (a, b) { return a.date - b.date; })[0];
-    var evs = S.events.filter(function (e) { return e.start > Date.now(); }).sort(function (a, b) { return a.start - b.start; }).slice(0, 3);
+    var evs = S.events.filter(function (e) { return (e.endTs || e.start) > Date.now(); }).sort(function (a, b) { return a.start - b.start; }).slice(0, 3);
     var fresh = freshPosts().length;
 
     $('#v-accueil').innerHTML =
@@ -677,7 +715,7 @@
 
   /* ---------- Agenda ---------- */
   var agFilter = 'tout';
-  var CAT = { animation: ['Animation', 'cat-evenement'], competition: ['Compétition', 'cat-competition'], tournoi: ['Tournoi', 'cat-competition'], vie: ['Vie du club', 'cat-vie-du-club'] };
+  var CAT = { animation: ['Animation', 'cat-evenement'], competition: ['Compétition', 'cat-competition'], tournoi: ['Tournoi', 'cat-competition'], stage: ['Stage', 'cat-ecole'], vie: ['Vie du club', 'cat-vie-du-club'] };
   function gcal(e) {
     var f = function (t) { return new Date(t).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, ''); };
     return 'https://calendar.google.com/calendar/render?action=TEMPLATE&text=' + encodeURIComponent(e.titre) + '&dates=' + f(e.start) + '/' + f(e.start + e.end * 36e5) + '&location=' + encodeURIComponent('USM Tennis Montargis, 43 avenue Louis Maurice Chautemps, 45200 Montargis') + '&details=' + encodeURIComponent(e.desc || '');
@@ -685,12 +723,12 @@
   function eventRow(e) {
     var inn = S.eventsIn[e.id], c = CAT[e.cat] || ['Club', 'cat-vie-du-club'];
     return '<article class="ev' + (inn ? ' is-in' : '') + '"><div class="ev-date"><b>' + fmt.dnum(e.start) + '</b><span>' + esc(fmt.dmon(e.start)) + '</span></div>' +
-      '<div><div class="ev-title">' + esc(e.titre) + '</div><div class="ev-meta"><span class="chip ' + c[1] + '">' + c[0] + '</span><span>' + ic('clock') + esc(fmt.time(e.start)) + '</span><span>' + ic('pin') + esc(e.lieu) + '</span></div></div>' +
+      '<div><div class="ev-title">' + esc(e.titre) + '</div><div class="ev-meta"><span class="chip ' + c[1] + '">' + c[0] + '</span><span>' + ic('clock') + esc(e.timeTxt || fmt.time(e.start)) + '</span><span>' + ic('pin') + esc(e.lieu) + '</span>' + (e.inscription && e.count ? '<span>' + ic('users') + e.count + ' inscrit' + (e.count > 1 ? 's' : '') + '</span>' : '') + '</div></div>' +
       '<div class="ev-actions">' + (e.inscription ? (inn ? '<button class="btn btn-sm" data-evin="' + e.id + '">' + ic('check') + 'Inscrit</button>' : '<button class="btn btn-blue btn-sm" data-evin="' + e.id + '">Je m\'inscris</button>') : '') +
       '<a class="icon-btn" href="' + esc(gcal(e)) + '" target="_blank" rel="noopener" aria-label="Ajouter à mon agenda" title="Ajouter à mon agenda">' + ic('calendar') + '</a></div></article>';
   }
   RENDER.agenda = function () {
-    var list = S.events.filter(function (e) { return e.start > Date.now() && (agFilter === 'tout' || (agFilter === 'inscrit' ? S.eventsIn[e.id] : e.cat === agFilter)); }).sort(function (a, b) { return a.start - b.start; });
+    var list = S.events.filter(function (e) { return (e.endTs || e.start) > Date.now() && (agFilter === 'tout' || (agFilter === 'inscrit' ? S.eventsIn[e.id] : e.cat === agFilter)); }).sort(function (a, b) { return a.start - b.start; });
     var byMonth = {}, order = [];
     list.forEach(function (e) { var k = fmt.month(e.start); if (!byMonth[k]) { byMonth[k] = []; order.push(k); } byMonth[k].push(e); });
     var unread = unreadMsgs().length;
@@ -700,7 +738,7 @@
       '<details class="msgs"' + (unread ? ' open' : '') + '><summary>' + ic('megaphone') + 'Messages du bureau' + (unread ? ' <span class="badge" style="margin-left:0">' + unread + ' nouveau' + (unread > 1 ? 'x' : '') + '</span>' : '') + ic('chevron-down') + '</summary><div class="stack">' +
         msgs.map(function (m) { return '<div class="msg ' + (m.type !== 'info' ? m.type : '') + '"><div class="msg-top">' + (m.type !== 'info' ? '<span class="tag ' + m.type + '">' + (m.type === 'urgent' ? 'Urgent' : 'Important') + '</span>' : '') + '<span>' + esc(fmt.ago(m.createdAt)) + '</span></div><b>' + esc(m.titre) + '</b><p>' + esc(m.texte) + '</p></div>'; }).join('') +
       '</div></details>' +
-      '<div class="filters-bar">' + [['tout', 'Tout'], ['inscrit', 'Mes inscriptions'], ['tournoi', 'Tournois'], ['animation', 'Animations'], ['competition', 'Compétition'], ['vie', 'Vie du club']].map(function (f) { return '<button class="fchip" data-ag="' + f[0] + '" aria-pressed="' + (agFilter === f[0]) + '">' + f[1] + '</button>'; }).join('') + '</div>' +
+      '<div class="filters-bar">' + [['tout', 'Tout'], ['inscrit', 'Mes inscriptions'], ['tournoi', 'Tournois'], ['animation', 'Animations'], ['competition', 'Compétition'], ['stage', 'Stages'], ['vie', 'Vie du club']].map(function (f) { return '<button class="fchip" data-ag="' + f[0] + '" aria-pressed="' + (agFilter === f[0]) + '">' + f[1] + '</button>'; }).join('') + '</div>' +
       (order.length ? order.map(function (k) { return '<h2 class="month-label">' + esc(k) + '</h2><div class="ev-list">' + byMonth[k].map(eventRow).join('') + '</div>'; }).join('') : '<div class="empty">Rien pour ce filtre.</div>');
     var d = $('details.msgs'); if (d) d.addEventListener('toggle', function () { if (d.open) { allMsgs().forEach(function (m) { S.readMsgs[m.id] = 1; }); save(); updateBadges(); } });
     if (unread) { allMsgs().forEach(function (m) { S.readMsgs[m.id] = 1; }); save(); }
@@ -1227,6 +1265,7 @@
     }
     if (d.champ) { S.champs.forEach(function (c) { if (c.id === d.champ) c.inscrit = true; }); save(); RENDER.equipes(); toast('Demande envoyée au capitaine'); return; }
     if (d.evin) {
+      if (LIVE) { liveEventToggle(d.evin); return; }
       S.eventsIn[d.evin] = !S.eventsIn[d.evin]; save(); route();
       toast(S.eventsIn[d.evin] ? 'Inscription enregistrée' : 'Inscription annulée'); return;
     }

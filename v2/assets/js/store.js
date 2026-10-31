@@ -701,6 +701,43 @@
       }
     },
 
+    /* ---------- Espace membre : nœuds partagés avec l'espace membre actuel ----------
+       inscriptions_evenement/{idEvénement}/{uid} {prenom, nom, at}
+       club_messages/{id} {titre, contenu, type: info|warning|urgent, date, actif, createdAt} */
+    async eventSignups(eventId) {
+      if (this.isLocal) return [];
+      const fb = await firebaseSDK();
+      const s = await fb.database().ref('inscriptions_evenement/' + eventId).once('value');
+      return toArr(s.val()).map((x) => ({ uid: x.id, prenom: x.prenom || '', nom: x.nom || '', at: x.at || 0 })).sort((a, b) => a.at - b.at);
+    },
+    clubMessages: {
+      KEY: 'usm_club_messages_apercu',
+      readLocal() { try { return JSON.parse(localStorage.getItem(this.KEY) || '[]'); } catch (e) { return []; } },
+      async list() {
+        if (Store.isLocal) return this.readLocal();
+        const fb = await firebaseSDK();
+        const s = await fb.database().ref('club_messages').once('value');
+        return toArr(s.val()).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+      },
+      /* Même format que l'ancien panneau : l'espace membre actuel les affiche aussi */
+      async save(m) {
+        const data = { titre: m.titre, contenu: m.contenu, type: m.type || 'info', date: m.date || '', actif: m.actif !== false };
+        if (Store.isLocal) {
+          const all = this.readLocal(); const i = all.findIndex((x) => x.id === m.id);
+          if (i >= 0) all[i] = Object.assign(all[i], data); else all.unshift(Object.assign({ id: 'cm' + Date.now().toString(36), createdAt: Date.now() }, data));
+          localStorage.setItem(this.KEY, JSON.stringify(all)); return true;
+        }
+        const fb = await firebaseSDK(); const db = fb.database();
+        if (m.id) await db.ref('club_messages/' + m.id).update(data); // conserve createdAt
+        else await db.ref('club_messages').push(Object.assign({ createdAt: Date.now() }, data));
+        return true;
+      },
+      async remove(id) {
+        if (Store.isLocal) { localStorage.setItem(this.KEY, JSON.stringify(this.readLocal().filter((x) => x.id !== id))); return true; }
+        const fb = await firebaseSDK(); await fb.database().ref('club_messages/' + id).remove(); return true;
+      }
+    },
+
     seed,
     sdk: firebaseSDK, // même instance Firebase (et mêmes émulateurs en test) pour l'espace membre
     COLLECTIONS,

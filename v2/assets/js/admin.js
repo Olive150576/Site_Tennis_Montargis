@@ -136,11 +136,12 @@
         { k: 'body', t: 'markdown', l: 'Description complète' },
         { k: 'images', t: 'images', l: 'Visuels' },
         { k: 'link', t: 'url', l: 'Lien d\'inscription ou d\'information', placeholder: 'https://tenup.fft.fr/…' },
+        { k: 'memberSignup', t: 'switch', l: 'Inscriptions dans l\'espace membre', hint: 'Les membres s\'inscrivent en un geste depuis leur agenda (date de début obligatoire). La liste des inscrits s\'affiche sous ce formulaire.' },
         { k: 'recurring', t: 'switch', l: 'Rendez-vous annuel', half: true },
         { k: 'featured', t: 'switch', l: 'Mettre en avant', half: true },
         { k: 'draft', t: 'switch', l: 'Brouillon (non visible)', half: true }
       ],
-      blank: () => ({ id: uid('e'), title: '', category: 'animation', location: 'Au club', dateStart: '', dateEnd: '', time: '', when: '', summary: '', body: '', images: [], link: '', recurring: false, featured: false, draft: false }),
+      blank: () => ({ id: uid('e'), title: '', category: 'animation', location: 'Au club', dateStart: '', dateEnd: '', time: '', when: '', summary: '', body: '', images: [], link: '', memberSignup: false, recurring: false, featured: false, draft: false }),
       sort: (a, b) => (b.dateStart || '0').localeCompare(a.dateStart || '0'),
       columns: [
         { h: '', w: 70, r: (x) => thumb((x.images || [])[0]) },
@@ -151,7 +152,7 @@
       ],
       filter: { k: 'category', opts: EVENT_CATS, l: 'Tous les types' },
       search: (x) => x.title + ' ' + x.summary,
-      validate: (x) => (x.dateEnd && x.dateStart && x.dateEnd < x.dateStart ? 'La date de fin est avant la date de début.' : ''),
+      validate: (x) => (x.dateEnd && x.dateStart && x.dateEnd < x.dateStart ? 'La date de fin est avant la date de début.' : x.memberSignup && !x.dateStart ? 'Pour ouvrir les inscriptions des membres, indiquez une date de début.' : ''),
       view: (x) => `agenda.html#${x.id}`
     },
     rates: {
@@ -599,6 +600,7 @@
     { r: 'boutique', l: 'Commandes groupées', i: 'bag', c: 'shopProducts' },
     { g: 'Site' },
     { r: 'messages', l: 'Messages', i: 'mail' },
+    { r: 'annonces', l: 'Messages aux membres', i: 'megaphone' },
     { r: 'textes', l: 'Textes des pages', i: 'edit' },
     { r: 'reglages', l: 'Paramètres', i: 'settings' },
     { r: 'sauvegarde', l: 'Sauvegarde', i: 'shield' }
@@ -858,6 +860,7 @@
     if (prev) prev.innerHTML = S.preview(orig);
     setDirty(isNew);
     if (isNew) st.lastChild.textContent = 'Nouveau — pas encore enregistré';
+    if (key === 'events' && !isNew) renderSignups(v, orig);
     const save = async () => {
       const item = form.collect();
       if (!form.validate()) { toast('Complétez les champs obligatoires (*).', 'err'); return; }
@@ -1042,6 +1045,79 @@
   }
 
   /* ---------- Messages ---------- */
+  /* ---------- Espace membre : messages aux membres (club_messages, partagé avec l'espace actuel) ---------- */
+  const CM_TYPES = [['info', 'Information'], ['warning', 'Important'], ['urgent', 'Urgent']];
+  async function viewClubMessages() {
+    const v = shell('Messages aux membres', '');
+    v.innerHTML = `<p class="intro">Les messages publiés ici apparaissent dans l'espace membre (agenda › Messages du bureau, et « À faire » pour les messages importants ou urgents). Ils s'affichent aussi dans l'espace membre actuel pendant la transition.</p>
+      <section class="card form-card" id="cm-form-card"><h2 id="cm-h">${icon('megaphone')} Nouveau message</h2><div id="cm-form"></div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap"><button type="button" class="btn btn-primary" id="cm-save">${icon('check')} Publier</button><button type="button" class="btn" id="cm-cancel" hidden>Annuler la modification</button></div></section>
+      <section class="card" style="margin-top:16px"><div class="card-pad" id="cm-list"><p class="muted">Chargement…</p></div></section>`;
+    const FIELDS = [
+      { k: 'titre', t: 'text', l: 'Titre', req: true, max: 90 },
+      { k: 'type', t: 'select', l: 'Importance', opts: CM_TYPES, half: true },
+      { k: 'date', t: 'text', l: 'Date affichée (facultatif)', half: true, placeholder: 'Mardi 4 novembre' },
+      { k: 'contenu', t: 'textarea', l: 'Message', req: true, max: 1000 }
+    ];
+    let list = [], editing = null, form = null;
+    const blank = () => ({ id: '', titre: '', type: 'info', date: '', contenu: '', actif: true });
+    function openForm(m) {
+      editing = m && m.id ? m : null;
+      form = Form($('#cm-form', v), FIELDS, Object.assign(blank(), m || {}), () => {});
+      $('#cm-h', v).innerHTML = `${icon('megaphone')} ${editing ? 'Modifier le message' : 'Nouveau message'}`;
+      $('#cm-save', v).innerHTML = `${icon('check')} ${editing ? 'Enregistrer' : 'Publier'}`;
+      $('#cm-cancel', v).hidden = !editing;
+    }
+    async function load() {
+      try { list = await store.clubMessages.list(); } catch (e) { $('#cm-list', v).innerHTML = `<p class="muted">Lecture impossible : ${esc(e.message)}</p>`; return; }
+      draw();
+    }
+    function draw() {
+      const box = $('#cm-list', v);
+      if (!list.length) { box.innerHTML = `<div class="empty-state">${icon('megaphone')}<p>Aucun message publié.</p></div>`; return; }
+      box.innerHTML = list.map((m) => `<article class="msg ${m.actif === false ? '' : 'unread'}" data-id="${esc(m.id)}" style="${m.actif === false ? 'opacity:.6' : ''}">
+        <span class="avatar">${icon(m.type === 'urgent' ? 'megaphone' : m.type === 'warning' ? 'info' : 'mail')}</span>
+        <div><div class="head"><b>${esc(m.titre || 'Sans titre')}</b><span class="pill ${m.type === 'urgent' ? 'warn' : m.type === 'warning' ? 'ball' : 'blue'}">${esc(label(CM_TYPES, m.type || 'info'))}</span>${m.actif === false ? '<span class="pill">Masqué</span>' : ''}<span class="muted small">${m.createdAt ? new Date(m.createdAt).toLocaleDateString('fr-FR') : ''}${m.date ? ' · ' + esc(m.date) : ''}</span></div>
+          <p class="body">${esc(m.contenu || m.message || '')}</p></div>
+        <div class="acts"><button type="button" class="btn btn-sm" data-cm-edit="${esc(m.id)}">${icon('edit')} Modifier</button><button type="button" class="btn btn-sm" data-cm-toggle="${esc(m.id)}">${m.actif === false ? 'Afficher' : 'Masquer'}</button><button type="button" class="btn btn-sm btn-icon btn-danger" data-cm-del="${esc(m.id)}" title="Supprimer" aria-label="Supprimer">${icon('trash')}</button></div></article>`).join('');
+      $$('[data-cm-edit]', box).forEach((b) => b.addEventListener('click', () => { openForm(list.find((x) => x.id === b.dataset.cmEdit)); $('#cm-form-card', v).scrollIntoView({ behavior: 'smooth' }); }));
+      $$('[data-cm-toggle]', box).forEach((b) => b.addEventListener('click', async () => {
+        const m = list.find((x) => x.id === b.dataset.cmToggle);
+        try { await store.clubMessages.save(Object.assign({}, m, { actif: m.actif === false })); toast(m.actif === false ? 'Message affiché aux membres' : 'Message masqué'); await load(); } catch (e) { toast(e.message, 'err'); }
+      }));
+      $$('[data-cm-del]', box).forEach((b) => b.addEventListener('click', async () => {
+        if (!(await modal({ title: 'Supprimer ce message ?', body: 'Il disparaît de l\'espace membre.', confirm: 'Supprimer', danger: true }))) return;
+        try { await store.clubMessages.remove(b.dataset.cmDel); toast('Message supprimé'); await load(); } catch (e) { toast(e.message, 'err'); }
+      }));
+    }
+    $('#cm-save', v).addEventListener('click', async () => {
+      const item = form.collect();
+      if (!form.validate()) { toast('Complétez le titre et le message.', 'err'); return; }
+      const b = $('#cm-save', v); b.disabled = true;
+      try {
+        await store.clubMessages.save(Object.assign({}, editing || {}, item, { id: editing ? editing.id : '' }));
+        toast(editing ? 'Message modifié' : 'Message publié dans l\'espace membre'); openForm(null); await load();
+      } catch (e) { toast('Publication impossible : ' + e.message, 'err'); } finally { b.disabled = false; }
+    });
+    $('#cm-cancel', v).addEventListener('click', () => openForm(null));
+    openForm(null); load();
+  }
+
+  /* ---------- Agenda : inscrits depuis l'espace membre (inscriptions_evenement) ---------- */
+  async function renderSignups(v, ev) {
+    const box = document.createElement('section'); box.className = 'card form-card'; box.style.marginTop = '16px'; box.id = 'ev-signups';
+    box.innerHTML = `<h2>${icon('users')} Inscrits depuis l'espace membre</h2><p class="muted">Chargement…</p>`;
+    $('.editor', v).insertAdjacentElement('afterend', box);
+    let list = [];
+    try { list = await store.eventSignups(ev.id); } catch (e) { box.querySelector('p').textContent = 'Lecture impossible : ' + e.message; return; }
+    if (store.isLocal) { box.querySelector('p').textContent = 'Visible en ligne (mode Firebase) : les inscriptions de l\'aperçu ne sont pas enregistrées.'; return; }
+    if (!list.length) { box.querySelector('p').textContent = ev.memberSignup ? 'Personne pour le moment.' : 'Activez « Inscriptions dans l\'espace membre » ci-dessus pour ouvrir les inscriptions.'; return; }
+    box.innerHTML = `<h2>${icon('users')} Inscrits depuis l'espace membre (${list.length})</h2>
+      <ol style="margin:4px 0 12px 20px;line-height:1.8">${list.map((x) => `<li>${esc(x.prenom)} ${esc(x.nom)} <span class="muted small">${x.at ? 'le ' + new Date(x.at).toLocaleDateString('fr-FR') : ''}</span></li>`).join('')}</ol>
+      <div><button type="button" class="btn" id="su-copy">${icon('copy')} Copier la liste</button></div>`;
+    $('#su-copy', box).addEventListener('click', () => { try { navigator.clipboard.writeText(list.map((x) => x.prenom + ' ' + x.nom).join('\n')); toast('Liste copiée'); } catch (e) { toast('Copie impossible', 'err'); } });
+  }
+
   async function viewMessages() {
     const v = shell('Messages', '', `<button type="button" class="btn" id="m-csv">${icon('download')} Exporter (CSV)</button>`);
     v.innerHTML = '<p class="intro">Demandes envoyées depuis les formulaires Contact et Partenaires.</p><div class="toolbar"><div class="tabs-line" role="tablist" id="m-tabs" style="margin:0;border:0"></div></div><div class="card" id="m-list"><div class="empty-state"><span class="spinner"></span></div></div>';
@@ -1315,6 +1391,7 @@
     else if (ROUTES[r]) id ? viewEdit(ROUTES[r], id) : viewList(ROUTES[r]);
     else if (r === 'galerie') viewGallery();
     else if (r === 'messages') await viewMessages();
+    else if (r === 'annonces') viewClubMessages();
     else if (r === 'textes') viewTexts();
     else if (r === 'reglages') viewSettings();
     else if (r === 'sauvegarde') viewBackup();

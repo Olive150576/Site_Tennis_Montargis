@@ -29,7 +29,17 @@ const OVERRIDE = `;(function(c){c.mode='firebase';c.firebase=Object.assign({},c.
   const camille = { prenom: 'Camille', nom: 'Durand', email: 'camille@test.fr', telephone: '06 01 02 03 04', licence: '1234567 X', categorie: 'Adulte F', statut: 'Membre', actif: true,
     classement: '30/3', createdAt: at(2019, 9, 1), classementHistory: { h1: { from: '30/4', to: '30/3', at: at(2025, 11, 10) } },
     partenaire: { public_profile: false, updatedAt: 1, style_jeu: 'competitif', dispo: { samedi: { matin: true } }, partager_telephone: false, partager_email: false, message: '' } };
-  await fetch(DB(''), { method: 'PUT', headers: OWN, body: JSON.stringify({ members: { [uid]: camille, [inactif]: { prenom: 'I', nom: 'N', actif: false } } }) });
+  const iso = (n) => { const d = new Date(Date.now() + n * 864e5); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+  const ev = (id, o) => Object.assign({ id, title: 'Évé ' + id, category: 'animation', location: 'Club house', dateStart: iso(10), dateEnd: '', time: '', summary: 'Résumé ' + id, draft: false, memberSignup: false }, o);
+  const site_v2 = { settings: { email: 'club@test.fr' }, events: {
+    ev1: ev('ev1', { title: 'Soirée double surprise', time: '18 h 30', memberSignup: true }),
+    ev2: ev('ev2', { title: 'Tournoi interne', category: 'tournoi', dateStart: iso(20) }),
+    ev3: ev('ev3', { title: 'Brouillon secret', draft: true }),
+    ev4: ev('ev4', { title: 'Événement passé', dateStart: iso(-10), memberSignup: true }) } };
+  const club_messages = { cm1: { titre: 'Courts fermés mardi', contenu: 'Entretien de 8 h à 12 h.', type: 'urgent', actif: true, createdAt: Date.now() - 36e5 },
+    cm2: { titre: 'Assemblée générale', contenu: 'En novembre au club house.', type: 'info', actif: true, createdAt: Date.now() - 864e5 },
+    cm3: { titre: 'Ancien message masqué', contenu: 'x', type: 'info', actif: false, createdAt: 1 } };
+  await fetch(DB(''), { method: 'PUT', headers: OWN, body: JSON.stringify({ members: { [uid]: camille, [inactif]: { prenom: 'I', nom: 'N', actif: false } }, site_v2, club_messages }) });
   const M = async () => (await (await fetch(DB('members/' + uid), { headers: OWN })).json());
 
   const browser = await chromium.launch();
@@ -66,6 +76,24 @@ const OVERRIDE = `;(function(c){c.mode='firebase';c.firebase=Object.assign({},c.
   await page.waitForTimeout(800);
   let m = await M();
   ok('Visite comptée (visites, derniereVisite)', m.visites === 1 && m.derniereVisite > 0, JSON.stringify({ v: m.visites, d: m.derniereVisite }));
+
+  // Messages du bureau (club_messages) : urgent dans « À faire », masqué jamais affiché
+  const acc = await page.innerText('#v-accueil');
+  ok('Accueil : message urgent du bureau dans « À faire »', /Courts fermés mardi/.test(acc), acc.slice(0, 200));
+  ok('Accueil : prochains événements réels (pas de brouillon ni de passé)', /Soirée double surprise/.test(acc) && !/Brouillon secret|Événement passé/.test(acc));
+  // Agenda unique (site_v2/events) + inscriptions
+  await page.goto(SITE + '/espace-membre.html#agenda'); await page.waitForTimeout(1200);
+  const ag = await page.innerText('#v-agenda');
+  ok('Agenda : événements à venir, horaire texte « 18 h 30 », brouillon et passé exclus', /Soirée double surprise/.test(ag) && /Tournoi interne/.test(ag) && /18 h 30/.test(ag) && !/Brouillon secret|Événement passé/.test(ag), ag.slice(0, 300));
+  ok('Agenda : messages du bureau (2 visibles, le masqué absent)', /Assemblée générale/.test(ag) && /Courts fermés mardi/.test(ag) && !/Ancien message masqué/.test(ag));
+  ok("Agenda : bouton d'inscription seulement si l'admin l'a ouvert", !!(await page.$('#v-agenda [data-evin="ev1"]')) && !(await page.$('#v-agenda [data-evin="ev2"]')));
+  await page.click('#v-agenda [data-evin="ev1"]'); await page.waitForTimeout(1500);
+  let reg = await (await fetch(DB('inscriptions_evenement/ev1/' + uid), { headers: OWN })).json();
+  ok('Inscription enregistrée (inscriptions_evenement, format actuel) + « 1 inscrit »', reg && reg.prenom === 'Camille' && reg.nom === 'Durand' && reg.at > 0 && /1 inscrit/.test(await page.innerText('#v-agenda')), JSON.stringify(reg));
+  await page.click('#v-agenda [data-evin="ev1"]'); await page.waitForTimeout(1500);
+  reg = await (await fetch(DB('inscriptions_evenement/ev1/' + uid), { headers: OWN })).json();
+  ok('Désinscription : supprimée de Firebase', reg === null, JSON.stringify(reg));
+  await page.click('#v-agenda [data-evin="ev1"]'); await page.waitForTimeout(1200); // réinscrit pour la suite
 
   await page.goto(SITE + '/espace-membre.html#carte'); await page.waitForSelector('#app:not([hidden])', { timeout: 20000 }); await page.waitForTimeout(1200);
   const carte = await page.innerText('#v-carte');
