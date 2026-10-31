@@ -1,1014 +1,209 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fr">
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Espace Membre — USM Tennis Montargis</title>
-    <meta name="robots" content="noindex, nofollow">
-
-    <!-- Microsoft Clarity - Analyse comportementale -->
-    <script type="text/javascript">
-        (function(c,l,a,r,i,t,y){
-            // Appareil déjà utilisé en admin : on ne charge pas Clarity (voir stopTrackingForAdmin dans script.js)
-            try { if (localStorage.getItem('usm_no_clarity') === '1') return; } catch (e) {}
-            c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
-            t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
-            y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
-        })(window, document, "clarity", "script", "vfrevzz9j6");
-    </script>
-
-    <!-- Favicon -->
-    <link rel="icon" type="image/x-icon" href="/favicon.ico">
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png">
-
-    <!-- PWA — application installable dédiée à l'espace membre -->
-    <link rel="manifest" href="/manifest-membre.json" crossorigin="use-credentials">
-    <meta name="theme-color" content="#0d1b2e">
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-membre.png">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Espace Membre">
-
-    <!-- Preconnect -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
-
-    <!-- Styles -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css">
-
-    <style>
-        body {
-            background: #020617;
-            color: #e2e8f0;
-            font-family: 'Poppins', sans-serif;
-            margin: 0;
-            padding: 0;
-            min-height: 100vh;
-        }
-
-        #auth-loading {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            gap: 20px;
-        }
-
-        #auth-loading img {
-            width: 80px;
-            opacity: 0.85;
-        }
-
-        #auth-loading p {
-            color: #64748b;
-            font-size: 0.9rem;
-            margin: 0;
-        }
-
-        .auth-spinner {
-            width: 36px;
-            height: 36px;
-            border: 3px solid rgba(255,255,255,0.08);
-            border-top-color: #22c55e;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        #member-page {
-            display: none;
-        }
-
-        .member-back-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 8px 14px;
-            background: rgba(100,116,139,0.12);
-            border: 1px solid rgba(148,163,184,0.25);
-            border-radius: 8px;
-            color: #94a3b8;
-            font-size: 0.8rem;
-            text-decoration: none;
-            transition: all 0.2s;
-            white-space: nowrap;
-        }
-        .member-back-btn:hover {
-            background: rgba(100,116,139,0.22);
-            color: #e2e8f0;
-        }
-
-        .vip-dl-btn {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            width: 100%;
-            max-width: 520px;
-            margin: 14px auto 0;
-            padding: 13px 20px;
-            background: linear-gradient(135deg, rgba(255,215,0,0.12), rgba(245,158,11,0.08));
-            border: 1px solid rgba(255,215,0,0.35);
-            border-radius: 12px;
-            color: #ffd700;
-            font-size: 0.9rem;
-            font-family: inherit;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-            letter-spacing: 0.3px;
-        }
-        .vip-dl-btn:hover {
-            background: linear-gradient(135deg, rgba(255,215,0,0.22), rgba(245,158,11,0.15));
-            box-shadow: 0 0 18px rgba(255,215,0,0.2);
-        }
-
-        .pf-btn {
-            padding: 6px 14px;
-            background: rgba(255,255,255,0.05);
-            border: 1px solid rgba(255,255,255,0.15);
-            border-radius: 8px;
-            color: #94a3b8;
-            font-size: 0.8rem;
-            cursor: pointer;
-            font-family: inherit;
-            transition: all 0.2s;
-        }
-        .pf-btn.active {
-            background: rgba(255,215,0,0.15);
-            border-color: rgba(255,215,0,0.5);
-            color: #ffd700;
-        }
-
-        .partenaire-card {
-            background: rgba(10,22,40,0.75);
-            border: 1px solid rgba(255,215,0,0.18);
-            border-radius: 14px;
-            padding: 16px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            transition: border-color 0.2s;
-        }
-        .partenaire-card:hover {
-            border-color: rgba(255,215,0,0.35);
-        }
-        .partenaire-avatar-circle {
-            width: 44px; height: 44px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, rgba(255,215,0,0.18), rgba(180,150,0,0.08));
-            border: 1px solid rgba(255,215,0,0.35);
-            display: flex; align-items: center; justify-content: center;
-            font-size: 1rem; font-weight: 700; color: #ffd700;
-            flex-shrink: 0; overflow: hidden;
-        }
-        .partenaire-avatar-circle img {
-            width: 100%; height: 100%; object-fit: cover; border-radius: 50%;
-        }
-        .partenaire-dispo-tag {
-            display: inline-flex; align-items: center;
-            padding: 3px 8px;
-            background: rgba(34,197,94,0.1);
-            border: 1px solid rgba(34,197,94,0.3);
-            border-radius: 6px;
-            color: #4ade80;
-            font-size: 0.72rem;
-        }
-        .partenaire-contact-btn {
-            flex: 1;
-            display: flex; align-items: center; justify-content: center; gap: 6px;
-            padding: 8px 10px;
-            border-radius: 8px;
-            font-size: 0.8rem;
-            font-family: inherit;
-            cursor: pointer;
-            text-decoration: none;
-            transition: all 0.2s;
-        }
-        .partenaire-contact-btn.sms {
-            background: rgba(16,185,129,0.1);
-            border: 1px solid rgba(16,185,129,0.35);
-            color: #34d399;
-        }
-        .partenaire-contact-btn.sms:hover {
-            background: rgba(16,185,129,0.2);
-        }
-        .partenaire-contact-btn.tel {
-            background: rgba(34,197,94,0.07);
-            border: 1px solid rgba(34,197,94,0.25);
-            color: #86efac;
-        }
-        .partenaire-contact-btn.tel:hover {
-            background: rgba(34,197,94,0.14);
-        }
-        .partenaire-contact-btn.email {
-            background: rgba(99,102,241,0.1);
-            border: 1px solid rgba(99,102,241,0.35);
-            color: #a5b4fc;
-        }
-        .partenaire-contact-btn.email:hover {
-            background: rgba(99,102,241,0.2);
-        }
-
-        /* ===== Messages club ===== */
-        .club-message-card {
-            background: rgba(255,255,255,0.04);
-            border: 1px solid rgba(255,255,255,0.08);
-            border-left: 4px solid #3b82f6;
-            border-radius: 12px;
-            padding: 18px 20px;
-            margin-bottom: 14px;
-        }
-        .club-message-card.warning { border-left-color: #f59e0b; }
-        .club-message-card.urgent  { border-left-color: #ef4444; background: rgba(239,68,68,0.05); }
-        .club-message-card-header {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 10px;
-        }
-        .club-message-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            font-size: 0.7rem;
-            font-weight: 700;
-            letter-spacing: 0.5px;
-            text-transform: uppercase;
-            padding: 3px 9px;
-            border-radius: 20px;
-            background: rgba(59,130,246,0.15);
-            color: #60a5fa;
-        }
-        .club-message-badge.warning { background: rgba(245,158,11,0.15); color: #fbbf24; }
-        .club-message-badge.urgent  { background: rgba(239,68,68,0.15);  color: #f87171; }
-        .club-message-title {
-            font-size: 1rem;
-            font-weight: 600;
-            color: #e2e8f0;
-            flex: 1;
-        }
-        .club-message-date { font-size: 0.75rem; color: #64748b; }
-        .club-message-body { color: #94a3b8; font-size: 0.88rem; line-height: 1.6; white-space: pre-wrap; }
-
-        /* ===== En-tête sur téléphone : boutons alignés en rangées nettes ===== */
-        @media (max-width: 640px) {
-            .member-header { padding: 20px 16px; gap: 14px; }
-            /* Contacter le club : étiquette sur sa propre ligne, boutons en 2 colonnes égales */
-            #club-contact-btns { width: 100%; }
-            #club-contact-btns > span { flex-basis: 100%; }
-            #club-contact-btns a { flex: 1; justify-content: center; }
-            /* Actions : « Revenir au site » + « Aide » côte à côte, « Déconnexion » en dessous pleine largeur */
-            .member-header-actions { width: 100%; margin-left: 0 !important; }
-            .member-header-actions .member-back-btn { flex: 1; justify-content: center; }
-            .member-header-actions .member-logout-btn { flex-basis: 100%; justify-content: center; }
-        }
-
-        /* ===== Post-it « planning frigo » : rendu uniquement à l'impression ===== */
-        #planning-frigo-print { display: none; }
-        .frigo-poster { font-family: 'Poppins', sans-serif; color: #111; }
-        .frigo-header { display: flex; align-items: center; gap: 10px; border-bottom: 2px solid #c9a227; padding-bottom: 7px; margin-bottom: 10px; }
-        .frigo-header img { height: 34px; width: 34px; object-fit: contain; }
-        .frigo-titre { font-size: 16px; font-weight: 700; margin: 0; }
-        .frigo-joueur { font-size: 10.5px; color: #444; margin-top: 1px; }
-        .frigo-liste { display: flex; flex-direction: column; gap: 6px; }
-        .frigo-ligne { border: 1px solid #ccc; border-left: 4px solid #c9a227; border-radius: 6px; padding: 6px 10px; page-break-inside: avoid; }
-        .frigo-date { font-size: 13px; font-weight: 700; text-transform: capitalize; }
-        .frigo-adversaire { font-size: 11px; margin-top: 1px; }
-        .frigo-lieu { font-size: 10px; margin-top: 3px; }
-        .frigo-badge { display: inline-block; padding: 1px 7px; border-radius: 9px; font-weight: 600; font-size: 9.5px; }
-        .frigo-badge-dom { background: #dcfce7; color: #166534; }
-        .frigo-badge-ext { background: #fef3c7; color: #92400e; }
-        .frigo-adresse { color: #555; }
-        .frigo-cases { display: flex; flex-wrap: wrap; column-gap: 10px; row-gap: 3px; margin-top: 5px; padding-top: 4px; border-top: 1px dashed #ccc; }
-        .frigo-case { display: inline-flex; align-items: center; gap: 4px; font-size: 9.5px; color: #333; }
-        .frigo-box { display: inline-block; width: 9px; height: 9px; border: 1.3px solid #555; border-radius: 2px; flex-shrink: 0; }
-        .frigo-footer { margin-top: 8px; font-size: 8.5px; color: #777; text-align: center; }
-
-        @media print {
-            /* Format A5 (demi-A4) : un vrai format « post-it », pas une pleine page. */
-            @page { size: A5; margin: 8mm 10mm; }
-            /* position:fixed se répéterait sur chaque page : on masque plutôt tout le reste
-               du body (flux normal préservé) pour laisser le post-it s'étaler sur plusieurs pages. */
-            body.printing-frigo > *:not(#planning-frigo-print) { display: none !important; }
-            body.printing-frigo #planning-frigo-print {
-                display: block !important;
-                margin: 0;
-                padding: 0;
-                background: #fff;
-            }
-        }
-    </style>
-
-    <!-- Firebase SDKs — defer : téléchargement parallèle, exécution après parsing HTML -->
-    <script defer src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script defer src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-    <script defer src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-    <script defer src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
-    <script defer src="https://www.gstatic.com/firebasejs/8.10.1/firebase-functions.js"></script>
-    <script defer src="firebase-init.min.js"></script>
-    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
-    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script defer src="notifications.min.js"></script>
-    <script defer src="member.min.js?v=29"></script>
-    <script defer src="member-auth.min.js?v=3"></script>
-    <script>
-        // PWA — enregistre le service worker même si l'utilisateur arrive
-        // directement sur l'espace membre (installation depuis cette page).
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js', { scope: '/' })
-                    .then(reg => reg.update())
-                    .catch(err => console.log('SW Registration Error:', err));
-            });
-        }
-    </script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Espace membre · USM Tennis Montargis</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#1541c9">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,500..900&family=Instrument+Sans:wght@400..700&display=swap">
+<link rel="stylesheet" href="assets/css/member.css">
+<script>try{var t=localStorage.getItem('usm_theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+<link rel="manifest" href="/manifest-membre.json">
+<link rel="apple-touch-icon" href="/apple-touch-icon-membre.png">
 </head>
+<body class="m-app">
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+<symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+<symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></symbol>
+<symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s-7-6.1-7-11.5a7 7 0 0 1 14 0C19 14.9 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.6"/></symbol>
+<symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="M4.5 12.5l5 5 10-11"/></symbol>
+<symbol id="i-repeat" viewBox="0 0 24 24"><path d="M4 10a7 7 0 0 1 12.5-4.3L19 8M20 14a7 7 0 0 1-12.5 4.3L5 16"/><path d="M19 3.5V8h-4.5M5 20.5V16h4.5"/></symbol>
+<symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11M7 10.5l5 5 5-5M4.5 19.5h15"/></symbol>
+<symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3.5H7a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-10z"/><path d="M14 3.5v5h5"/></symbol>
+<symbol id="i-external" viewBox="0 0 24 24"><path d="M14 4.5h5.5V10M19.5 4.5L11 13M17 14v4.5a1.5 1.5 0 0 1-1.5 1.5h-10A1.5 1.5 0 0 1 4 18.5v-10A1.5 1.5 0 0 1 5.5 7H10"/></symbol>
+<symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+<symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+<symbol id="i-chevron-left" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></symbol>
+<symbol id="i-chevron-right" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></symbol>
+<symbol id="i-chevron-down" viewBox="0 0 24 24"><path d="M5 9l7 7 7-7"/></symbol>
+<symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+<symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4 4"/></symbol>
+<symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/></symbol>
+<symbol id="i-moon" viewBox="0 0 24 24"><path d="M19.5 14.5A8 8 0 0 1 9.5 4.5a8 8 0 1 0 10 10z"/></symbol>
+<symbol id="i-cloud" viewBox="0 0 24 24"><path d="M7 18.5h10a4 4 0 0 0 .6-7.95A6 6 0 0 0 6.2 11 3.8 3.8 0 0 0 7 18.5z"/></symbol>
+<symbol id="i-rain" viewBox="0 0 24 24"><path d="M7 15h10a4 4 0 0 0 .6-7.95A6 6 0 0 0 6.2 7.5 3.8 3.8 0 0 0 7 15z"/><path d="M8 18l-1 2.5M12 18l-1 2.5M16 18l-1 2.5"/></symbol>
+<symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1 1"/><path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1-1"/></symbol>
+<symbol id="i-facebook" viewBox="0 0 24 24"><path d="M14 8.5h2.5V5H14a3.5 3.5 0 0 0-3.5 3.5V11H8v3.5h2.5V21H14v-6.5h2.5L17 11h-3V9a.5.5 0 0 1 .5-.5z"/></symbol>
+<symbol id="i-instagram" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r=".6"/></symbol>
+<symbol id="i-whatsapp" viewBox="0 0 24 24"><path d="M4 20l1.3-4A8.5 8.5 0 1 1 8.4 19z"/><path d="M9 8.5c0 3.5 3 6.5 6.5 6.5l1-1.6-2-1-1 .8a4.5 4.5 0 0 1-2.2-2.2l.8-1-1-2z"/></symbol>
+<symbol id="i-trophy" viewBox="0 0 24 24"><path d="M7.5 4h9v5a4.5 4.5 0 0 1-9 0z"/><path d="M7.5 6H4.5a3 3 0 0 0 3 4M16.5 6h3a3 3 0 0 1-3 4M12 13.5V17M8.5 20.5h7M9.5 17h5"/></symbol>
+<symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8.5" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 5.2a3.5 3.5 0 0 1 0 6.6M18 14.5a6.5 6.5 0 0 1 3.5 5.5"/></symbol>
+<symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="4"/><path d="M4.5 20.5a7.5 7.5 0 0 1 15 0"/></symbol>
+<symbol id="i-phone" viewBox="0 0 24 24"><path d="M6.5 3.5h3l1.5 4-2 1.5a11 11 0 0 0 6 6l1.5-2 4 1.5v3a2 2 0 0 1-2 2A16 16 0 0 1 4.5 5.5a2 2 0 0 1 2-2z"/></symbol>
+<symbol id="i-mail" viewBox="0 0 24 24"><rect x="3" y="5.5" width="18" height="13" rx="2"/><path d="M3.5 7l8.5 6 8.5-6"/></symbol>
+<symbol id="i-ball" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6a9 9 0 0 1 0 12.8M18.4 5.6a9 9 0 0 0 0 12.8"/></symbol>
+<symbol id="i-sparkle" viewBox="0 0 24 24"><path d="M12 3.5l1.8 5.2 5.2 1.8-5.2 1.8L12 17.5l-1.8-5.2-5.2-1.8 5.2-1.8z"/><path d="M19 16v4M17 18h4"/></symbol>
+<symbol id="i-court" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="1"/><path d="M3.5 12h17M7.5 3.5v17M16.5 3.5v17M7.5 7.5h9M7.5 16.5h9M12 7.5v9"/></symbol>
+<symbol id="i-school" viewBox="0 0 24 24"><path d="M2.5 9L12 4.5 21.5 9 12 13.5z"/><path d="M6.5 11v5c0 1.5 2.5 3 5.5 3s5.5-1.5 5.5-3v-5M21.5 9v5"/></symbol>
+<symbol id="i-handshake" viewBox="0 0 24 24"><path d="M3 12l3.5-3.5L10 10l3-2.5 3 .5 5 4"/><path d="M6.5 8.5L3 12l5.5 5.5c.8.8 2 .8 2.8 0l5.7-5.7M10 10l3.5 3.5M9 13.5l2.5 2.5M11.5 11.5l3 3"/></symbol>
+<symbol id="i-euro" viewBox="0 0 24 24"><path d="M17.5 6.5A6.5 6.5 0 1 0 17.5 17.5"/><path d="M4.5 10.5h9M4.5 13.5h9"/></symbol>
+<symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5M12 7.8v.4"/></symbol>
+<symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3.5l7 2.8v5.2c0 4.3-3 7.7-7 9-4-1.3-7-4.7-7-9V6.3z"/><path d="M9 12l2 2 4-4"/></symbol>
+<symbol id="i-leaf" viewBox="0 0 24 24"><path d="M5 19c0-8 5-13.5 14.5-14.5C19 14 13.5 19 5 19z"/><path d="M5 19l8-8"/></symbol>
+<symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 20s-7.5-4.5-7.5-10A4.5 4.5 0 0 1 12 7a4.5 4.5 0 0 1 7.5 3c0 5.5-7.5 10-7.5 10z"/></symbol>
+<symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r=".8"/></symbol>
+<symbol id="i-light" viewBox="0 0 24 24"><path d="M9.5 18h5M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></symbol>
+<symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+<symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V5M7 9.5l5-5 5 5M4.5 19.5h15"/></symbol>
+<symbol id="i-trash" viewBox="0 0 24 24"><path d="M4.5 7h15M9.5 7V4.5h5V7M6.5 7l1 13h9l1-13M10 11v5.5M14 11v5.5"/></symbol>
+<symbol id="i-copy" viewBox="0 0 24 24"><rect x="8.5" y="8.5" width="11" height="11" rx="2"/><path d="M15.5 8.5V6a1.5 1.5 0 0 0-1.5-1.5H6A1.5 1.5 0 0 0 4.5 6v8A1.5 1.5 0 0 0 6 15.5h2.5"/></symbol>
+<symbol id="i-grip" viewBox="0 0 24 24"><circle cx="9" cy="6" r=".9"/><circle cx="15" cy="6" r=".9"/><circle cx="9" cy="12" r=".9"/><circle cx="15" cy="12" r=".9"/><circle cx="9" cy="18" r=".9"/><circle cx="15" cy="18" r=".9"/></symbol>
+<symbol id="i-star" viewBox="0 0 24 24"><path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.8z"/></symbol>
+<symbol id="i-edit" viewBox="0 0 24 24"><path d="M4.5 19.5h4l10-10a2.8 2.8 0 0 0-4-4l-10 10z"/><path d="M13 7l4 4"/></symbol>
+<symbol id="i-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1.2l2-1.6-2-3.4-2.4.9a7 7 0 0 0-2-1.2L14 3h-4l-.5 2.5a7 7 0 0 0-2 1.2l-2.4-.9-2 3.4 2 1.6a7 7 0 0 0 0 2.4l-2 1.6 2 3.4 2.4-.9a7 7 0 0 0 2 1.2L10 21h4l.5-2.5a7 7 0 0 0 2-1.2l2.4.9 2-3.4-2-1.6A7 7 0 0 0 19 12z"/></symbol>
+<symbol id="i-logout" viewBox="0 0 24 24"><path d="M14.5 4.5h3a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2h-3M10 16.5L5.5 12 10 7.5M5.5 12H15"/></symbol>
+<symbol id="i-image" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><circle cx="9" cy="10" r="1.8"/><path d="M20.5 16l-5-5-8 8.5"/></symbol>
+<symbol id="i-megaphone" viewBox="0 0 24 24"><path d="M3.5 10v4h3l8 4.5v-13l-8 4.5z"/><path d="M18 9.5a3.5 3.5 0 0 1 0 5M6.5 14l1.5 5.5h2.5L9.5 14"/></symbol>
+<symbol id="i-home" viewBox="0 0 24 24"><path d="M3.5 11L12 4l8.5 7M6 9.5v10h12v-10"/><path d="M10 19.5v-5h4v5"/></symbol>
+<symbol id="i-chevron-up" viewBox="0 0 24 24"><path d="M5 15l7-7 7 7"/></symbol>
 
-<body>
+<symbol id="i-qr" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="6.5" height="6.5" rx="1"/><rect x="14" y="3.5" width="6.5" height="6.5" rx="1"/><rect x="3.5" y="14" width="6.5" height="6.5" rx="1"/><path d="M14 14h2.5v2.5H14zM18 18h2.5v2.5H18zM14 18.5v2M20.5 14v2"/></symbol>
+<symbol id="i-chat" viewBox="0 0 24 24"><path d="M4 5.5h16v10.5H9l-5 4z"/><path d="M8 9.5h8M8 12.5h5"/></symbol>
+<symbol id="i-ticket" viewBox="0 0 24 24"><path d="M3.5 8a2 2 0 0 0 0 4v0a2 2 0 0 1 0 4v2.5h17V16a2 2 0 0 1 0-4 2 2 0 0 1 0-4V5.5h-17z"/><path d="M14 5.5v13" stroke-dasharray="2 2.5"/></symbol>
+<symbol id="i-camera" viewBox="0 0 24 24"><path d="M4 8h3.5L9 5.5h6L16.5 8H20v11H4z"/><circle cx="12" cy="13" r="3.5"/></symbol>
+<symbol id="i-send" viewBox="0 0 24 24"><path d="M4 12l16-7.5-6 16-2.5-6.5z"/><path d="M11.5 14L20 4.5"/></symbol>
+<symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/></symbol>
+<symbol id="i-bag" viewBox="0 0 24 24"><path d="M5.2 8h13.6l-1.1 12.5H6.3z"/><path d="M9 10.5V6.5a3 3 0 0 1 6 0v4"/></symbol>
+<symbol id="i-apps" viewBox="0 0 24 24"><rect x="4" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.6"/></symbol>
+</svg>
 
-    <!-- Écran de chargement (affiché pendant la vérification auth) -->
-    <div id="auth-loading">
-        <img src="/logo_usm_new.png" alt="USM Tennis Montargis">
-        <div class="auth-spinner"></div>
-        <p>Vérification de votre accès...</p>
+<!-- ============ Connexion ============ -->
+<div class="login" id="login-view">
+  <div class="login-art court">
+    <svg class="court-lines" viewBox="0 0 2377 1097" preserveAspectRatio="none" aria-hidden="true"><g class="v"><rect x="40" y="40" width="2297" height="1017"/><line x1="327" y1="40" x2="327" y2="1057"/><line x1="2050" y1="40" x2="2050" y2="1057"/><line x1="327" y1="274" x2="2050" y2="274"/><line x1="327" y1="822" x2="2050" y2="822"/><line x1="1188" y1="274" x2="1188" y2="822"/><line class="net" x1="12" y1="548" x2="2365" y2="548"/></g></svg>
+    <a class="brand" href="index.html"><img src="assets/img/brand/logo-usm.webp" width="240" height="177" alt=""><span class="brand-text"><b>USM Tennis</b><span>Montargis · Loiret</span></span></a>
+    <div>
+      <h1>Votre club dans la poche</h1>
+      <p class="lead">Carte de membre, convocations, partenaires de jeu et agenda : tout ce qu'il faut entre deux matchs.</p>
+      <ul class="login-perks">
+        <li><svg class="icon" aria-hidden="true"><use href="#i-qr"></use></svg>Carte de membre avec QR code</li>
+        <li><svg class="icon" aria-hidden="true"><use href="#i-users"></use></svg>Trouver un partenaire à son niveau</li>
+        <li><svg class="icon" aria-hidden="true"><use href="#i-trophy"></use></svg>Répondre aux convocations en un geste</li>
+        <li><svg class="icon" aria-hidden="true"><use href="#i-bag"></use></svg>Boutique du club en commande groupée</li>
+      </ul>
     </div>
+  </div>
+  <div class="login-form-wrap">
+    <form class="login-form" id="login-form" novalidate>
+      <div><h2>Connexion</h2><p class="muted" style="margin-top:6px">Avec l'email donné au club lors de votre inscription.</p></div>
+      <div class="field"><label for="lg-email">Email</label><input id="lg-email" type="email" autocomplete="username" inputmode="email" required></div>
+      <div class="field"><label for="lg-pw">Mot de passe</label><div class="pw-field"><input id="lg-pw" type="password" autocomplete="current-password" required><button type="button" id="pw-eye" aria-label="Afficher le mot de passe" aria-pressed="false"><svg class="icon" aria-hidden="true"><use href="#i-eye"></use></svg></button></div></div>
+      <p class="form-err" id="lg-err" role="alert" hidden></p>
+      <button class="btn btn-blue btn-block" type="submit">Se connecter</button>
+      <div class="login-links"><a href="#" id="forgot">Mot de passe oublié ?</a><a href="index.html">Retour au site</a></div>
+      <div class="divider">aperçu</div>
+      <button class="btn btn-ball btn-block" type="button" id="demo-btn"><svg class="icon" aria-hidden="true"><use href="#i-sparkle"></use></svg>Découvrir avec le compte démo</button>
+      <p class="login-note">Pas encore d'accès ? Il est créé par le club à votre adhésion. Écrivez à <a href="mailto:usmmtennis@orange.fr">usmmtennis@orange.fr</a> ou appelez le <a href="tel:0238854430">02 38 85 44 30</a>.</p>
+    </form>
+  </div>
+</div>
 
-    <!-- Dashboard membre (affiché après auth réussie) -->
-    <div id="member-page">
-
-        <div id="member-zone" class="container" style="margin-top:50px; padding-bottom:80px;">
-
-            <!-- En-tête membre -->
-            <div class="member-header">
-                <div class="member-header-logo-wrap">
-                    <a href="/" title="Retour au site">
-                        <img src="/logo_usm_new.png" alt="USM Tennis Montargis" class="member-header-logo">
-                    </a>
-                </div>
-                <div class="member-avatar-wrap">
-                    <div class="member-avatar" id="member-avatar-img"
-                         style="cursor:pointer; position:relative;"
-                         title="Changer ma photo"
-                         onclick="window.openPhotoPicker()"
-                         onmouseenter="document.getElementById('avatar-cam-overlay').style.opacity='1'"
-                         onmouseleave="document.getElementById('avatar-cam-overlay').style.opacity='0'">
-                        <i class="fas fa-user" id="member-avatar-icon"></i>
-                        <div id="avatar-cam-overlay" style="position:absolute;inset:0;background:rgba(0,0,0,0.55);border-radius:50%;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity 0.2s;pointer-events:none;">
-                            <i class="fas fa-camera" style="color:white;font-size:1.1rem;"></i>
-                        </div>
-                    </div>
-                    <input type="file" id="member-photo-input" accept="image/*" style="display:none;" onchange="window.initPhotoCropper(this)">
-                </div>
-                <div class="member-header-info">
-                    <h2 class="member-greeting" id="member-greeting" data-clarity-mask="true">Bonjour !</h2>
-                </div>
-                <div id="club-contact-btns" style="display:none; gap:8px; align-items:center; flex-wrap:wrap;"></div>
-                <div class="member-header-actions" style="margin-left:auto; display:flex; gap:8px; flex-wrap:wrap; align-items:center; justify-content:flex-end;">
-                    <a href="/" class="member-back-btn" title="Retourner sur le site du club"
-                       style="background:rgba(255,215,0,0.1); border-color:rgba(255,215,0,0.45); color:#ffd700; font-weight:600;">
-                        <i class="fas fa-home"></i> Revenir au site
-                    </a>
-                    <button class="member-back-btn" onclick="window.showMemberHelp()" title="Comment fonctionne mon espace membre ?"
-                        style="background:rgba(0,210,255,0.08); border-color:rgba(0,210,255,0.35); color:#00d2ff; cursor:pointer; font-family:inherit;">
-                        <i class="fas fa-question-circle"></i> Aide
-                    </button>
-                    <button class="member-logout-btn" onclick="window.memberLogout()" style="margin-left:0;">
-                        <i class="fas fa-sign-out-alt"></i> Déconnexion
-                    </button>
-                </div>
-            </div>
-
-            <!-- MODAL AIDE MEMBRE -->
-            <div id="member-help-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.88); z-index:9500; padding:30px 15px; overflow-y:auto;" onclick="if(event.target===this)window.closeMemberHelp()">
-                <div style="max-width:620px; margin:0 auto; background:#0f172a; border:1px solid rgba(0,210,255,0.4); border-radius:16px; padding:26px;">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                        <h3 style="color:#00d2ff; font-family:'Orbitron'; font-size:0.95rem; margin:0;"><i class="fas fa-question-circle" style="margin-right:8px;"></i>Mon espace membre, mode d'emploi</h3>
-                        <button onclick="window.closeMemberHelp()" style="background:#334155; color:white; border:none; padding:7px 14px; border-radius:8px; cursor:pointer;">✕</button>
-                    </div>
-
-                    <div style="color:#00d2ff; font-size:12px; font-weight:bold; letter-spacing:1px; text-transform:uppercase; margin:16px 0 8px;"><i class="fas fa-th-large" style="margin-right:5px;"></i>Les 4 onglets</div>
-                    <div style="display:grid; gap:6px; font-size:13px; color:#94a3b8; line-height:1.5;">
-                        <div><strong style="color:#e2e8f0;"><i class="fas fa-user-circle" style="margin-right:5px; color:#ffd700;"></i>Mon Profil</strong> — votre carte de membre (QR compris), vos informations modifiables, et en bas : vos avantages chez nos partenaires et les téléchargements (carte à imprimer, fonds d'écran).</div>
-                        <div><strong style="color:#e2e8f0;"><i class="fas fa-users" style="margin-right:5px; color:#ffd700;"></i>Partenaires</strong> — pour trouver des joueurs : activez d'abord « Apparaître dans l'annuaire » (bloc du haut), puis cherchez par nom, dispo ou style de jeu et contactez directement.</div>
-                        <div><strong style="color:#e2e8f0;"><i class="fas fa-calendar-alt" style="margin-right:5px; color:#00d2ff;"></i>Calendrier</strong> — tout ce qui se passe au club, mois par mois : tournois, sorties, matchs des équipes (les points de couleur sur la grille = des événements ce jour-là). Les messages du bureau sont dans le bandeau du haut.</div>
-                        <div><strong style="color:#e2e8f0;"><i class="fas fa-shield-alt" style="margin-right:5px; color:#e11d48;"></i>Mes Équipes</strong> — vos convocations (répondez-y !), votre équipe avec vos disponibilités et la discussion entre coéquipiers, et les championnats ouverts aux inscriptions.</div>
-                    </div>
-
-                    <div style="color:#22c55e; font-size:12px; font-weight:bold; letter-spacing:1px; text-transform:uppercase; margin:18px 0 8px;"><i class="fas fa-list-check" style="margin-right:5px;"></i>Les gestes essentiels</div>
-                    <div style="display:grid; gap:6px; font-size:13px; color:#94a3b8; line-height:1.5;">
-                        <div><strong style="color:#e2e8f0;">M'inscrire à un championnat :</strong> Mes Équipes → « S'inscrire » — le coach valide et vous place dans une équipe (vous serez notifié).</div>
-                        <div><strong style="color:#e2e8f0;">Donner mes disponibilités :</strong> Mes Équipes → sous votre équipe, un bouton Dispo / Indispo par rencontre — enregistré immédiatement, le coach le voit.</div>
-                        <div><strong style="color:#e2e8f0;">Répondre à une convocation :</strong> Mes Équipes → « Je confirme ma présence » ou « Je ne peux pas » — le coach est prévenu en cas d'empêchement.</div>
-                        <div><strong style="color:#e2e8f0;">Discuter avec mon équipe :</strong> bouton « 💬 Discussion d'équipe » — covoiturage, qui apporte quoi… le coach y a accès aussi.</div>
-                        <div><strong style="color:#e2e8f0;">Être alerté :</strong> vos convocations et le suivi de vos inscriptions arrivent <strong style="color:#00d2ff;">automatiquement par email</strong> (vérifiez vos spams au premier envoi). Pour être prévenu aussi sur votre téléphone, activez les notifications (bouton en bas de Mes Équipes).</div>
-                        <div><strong style="color:#e2e8f0;">Réserver un terrain :</strong> Mon Profil → « Réserver un terrain » (TenUp).</div>
-                    </div>
-
-                    <div style="background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.3); border-radius:10px; padding:10px 14px; margin-top:16px; font-size:12px; color:#94a3b8;">
-                        <i class="fas fa-circle-info" style="color:#f59e0b; margin-right:6px;"></i>Les pastilles rouges sur les onglets signalent du nouveau (message du bureau, convocation, message d'équipe).
-                    </div>
-                </div>
-            </div>
-
-            <!-- Onglets navigation -->
-            <div class="member-tabs-bar">
-                <button class="mtab active" onclick="window.switchMemberTab('profil')" id="mtab-btn-profil">
-                    <i class="fas fa-user-circle"></i> Mon Profil
-                </button>
-                <button class="mtab" onclick="window.switchMemberTab('partenaires')" id="mtab-btn-partenaires">
-                    <i class="fas fa-users"></i> Partenaires
-                </button>
-                <button class="mtab" onclick="window.switchMemberTab('calendrier')" id="mtab-btn-calendrier" style="position:relative;">
-                    <i class="fas fa-calendar-alt"></i> Calendrier
-                    <span id="infos-badge" style="display:none; position:absolute; top:6px; right:6px; width:8px; height:8px; background:#ef4444; border-radius:50%;"></span>
-                </button>
-                <button class="mtab" onclick="window.switchMemberTab('equipes')" id="mtab-btn-equipes" style="position:relative;">
-                    <i class="fas fa-shield-alt"></i> Mes Équipes
-                    <span id="equipes-badge" style="display:none; position:absolute; top:6px; right:6px; width:8px; height:8px; background:#e11d48; border-radius:50%;"></span>
-                </button>
-            </div>
-
-            <!-- ===== ONGLET 1 : MON PROFIL ===== -->
-            <div id="mtab-profil" class="member-tab-content">
-
-                <!-- CARTE VIP -->
-                <div class="vip-card">
-                    <div class="vip-card-shine"></div>
-                    <div class="vip-card-header">
-                        <div class="vip-card-club">
-                            <img src="/logo_usm_new.png" alt="USM" class="vip-card-logo">
-                            <div>
-                                <div class="vip-card-club-name">USM TENNIS MONTARGIS</div>
-                                <div class="vip-card-subtitle">Carte Membre</div>
-                            </div>
-                        </div>
-                        <div class="vip-card-year" id="vip-card-year"></div>
-                    </div>
-                    <div class="vip-card-body">
-                        <div class="vip-card-info">
-                            <div class="vip-card-name" id="vip-card-name" data-clarity-mask="true">—</div>
-                            <div id="vip-card-statut-wrap" style="display:none; margin-bottom:10px;">
-                                <span id="vip-card-statut" style="display:inline-flex; align-items:center; gap:5px; background:rgba(255,215,0,0.12); border:1px solid rgba(255,215,0,0.45); color:#ffd700; padding:3px 12px; border-radius:20px; font-size:0.72rem; letter-spacing:0.5px; font-family:'Orbitron',sans-serif;"></span>
-                            </div>
-                            <div class="vip-card-badges">
-                                <span class="member-badge"><i class="fas fa-id-card"></i> <span id="vip-card-licence">—</span></span>
-                                <span class="member-badge member-badge-yellow"><i class="fas fa-trophy"></i> <span id="vip-card-classement">—</span></span>
-                                <span class="member-badge member-badge-purple"><i class="fas fa-layer-group"></i> <span id="vip-card-categorie">—</span></span>
-                            </div>
-                        </div>
-                        <div class="vip-card-qr">
-                            <div id="vip-qrcode" onclick="window.showCardModal()" title="Afficher la carte en plein écran" style="cursor:pointer;"></div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- À quoi sert le QR code -->
-                <div style="display:flex; align-items:center; gap:9px; margin:-6px 0 18px; padding:9px 14px; background:rgba(0,210,255,0.06); border:1px solid rgba(0,210,255,0.18); border-radius:10px; font-size:0.76rem; color:#94a3b8;">
-                    <i class="fas fa-qrcode" style="color:#00d2ff; flex-shrink:0;"></i>
-                    <span>Le <strong style="color:#cbd5e1;">QR code</strong> de votre carte atteste que vous êtes membre du club à part entière et à jour de votre cotisation. Présentez-le lorsqu'on vous demande de justifier votre adhésion. Touchez la carte pour l'afficher en grand.</span>
-                </div>
-
-                <!-- Bandeau « profil incomplet » (rempli par JS si besoin) -->
-                <div id="profil-alerte" style="display:none; margin-bottom:18px;"></div>
-
-                <!-- Ma saison en chiffres -->
-                <div class="member-section-title"><span><i class="fas fa-chart-simple"></i> Ma saison en chiffres</span></div>
-                <div id="profil-stats" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(120px, 1fr)); gap:12px; margin-bottom:28px;">
-                    <div class="member-info-card" style="text-align:center;">
-                        <div style="font-size:1.6rem; font-weight:800; color:#e11d48; font-family:'Orbitron',sans-serif;" id="stat-matchs">—</div>
-                        <div class="mic-label" style="justify-content:center; margin-top:4px;">Matchs joués</div>
-                    </div>
-                    <div class="member-info-card" style="text-align:center;">
-                        <div style="font-size:1.6rem; font-weight:800; color:#22c55e; font-family:'Orbitron',sans-serif;" id="stat-convocations">—</div>
-                        <div class="mic-label" style="justify-content:center; margin-top:4px;">Convocations</div>
-                    </div>
-                </div>
-
-                <!-- Mes coordonnées (modifiables par le membre) -->
-                <div class="member-section-title" style="justify-content:space-between;">
-                    <span><i class="fas fa-pen-to-square"></i> Mes coordonnées</span>
-                    <button id="mp-edit-toggle-btn" onclick="window.toggleProfilEdit()" style="background:rgba(255,215,0,0.12); border:1px solid rgba(255,215,0,0.4); color:#ffd700; padding:6px 14px; border-radius:8px; font-size:0.78rem; cursor:pointer; font-family:inherit; display:inline-flex; align-items:center; gap:6px; letter-spacing:0;">
-                        <i class="fas fa-pen"></i> Modifier
-                    </button>
-                </div>
-                <div class="member-profil-grid">
-                    <div class="member-info-card" style="border-color:rgba(255,215,0,0.25);">
-                        <div class="mic-label"><i class="fas fa-envelope"></i> Email</div>
-                        <div class="mic-value" id="mp-email" data-clarity-mask="true">—</div>
-                        <input type="email" id="mp-email-input" class="mic-edit-input" data-clarity-mask="true" style="display:none;" placeholder="votre@email.fr" maxlength="150">
-                    </div>
-                    <div class="member-info-card" style="border-color:rgba(255,215,0,0.25);">
-                        <div class="mic-label"><i class="fas fa-phone"></i> Téléphone</div>
-                        <div class="mic-value" id="mp-telephone" data-clarity-mask="true">—</div>
-                        <input type="tel" id="mp-telephone-input" class="mic-edit-input" data-clarity-mask="true" style="display:none;" placeholder="06 12 34 56 78" maxlength="20">
-                    </div>
-                    <div class="member-info-card" style="border-color:rgba(255,215,0,0.25);">
-                        <div class="mic-label"><i class="fas fa-trophy"></i> Classement</div>
-                        <div class="mic-value" id="mp-classement">—</div>
-                        <select id="mp-classement-input" class="mic-edit-input" style="display:none;"></select>
-                    </div>
-                </div>
-                <div id="mp-edit-actions" style="display:none; align-items:center; gap:10px; flex-wrap:wrap; margin-top:-14px; margin-bottom:28px;">
-                    <button onclick="window.saveProfilCoordonnees()" id="mp-save-btn" style="padding:9px 18px; background:linear-gradient(135deg,rgba(255,215,0,0.2),rgba(180,150,0,0.1)); border:1px solid rgba(255,215,0,0.5); color:#ffd700; border-radius:10px; cursor:pointer; font-family:inherit; font-weight:600; font-size:0.85rem;">
-                        <i class="fas fa-save"></i> Enregistrer
-                    </button>
-                    <button onclick="window.toggleProfilEdit(false)" style="padding:9px 18px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.15); color:#94a3b8; border-radius:10px; cursor:pointer; font-family:inherit; font-size:0.85rem;">
-                        Annuler
-                    </button>
-                    <div id="mp-save-status" style="font-size:0.82rem;"></div>
-                </div>
-
-                <!-- Ma progression (historique de classement) -->
-                <div id="profil-progression-wrap" style="display:none;">
-                    <div class="member-section-title"><span><i class="fas fa-chart-line"></i> Ma progression</span></div>
-                    <div id="profil-progression" style="margin-bottom:28px;"></div>
-                </div>
-
-                <!-- Informations gérées par le club -->
-                <div class="member-section-title"><span><i class="fas fa-building-shield"></i> Informations club</span></div>
-                <p style="color:#64748b; font-size:0.76rem; margin:-10px 0 12px;">Ces informations sont gérées par le club — contactez le secrétariat en cas d'erreur.</p>
-                <div class="member-profil-grid">
-                    <div class="member-info-card">
-                        <div class="mic-label"><i class="fas fa-id-card"></i> N° Licence FFT</div>
-                        <div class="mic-value" id="mp-licence" data-clarity-mask="true">—</div>
-                    </div>
-                    <div class="member-info-card">
-                        <div class="mic-label"><i class="fas fa-layer-group"></i> Catégorie</div>
-                        <div class="mic-value" id="mp-categorie">—</div>
-                    </div>
-                    <div class="member-info-card">
-                        <div class="mic-label"><i class="fas fa-calendar-check"></i> Membre depuis</div>
-                        <div class="mic-value" id="mp-depuis">—</div>
-                    </div>
-                </div>
-                <!-- Conservés masqués : alimentés par le JS, affichés dans la carte VIP et l'en-tête -->
-                <span id="mp-prenom" style="display:none;"></span><span id="mp-nom" style="display:none;"></span>
-
-                <div class="member-quick-links">
-                    <a href="https://tenup.fft.fr" target="_blank" rel="noopener noreferrer" class="member-quick-btn">
-                        <i class="fas fa-calendar-check"></i> Réserver un terrain
-                    </a>
-                    <button class="member-quick-btn" style="background:none; border:1px solid rgba(255,215,0,0.25); cursor:pointer; font-family:inherit;" onclick="window.sendPasswordReset()">
-                        <i class="fas fa-key"></i> Changer mon mot de passe
-                    </button>
-                    <button id="pwa-install-btn" class="member-quick-btn" style="display:none; background:rgba(0,210,255,0.1); border:1px solid rgba(0,210,255,0.35); color:#00d2ff; cursor:pointer; font-family:inherit;" onclick="window.installMemberApp()">
-                        <i class="fas fa-mobile-screen"></i> Installer l'application
-                    </button>
-                </div>
-
-                <style>#profil-avantages-details summary::-webkit-details-marker, #profil-telechargements-details summary::-webkit-details-marker{display:none}</style>
-                <details id="profil-avantages-details" style="background:rgba(10,22,40,0.7); border:1px solid rgba(255,215,0,0.22); border-radius:16px; margin-bottom:14px;">
-                    <summary style="list-style:none; cursor:pointer; padding:14px 18px; display:flex; align-items:center; justify-content:space-between; gap:10px; color:#ffd700; font-size:0.85rem; font-weight:600;">
-                        <span><i class="fas fa-gift" style="margin-right:8px;"></i>Avantages partenaires <span style="font-size:0.72rem; font-weight:normal; color:#64748b;">— vos réductions chez nos partenaires</span></span>
-                        <i class="fas fa-chevron-down" style="color:#64748b; font-size:0.75rem;"></i>
-                    </summary>
-                    <div style="padding:0 18px 18px;">
-<!-- PREMIER (mobile: en haut) : Partenaires -->
-                    <div style="display:flex; flex-direction:column;">
-                        
-                        <div id="member-sponsors-grid" class="member-sponsors-grid" style="flex:1;">
-                            <div class="member-empty-state">
-                                <i class="fas fa-handshake"></i>
-                                <p>Chargement des partenaires...</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    
-                    </div>
-                </details>
-
-                <details id="profil-telechargements-details" style="background:rgba(10,22,40,0.7); border:1px solid rgba(255,215,0,0.22); border-radius:16px; margin-bottom:14px;">
-                    <summary style="list-style:none; cursor:pointer; padding:14px 18px; display:flex; align-items:center; justify-content:space-between; gap:10px; color:#ffd700; font-size:0.85rem; font-weight:600;">
-                        <span><i class="fas fa-download" style="margin-right:8px;"></i>Téléchargements <span style="font-size:0.72rem; font-weight:normal; color:#64748b;">— carte de membre &amp; fonds d'écran</span></span>
-                        <i class="fas fa-chevron-down" style="color:#64748b; font-size:0.75rem;"></i>
-                    </summary>
-                    <div style="padding:0 18px 18px;">
-<!-- DEUXIÈME (mobile: en bas) : Téléchargements -->
-                    <div style="display:flex; flex-direction:column;">
-                        
-                        <div style="display:grid; gap:10px;">
-
-                            <!-- Carte bancaire recto / verso -->
-                            <div style="background:rgba(0,210,255,0.05); border:1px solid rgba(0,210,255,0.18); border-radius:12px; padding:14px 16px;">
-                                <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
-                                    <i class="fas fa-credit-card" style="color:#00d2ff; font-size:16px; flex-shrink:0;"></i>
-                                    <div>
-                                        <div style="color:white; font-weight:600; font-size:13px;">Carte de membre</div>
-                                        <div style="color:#475569; font-size:11px; margin-top:1px;">Format carte bancaire · À imprimer</div>
-                                    </div>
-                                </div>
-                                <div style="display:flex; gap:8px; margin-bottom:8px;">
-                                    <button class="vip-dl-btn" style="flex:1; margin:0; padding:9px 8px; font-size:0.82rem;" onclick="window.downloadMemberCardRecto()">
-                                        <i class="fas fa-id-card"></i> Recto
-                                    </button>
-                                    <button class="vip-dl-btn" style="flex:1; margin:0; padding:9px 8px; font-size:0.82rem; background:linear-gradient(135deg,rgba(255,215,0,0.1),rgba(180,150,0,0.06)); border-color:rgba(255,215,0,0.35); color:#ffd700;" onclick="window.downloadMemberCardVerso()">
-                                        <i class="fas fa-qrcode"></i> Verso
-                                    </button>
-                                </div>
-                                <button class="vip-dl-btn" style="width:100%; margin:0; padding:10px 8px; font-size:0.82rem; background:linear-gradient(135deg,rgba(220,38,38,0.15),rgba(180,20,20,0.08)); border-color:rgba(220,38,38,0.45); color:#f87171;" onclick="window.downloadMemberCardPDF(this)">
-                                    <i class="fas fa-file-pdf"></i> Version PDF (recto + verso)
-                                </button>
-                            </div>
-
-                            <!-- Carte mobile -->
-                            <div style="background:rgba(255,215,0,0.05); border:1px solid rgba(255,215,0,0.18); border-radius:12px; padding:14px 16px;">
-                                <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
-                                    <i class="fas fa-mobile-alt" style="color:#ffd700; font-size:16px; flex-shrink:0;"></i>
-                                    <div>
-                                        <div style="color:white; font-weight:600; font-size:13px;">Carte mobile</div>
-                                        <div style="color:#475569; font-size:11px; margin-top:1px;">Format portrait · Toutes les infos + QR code</div>
-                                    </div>
-                                </div>
-                                <button class="vip-dl-btn" style="width:100%; margin:0; font-size:0.82rem;" onclick="window.downloadMemberCardMobile()">
-                                    <i class="fas fa-download"></i> Télécharger
-                                </button>
-                            </div>
-
-                            <!-- Fonds d'écran -->
-                            <div style="background:rgba(129,140,248,0.05); border:1px solid rgba(129,140,248,0.18); border-radius:12px; padding:14px 16px;">
-                                <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
-                                    <i class="fas fa-image" style="color:#a5b4fc; font-size:16px; flex-shrink:0;"></i>
-                                    <div>
-                                        <div style="color:white; font-weight:600; font-size:13px;">Fonds d'écran</div>
-                                        <div style="color:#475569; font-size:11px; margin-top:1px;">Personnalise ton écran de veille</div>
-                                    </div>
-                                </div>
-                                <div style="display:flex; gap:8px;">
-                                    <button class="vip-dl-btn" style="flex:1; margin:0; padding:9px 8px; font-size:0.82rem; background:linear-gradient(135deg,rgba(100,116,139,0.18),rgba(71,85,105,0.1)); border-color:rgba(148,163,184,0.35); color:#cbd5e1;" onclick="window.downloadMemberWallpaper()">
-                                        <i class="fas fa-mobile-alt"></i> Mobile
-                                    </button>
-                                    <button class="vip-dl-btn" style="flex:1; margin:0; padding:9px 8px; font-size:0.82rem; background:linear-gradient(135deg,rgba(79,70,229,0.18),rgba(55,48,163,0.1)); border-color:rgba(129,140,248,0.35); color:#a5b4fc;" onclick="window.downloadMemberWallpaperDesktop()">
-                                        <i class="fas fa-desktop"></i> Bureau
-                                    </button>
-                                </div>
-                            </div>
-
-                        </div>
-                    </div>
-
-
-                    </div>
-                </details>
-            </div>
-
-            <!-- Carte membre imprimable (hors écran, capturée par html2canvas) -->
-            <div id="member-card-print" style="position:fixed; left:-9999px; top:0; width:680px; z-index:-1;"></div>
-            <!-- Carte mobile membre (hors écran) -->
-            <div id="member-card-mobile-print" style="position:fixed; left:-9999px; top:0; width:390px; z-index:-1; display:none;"></div>
-            <!-- Fond d'écran membre (hors écran, capturé par html2canvas) -->
-            <div id="member-wallpaper-print" style="position:fixed; left:-9999px; top:0; width:390px; z-index:-1;"></div>
-            <div id="member-wallpaper-desktop-print" style="position:fixed; left:-9999px; top:0; width:1280px; z-index:-1;"></div>
-
-            <!-- ===== ONGLET 2 : RECHERCHE PARTENAIRES ===== -->
-            <div id="mtab-partenaires" class="member-tab-content hidden">
-
-                <!-- ── MON PROFIL PARTENAIRE (opt-in + préférences) ── -->
-                <style>#partenaire-profil-details summary::-webkit-details-marker{display:none}</style>
-                <details id="partenaire-profil-details" style="background:rgba(10,22,40,0.7); border:1px solid rgba(255,215,0,0.22); border-radius:16px; margin-bottom:18px;">
-                    <summary style="list-style:none; cursor:pointer; padding:14px 18px; display:flex; align-items:center; justify-content:space-between; gap:10px; color:#ffd700; font-size:0.85rem; font-weight:600;">
-                        <span><i class="fas fa-user-cog" style="margin-right:8px;"></i>Mon profil partenaire <span id="partenaire-etat-badge" style="margin-left:6px; font-size:0.72rem; font-weight:normal; color:#64748b;"></span></span>
-                        <i class="fas fa-chevron-down" style="color:#64748b; font-size:0.75rem;"></i>
-                    </summary>
-                    <div style="padding:0 14px 14px;">
-                <!-- ── ANNUAIRE PARTENAIRES opt-in ── -->
-                <div id="partenaire-optin-block" style="background:rgba(10,22,40,0.7); border:1px solid rgba(255,215,0,0.22); border-radius:16px; padding:20px; margin-bottom:24px;">
-
-                    <!-- Toggle principal -->
-                    <label style="display:flex; align-items:center; gap:14px; cursor:pointer; margin-bottom:0;">
-                        <div style="position:relative; flex-shrink:0;">
-                            <input type="checkbox" id="partenaire-optin" onchange="window.togglePartenaireForm()" style="position:absolute;opacity:0;width:0;height:0;">
-                            <div id="partenaire-optin-track" style="width:44px; height:24px; background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2); border-radius:12px; transition:all 0.3s; position:relative; cursor:pointer;">
-                                <div id="partenaire-optin-thumb" style="position:absolute; top:3px; left:3px; width:18px; height:18px; background:#64748b; border-radius:50%; transition:all 0.3s;"></div>
-                            </div>
-                        </div>
-                        <div>
-                            <div style="color:white; font-weight:600; font-size:0.9rem;">Apparaître dans l'annuaire des partenaires</div>
-                            <div style="color:#64748b; font-size:0.78rem; margin-top:2px;">J'accepte de partager mes infos avec les autres membres pour jouer ensemble</div>
-                        </div>
-                    </label>
-
-                    <!-- Détails (masqués si opt-in désactivé) -->
-                    <div id="partenaire-details" style="display:none; margin-top:20px; border-top:1px solid rgba(255,255,255,0.08); padding-top:18px;">
-
-                        <!-- Coordonnées à partager (en premier — c'est l'info essentielle pour être contacté) -->
-                        <div style="margin-bottom:18px; background:rgba(255,215,0,0.04); border:1px solid rgba(255,215,0,0.18); border-radius:12px; padding:14px;">
-                            <label style="color:#ffd700; font-size:0.78rem; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; display:block; margin-bottom:8px;"><i class="fas fa-comment-dots" style="margin-right:4px;"></i> Comment vous contacter ?</label>
-                            <div style="display:flex; gap:10px; flex-wrap:wrap;">
-                                <label style="display:flex; align-items:center; gap:6px; cursor:pointer; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.12); border-radius:8px; padding:7px 12px;">
-                                    <input type="checkbox" id="partenaire-share-tel" style="accent-color:#ffd700; width:14px; height:14px;">
-                                    <span style="color:#e2e8f0; font-size:0.84rem;"><i class="fas fa-phone" style="font-size:0.75rem; color:#64748b; margin-right:3px;"></i> Téléphone</span>
-                                </label>
-                                <label style="display:flex; align-items:center; gap:6px; cursor:pointer; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.12); border-radius:8px; padding:7px 12px;">
-                                    <input type="checkbox" id="partenaire-share-email" style="accent-color:#ffd700; width:14px; height:14px;">
-                                    <span style="color:#e2e8f0; font-size:0.84rem;"><i class="fas fa-envelope" style="font-size:0.75rem; color:#64748b; margin-right:3px;"></i> Email</span>
-                                </label>
-                            </div>
-                            <div style="color:#475569; font-size:0.73rem; margin-top:6px; font-style:italic;">
-                                Cochez au moins une option pour que les autres membres puissent vous joindre. Seuls les membres connectés les verront.
-                            </div>
-                        </div>
-
-                        <!-- Style de jeu -->
-                        <div style="margin-bottom:14px;">
-                            <label style="color:#94a3b8; font-size:0.78rem; font-weight:600; letter-spacing:0.5px; text-transform:uppercase; display:block; margin-bottom:6px;">Style de jeu</label>
-                            <select id="partenaire-style" style="width:100%; padding:10px 12px; background:#1e293b; border:1px solid rgba(255,255,255,0.15); border-radius:10px; color:#e2e8f0; font-family:inherit; font-size:0.88rem; cursor:pointer;">
-                                <option value="loisir">Loisir — Je joue pour le plaisir</option>
-                                <option value="competitif">Compétitif — J'aime les défis</option>
-                                <option value="double">Double préféré</option>
-                                <option value="mixte">Mixte préféré</option>
-                            </select>
-                        </div>
-
-                        <!-- Disponibilités (accordéon) -->
-                        <div style="margin-bottom:14px;">
-                            <button type="button" onclick="window.toggleDispoForm()" id="dispo-toggle-btn"
-                                style="display:flex; align-items:center; justify-content:space-between; width:100%; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.12); border-radius:10px; padding:9px 14px; cursor:pointer; font-family:inherit; margin-bottom:0;">
-                                <span style="color:#94a3b8; font-size:0.78rem; font-weight:600; letter-spacing:0.5px; text-transform:uppercase;">
-                                    <i class="fas fa-clock" style="margin-right:6px; color:#ffd700;"></i>Disponibilités
-                                </span>
-                                <i id="dispo-toggle-icon" class="fas fa-chevron-down" style="color:#64748b; font-size:0.75rem; transition:transform 0.2s;"></i>
-                            </button>
-                            <div id="dispo-grid-wrap" style="display:none; margin-top:8px; overflow-x:auto;">
-                                <table style="width:100%; border-collapse:separate; border-spacing:0 3px; min-width:260px;">
-                                    <thead>
-                                        <tr>
-                                            <th style="width:90px;"></th>
-                                            <th style="text-align:center; color:#64748b; font-size:0.7rem; font-weight:600; padding:4px 6px;">Matin</th>
-                                            <th style="text-align:center; color:#f59e0b; font-size:0.7rem; font-weight:600; padding:4px 6px;">Midi</th>
-                                            <th style="text-align:center; color:#64748b; font-size:0.7rem; font-weight:600; padding:4px 6px;">Soir</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="dispo-grid-body">
-                                        <!-- généré via JS -->
-                                    </tbody>
-                                </table>
-                            </div>
-                            <script>
-                            (function() {
-                                var jours = [['lundi','Lundi'],['mardi','Mardi'],['mercredi','Mercredi'],['jeudi','Jeudi'],['vendredi','Vendredi'],['samedi','Samedi'],['dimanche','Dimanche']];
-                                var tbody = document.getElementById('dispo-grid-body');
-                                if (!tbody) return;
-                                tbody.innerHTML = jours.map(function(j, i) {
-                                    var bg = i % 2 === 0 ? 'rgba(255,255,255,0.025)' : 'transparent';
-                                    return '<tr>' +
-                                        '<td style="color:#cbd5e1; font-size:0.82rem; padding:6px 8px; border-radius:6px 0 0 6px; background:' + bg + ';">' + j[1] + '</td>' +
-                                        ['matin','midi','soir'].map(function(c) {
-                                            return '<td style="text-align:center; background:' + bg + '; padding:6px 4px;">' +
-                                                '<input type="checkbox" id="dispo-' + j[0] + '-' + c + '" style="accent-color:#ffd700; width:15px; height:15px; cursor:pointer;">' +
-                                                '</td>';
-                                        }).join('') +
-                                    '</tr>';
-                                }).join('');
-                            })();
-                            window.toggleDispoForm = function(forceOpen) {
-                                var wrap = document.getElementById('dispo-grid-wrap');
-                                var icon = document.getElementById('dispo-toggle-icon');
-                                if (!wrap) return;
-                                var open = forceOpen !== undefined ? forceOpen : wrap.style.display === 'none';
-                                wrap.style.display = open ? 'block' : 'none';
-                                if (icon) icon.style.transform = open ? 'rotate(180deg)' : '';
-                            };
-                            </script>
-                        </div>
-
-                        <!-- Message libre -->
-                        <div style="margin-bottom:18px;">
-                            <label style="color:#94a3b8; font-size:0.78rem; font-weight:600; letter-spacing:0.5px; text-transform:uppercase; display:block; margin-bottom:6px;">Message <span style="font-weight:400; text-transform:none; letter-spacing:0;">(facultatif)</span></label>
-                            <textarea id="partenaire-message" maxlength="100" placeholder="Ex : Je cherche un partenaire de double le samedi matin…" style="width:100%; padding:10px 12px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.15); border-radius:10px; color:#e2e8f0; font-family:inherit; font-size:0.85rem; resize:vertical; min-height:64px; box-sizing:border-box;"></textarea>
-                            <div style="text-align:right; color:#475569; font-size:0.7rem; margin-top:3px;"><span id="partenaire-msg-count">0</span>/100</div>
-                        </div>
-
-                        <button onclick="window.savePartenaireProfile()" id="partenaire-save-btn" style="width:100%; padding:12px; background:linear-gradient(135deg,rgba(255,215,0,0.2),rgba(180,150,0,0.1)); border:1px solid rgba(255,215,0,0.5); color:#ffd700; border-radius:12px; cursor:pointer; font-family:inherit; font-weight:600; font-size:0.9rem;">
-                            <i class="fas fa-save"></i> Enregistrer mes préférences
-                        </button>
-                        <div id="partenaire-save-status" style="text-align:center; font-size:0.8rem; min-height:20px; margin-top:8px;"></div>
-                    </div>
-                </div>
-
-
-                    </div>
-                </details>
-
-                <!-- Filtres de recherche (le niveau et les créneaux d'abord : c'est ainsi qu'on cherche un partenaire) -->
-                <div style="background:rgba(10,22,40,0.7); border:1px solid rgba(255,215,0,0.18); border-radius:14px; padding:16px 18px; margin-bottom:14px;">
-
-                    <!-- Niveau -->
-                    <div style="margin-bottom:14px;">
-                        <div style="color:#94a3b8; font-size:0.72rem; font-weight:600; letter-spacing:0.5px; text-transform:uppercase; margin-bottom:6px;">Niveau de jeu</div>
-                        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-                            <button id="filter-mon-niveau" onclick="window.toggleMonNiveau()" class="pf-btn" title="Afficher les joueurs de classement proche du vôtre">
-                                <i class="fas fa-bullseye" style="margin-right:4px;"></i> Mon niveau
-                            </button>
-                            <span style="color:#475569; font-size:0.75rem;">ou de</span>
-                            <select id="filter-niveau-min" onchange="window.applyPartenaireFilters()" style="padding:7px 10px; background:#1e293b; border:1px solid rgba(255,255,255,0.15); border-radius:8px; color:#e2e8f0; font-family:inherit; font-size:0.82rem; cursor:pointer;"></select>
-                            <span style="color:#475569; font-size:0.75rem;">à</span>
-                            <select id="filter-niveau-max" onchange="window.applyPartenaireFilters()" style="padding:7px 10px; background:#1e293b; border:1px solid rgba(255,255,255,0.15); border-radius:8px; color:#e2e8f0; font-family:inherit; font-size:0.82rem; cursor:pointer;"></select>
-                        </div>
-                    </div>
-
-                    <div style="display:flex; flex-wrap:wrap; gap:14px; align-items:flex-end;">
-                        <!-- Disponibilités -->
-                        <div>
-                            <div style="color:#94a3b8; font-size:0.72rem; font-weight:600; letter-spacing:0.5px; text-transform:uppercase; margin-bottom:6px;">Disponibilités</div>
-                            <div style="display:flex; gap:6px; flex-wrap:wrap;">
-                                <button id="filter-matin" onclick="window.togglePartenaireFilter('matin')" class="pf-btn">Matin</button>
-                                <button id="filter-midi" onclick="window.togglePartenaireFilter('midi')" class="pf-btn">Midi</button>
-                                <button id="filter-soir" onclick="window.togglePartenaireFilter('soir')" class="pf-btn">Soir</button>
-                            </div>
-                        </div>
-                        <!-- Style de jeu -->
-                        <div>
-                            <div style="color:#94a3b8; font-size:0.72rem; font-weight:600; letter-spacing:0.5px; text-transform:uppercase; margin-bottom:6px;">Style</div>
-                            <select id="filter-style" onchange="window.applyPartenaireFilters()" style="padding:7px 12px; background:#1e293b; border:1px solid rgba(255,255,255,0.15); border-radius:8px; color:#e2e8f0; font-family:inherit; font-size:0.82rem; cursor:pointer;">
-                                <option value="">Tous les styles</option>
-                                <option value="loisir">Loisir</option>
-                                <option value="competitif">Compétitif</option>
-                                <option value="double">Double</option>
-                                <option value="mixte">Mixte</option>
-                            </select>
-                        </div>
-                        <!-- Réinitialiser -->
-                        <button onclick="window.resetPartenaireFilters()" style="padding:7px 14px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.1); border-radius:8px; color:#64748b; font-size:0.8rem; cursor:pointer; font-family:inherit; align-self:flex-end;">
-                            <i class="fas fa-times"></i> Réinitialiser
-                        </button>
-                        <!-- Compteur -->
-                        <div id="partenaire-count" style="align-self:flex-end; color:#475569; font-size:0.78rem; margin-left:auto;"></div>
-                    </div>
-                </div>
-
-                <!-- Recherche par nom (usage minoritaire : on cherche surtout par niveau et créneaux) -->
-                <div style="position:relative; margin-bottom:18px;">
-                    <i class="fas fa-search" style="position:absolute; left:13px; top:50%; transform:translateY(-50%); color:#475569; font-size:0.78rem; pointer-events:none;"></i>
-                    <input type="text" id="partenaire-search" placeholder="Vous cherchez quelqu'un en particulier ? Tapez son nom…" oninput="window.applyPartenaireFilters()"
-                        style="width:100%; padding:9px 14px 9px 34px; background:rgba(10,22,40,0.5); border:1px solid rgba(255,255,255,0.08); border-radius:10px; color:#e2e8f0; font-family:inherit; font-size:0.82rem; box-sizing:border-box; outline:none; transition:border-color 0.2s;"
-                        onfocus="this.style.borderColor='rgba(255,215,0,0.4)'" onblur="this.style.borderColor='rgba(255,255,255,0.08)'">
-                </div>
-
-                <!-- Grille résultats -->
-                <div id="partenaire-results" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(270px, 1fr)); gap:14px;">
-                    <div class="member-empty-state">
-                        <i class="fas fa-spinner fa-spin"></i>
-                        <p>Chargement...</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ===== ONGLET 3 : CALENDRIER DU CLUB ===== -->
-            <div id="mtab-calendrier" class="member-tab-content hidden">
-
-                <!-- Messages du bureau (bandeau repliable) -->
-                <div id="calendrier-messages-bloc" style="margin-bottom:22px;">
-                    <button id="calendrier-messages-toggle" onclick="window.toggleMessagesBureau()"
-                        style="width:100%; display:flex; align-items:center; justify-content:space-between; background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.3); border-radius:12px; padding:14px 18px; cursor:pointer; color:#f59e0b; font-family:inherit; font-size:0.9rem; font-weight:600;">
-                        <span><i class="fas fa-bullhorn" style="margin-right:8px;"></i>Messages du Bureau <span id="calendrier-messages-count" style="color:#94a3b8; font-weight:normal; font-size:0.8rem;"></span></span>
-                        <i id="calendrier-messages-chevron" class="fas fa-chevron-down"></i>
-                    </button>
-                    <div id="member-messages-list" style="display:none; margin-top:12px;">
-                        <div class="member-empty-state">
-                            <i class="fas fa-comment-slash"></i>
-                            <p>Aucun message pour l'instant.</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Prochains événements, toutes dates confondues (rempli par JS) -->
-                <div id="calendrier-prochainement" style="display:none; margin-bottom:24px;"></div>
-
-                <div class="member-section-title">
-                    <i class="fas fa-calendar-alt"></i> Calendrier du club
-                </div>
-
-                <!-- Filtres par type -->
-                <div id="calendrier-filtres" style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:18px;"></div>
-
-                <!-- Liste chronologique -->
-                <div id="calendrier-liste">
-                    <div class="member-empty-state">
-                        <i class="fas fa-calendar-times"></i>
-                        <p>Chargement du calendrier…</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ===== ONGLET : MES ÉQUIPES ===== -->
-            <div id="mtab-equipes" class="member-tab-content hidden">
-                <div class="member-section-title" style="justify-content:space-between; flex-wrap:wrap; row-gap:8px;">
-                    <span><i class="fas fa-shield-alt"></i> Championnats en Équipe</span>
-                    <!-- Bouton notifications push convocations -->
-                    <div id="equipes-push-container" style="text-align:right;">
-                        <p style="color:#64748b; font-size:12px; margin:0;"><i class="fas fa-spinner fa-spin"></i></p>
-                    </div>
-                </div>
-
-                <!-- Bannière : nouvelle inscription possible (remplie par JS si pertinent) -->
-                <div id="equipes-banner-inscriptions" style="display:none; margin-bottom:18px;"></div>
-
-                <!-- Mes convocations : l'action prioritaire, en premier -->
-                <div id="equipes-section-convocations" style="margin-bottom:28px;">
-                    <h4 style="color:#00d2ff; font-size:14px; margin-bottom:12px; display:flex; align-items:center; gap:8px;">
-                        <i class="fas fa-bell"></i> Mes convocations
-                    </h4>
-                    <div id="equipes-mes-convocations" style="display:grid; gap:14px;">
-                        <p style="color:#64748b; font-size:13px; text-align:center;">Aucune convocation.</p>
-                    </div>
-                </div>
-
-                <!-- Mon équipe : dispos, coéquipiers, discussion -->
-                <div id="equipes-section-mes-champs" style="margin-bottom:28px;">
-                    <h4 style="color:#c9a227; font-size:14px; margin-bottom:12px; display:flex; align-items:center; gap:8px;">
-                        <i class="fas fa-clipboard-check"></i> Mon équipe &amp; mes disponibilités
-                    </h4>
-                    <div id="equipes-mes-champs" style="display:grid; gap:14px;">
-                        <p style="color:#64748b; font-size:13px; text-align:center;">Aucune inscription pour l'instant.</p>
-                    </div>
-                </div>
-
-                <!-- Championnats ouverts à l'inscription (ponctuel, en dernier) -->
-                <div id="equipes-section-inscrire" style="margin-bottom:28px;">
-                    <h4 style="color:#e11d48; font-size:14px; margin-bottom:12px; display:flex; align-items:center; gap:8px;">
-                        <i class="fas fa-door-open"></i> Championnats ouverts aux inscriptions
-                    </h4>
-                    <div id="equipes-champs-dispos" style="display:grid; gap:14px;">
-                        <p style="color:#64748b; font-size:13px; text-align:center;"><i class="fas fa-spinner fa-spin"></i> Chargement...</p>
-                    </div>
-                </div>
-            </div>
-
-        </div><!-- /#member-zone -->
-
-    </div><!-- /#member-page -->
-
-    <!-- Contenu généré uniquement pour l'impression du « planning frigo » (voir imprimerPlanningFrigo) -->
-    <div id="planning-frigo-print"></div>
-
-    <!-- Modal : Discussion d'équipe -->
-    <div id="modal-chat-equipe" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.88); z-index:9000; padding:20px 10px; box-sizing:border-box;">
-        <div style="max-width:560px; height:100%; max-height:640px; margin:0 auto; background:#0f172a; border-radius:16px; border:1px solid rgba(0,210,255,0.35); display:flex; flex-direction:column; overflow:hidden;">
-            <div style="display:flex; justify-content:space-between; align-items:center; padding:16px 20px; border-bottom:1px solid #1e293b; flex-shrink:0;">
-                <h3 style="color:#00d2ff; font-family:'Orbitron'; font-size:0.9rem; margin:0;">
-                    <i class="fas fa-comments" style="margin-right:8px;"></i><span id="chat-equipe-nom">Discussion</span>
-                </h3>
-                <button onclick="window.fermerChatEquipe()"
-                    style="background:#334155; color:white; border:none; padding:7px 14px; border-radius:8px; cursor:pointer;">✕</button>
-            </div>
-            <div id="chat-equipe-messages" style="flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:8px;"></div>
-            <div style="display:flex; gap:8px; padding:12px 16px; border-top:1px solid #1e293b; flex-shrink:0;">
-                <input type="text" id="chat-equipe-input" maxlength="1000" placeholder="Votre message… (covoiturage, qui apporte quoi, etc.)"
-                    style="flex:1; padding:11px 14px; background:#1e293b; border:1px solid #334155; color:white; border-radius:10px; font-size:13px; font-family:inherit; outline:none;">
-                <button onclick="window.envoyerMessageChat()"
-                    style="background:linear-gradient(135deg,#00d2ff,#0077b6); color:white; border:none; padding:11px 18px; border-radius:10px; cursor:pointer; font-size:14px; flex-shrink:0;">
-                    <i class="fas fa-paper-plane"></i>
-                </button>
-            </div>
-        </div>
+<!-- ============ Application ============ -->
+<div class="m-shell" id="app" hidden>
+  <header class="m-top">
+    <a class="brand" href="index.html" aria-label="Retour au site du club"><img src="assets/img/brand/logo-usm.webp" width="240" height="177" alt=""><span class="brand-text"><b>Espace membre</b><span>USM Tennis Montargis</span></span></a>
+    <span class="tag demo-tag" title="Données fictives pour l'aperçu">Démo</span>
+    <div class="m-top-actions">
+      <a class="btn btn-ball btn-sm hide-sm" href="https://tenup.fft.fr/club/53450084" target="_blank" rel="noopener"><svg class="icon" aria-hidden="true"><use href="#i-calendar"></use></svg>Réserver</a>
+      <button type="button" class="icon-btn theme-toggle" data-theme-toggle aria-label="Changer de thème"><svg class="icon i-moon" aria-hidden="true"><use href="#i-moon"></use></svg><svg class="icon i-sun" aria-hidden="true"><use href="#i-sun"></use></svg></button>
+      <button type="button" class="icon-btn" data-help aria-label="Mode d'emploi"><svg class="icon" aria-hidden="true"><use href="#i-info"></use></svg></button>
+      <a class="avatar-btn" href="#profil" id="top-avatar" aria-label="Mon profil"></a>
     </div>
-
-    <!-- Modal plein écran : visualisation de la carte membre -->
-    <div id="card-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(2,6,23,0.96); z-index:9999; align-items:center; justify-content:center; flex-direction:column; gap:24px; padding:20px; box-sizing:border-box;" onclick="if(event.target===this)window.hideCardModal()">
-        <button onclick="window.hideCardModal()" style="position:absolute; top:16px; right:20px; background:none; border:none; color:#94a3b8; font-size:2rem; cursor:pointer; line-height:1;">&times;</button>
-        <div id="card-modal-content" style="width:100%; max-width:420px;"></div>
-        <p style="color:#64748b; font-size:0.8rem; margin:0; text-align:center;">Appuyez en dehors pour fermer</p>
+  </header>
+  <div class="m-body">
+    <nav class="m-side" aria-label="Espace membre">
+      <ul class="m-nav"><li><a href="#accueil" data-nav="accueil"><svg class="icon" aria-hidden="true"><use href="#i-home"></use></svg>Accueil<span class="badge" data-badge="accueil" hidden></span></a></li><li><a href="#carte" data-nav="carte"><svg class="icon" aria-hidden="true"><use href="#i-qr"></use></svg>Ma carte<span class="badge" data-badge="carte" hidden></span></a></li><li><a href="#jouer" data-nav="jouer"><svg class="icon" aria-hidden="true"><use href="#i-users"></use></svg>Jouer<span class="badge" data-badge="jouer" hidden></span></a></li><li><a href="#equipes" data-nav="equipes"><svg class="icon" aria-hidden="true"><use href="#i-trophy"></use></svg>Équipes<span class="badge" data-badge="equipes" hidden></span></a></li><li><a href="#agenda" data-nav="agenda"><svg class="icon" aria-hidden="true"><use href="#i-calendar"></use></svg>Agenda<span class="badge" data-badge="agenda" hidden></span></a></li><li><a href="#boutique" data-nav="boutique"><svg class="icon" aria-hidden="true"><use href="#i-bag"></use></svg>Boutique<span class="badge" data-badge="boutique" hidden></span></a></li><li><a href="#profil" data-nav="profil"><svg class="icon" aria-hidden="true"><use href="#i-user"></use></svg>Mon profil</a></li></ul>
+      <div class="m-side-foot">
+        <a href="index.html"><svg class="icon" aria-hidden="true"><use href="#i-chevron-left"></use></svg>Retour au site</a>
+        <a href="#" data-help><svg class="icon" aria-hidden="true"><use href="#i-info"></use></svg>Mode d'emploi</a>
+      </div>
+    </nav>
+    <main class="m-main" id="contenu">
+      <section class="m-view" id="v-accueil" aria-label="Accueil"></section>
+      <section class="m-view" id="v-carte" aria-label="Ma carte" hidden></section>
+      <section class="m-view" id="v-jouer" aria-label="Jouer" hidden></section>
+      <section class="m-view" id="v-equipes" aria-label="Mes équipes" hidden></section>
+      <section class="m-view" id="v-agenda" aria-label="Agenda" hidden></section>
+      <section class="m-view" id="v-boutique" aria-label="Boutique" hidden></section>
+      <section class="m-view" id="v-profil" aria-label="Mon profil" hidden></section>
+    </main>
+  </div>
+  <nav class="m-tabbar" aria-label="Espace membre"><a href="#accueil" data-nav="accueil"><svg class="icon" aria-hidden="true"><use href="#i-home"></use></svg>Accueil<span class="badge" data-badge="accueil" hidden></span></a><a href="#carte" data-nav="carte"><svg class="icon" aria-hidden="true"><use href="#i-qr"></use></svg>Ma carte<span class="badge" data-badge="carte" hidden></span></a><a href="#jouer" data-nav="jouer"><svg class="icon" aria-hidden="true"><use href="#i-users"></use></svg>Jouer<span class="badge" data-badge="jouer" hidden></span></a><a href="#equipes" data-nav="equipes"><svg class="icon" aria-hidden="true"><use href="#i-trophy"></use></svg>Équipes<span class="badge" data-badge="equipes" hidden></span></a><button type="button" class="tab-more" data-more aria-haspopup="dialog" aria-expanded="false" aria-controls="more"><svg class="icon" aria-hidden="true"><use href="#i-apps"></use></svg>Plus<span class="badge" data-badge="plus" hidden></span></button></nav>
+  <!-- Onglet « Plus » (téléphone) : 5 onglets maximum pour rester lisible à 360 px avec un texte agrandi -->
+  <div class="more" id="more" hidden>
+    <div class="more-panel" role="dialog" aria-modal="true" aria-label="Plus de rubriques">
+      <a href="#agenda" data-nav="agenda"><svg class="icon" aria-hidden="true"><use href="#i-calendar"></use></svg><span>Agenda<small>Événements et messages du bureau</small></span><span class="badge" data-badge="agenda" hidden></span></a>
+      <a href="#boutique" data-nav="boutique"><svg class="icon" aria-hidden="true"><use href="#i-bag"></use></svg><span>Boutique<small>Commandes groupées du club</small></span><span class="badge" data-badge="boutique" hidden></span></a>
+      <a href="#profil" data-nav="profil"><svg class="icon" aria-hidden="true"><use href="#i-user"></use></svg><span>Mon profil<small>Coordonnées, créneaux, notifications</small></span></a>
+      <div class="more-row2"><button type="button" data-help><svg class="icon" aria-hidden="true"><use href="#i-info"></use></svg>Mode d'emploi</button><button type="button" data-theme-toggle><svg class="icon" aria-hidden="true"><use href="#i-moon"></use></svg>Thème</button><a href="index.html"><svg class="icon" aria-hidden="true"><use href="#i-chevron-left"></use></svg>Le site</a></div>
     </div>
+  </div>
+</div>
 
-    <!-- Modal recadrage photo de profil -->
-    <div id="photo-crop-modal" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(2,6,23,0.95);align-items:center;justify-content:center;padding:20px;box-sizing:border-box;">
-        <div style="background:#0f172a;border:1px solid rgba(255,215,0,0.3);border-radius:20px;padding:24px;max-width:460px;width:100%;">
-            <div style="color:rgba(255,215,0,0.9);font-size:0.72rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:16px;text-align:center;">
-                <i class="fas fa-crop-alt"></i> Ajuster la photo
-            </div>
-            <div style="position:relative;width:100%;overflow:hidden;border-radius:12px;background:#020617;max-height:340px;">
-                <img id="photo-crop-img" style="display:block;max-width:100%;">
-            </div>
-            <div style="margin-top:16px;display:flex;align-items:center;gap:10px;">
-                <i class="fas fa-search-minus" style="color:#64748b;font-size:0.85rem;"></i>
-                <input type="range" id="photo-zoom-slider" min="0" max="1" step="0.01" value="0.2"
-                       style="flex:1;accent-color:#ffd700;cursor:pointer;">
-                <i class="fas fa-search-plus" style="color:#ffd700;font-size:0.85rem;"></i>
-            </div>
-            <p style="color:#475569;font-size:0.75rem;text-align:center;margin:10px 0 0;">Glisse l'image pour cadrer · Zoom avec le curseur</p>
-            <div style="display:flex;gap:10px;margin-top:16px;">
-                <button onclick="window.cancelPhotoCrop()" style="flex:1;padding:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.15);color:#94a3b8;border-radius:12px;cursor:pointer;font-family:inherit;font-size:0.9rem;">
-                    Annuler
-                </button>
-                <button id="photo-save-btn" onclick="window.savePhoto()" style="flex:1;padding:12px;background:linear-gradient(135deg,rgba(255,215,0,0.2),rgba(180,150,0,0.1));border:1px solid rgba(255,215,0,0.5);color:#ffd700;border-radius:12px;cursor:pointer;font-family:inherit;font-weight:600;font-size:0.9rem;">
-                    <i class="fas fa-check"></i> Valider
-                </button>
-            </div>
-        </div>
-    </div>
+<div class="drawer" id="drawer" hidden>
+  <div class="drawer-panel" role="dialog" aria-modal="true" aria-labelledby="drawer-title">
+    <div class="drawer-head"><b id="drawer-title"></b><button type="button" class="icon-btn" data-close aria-label="Fermer"><svg class="icon" aria-hidden="true"><use href="#i-close"></use></svg></button></div>
+    <div class="drawer-body" id="drawer-body"></div>
+    <div class="drawer-foot" id="drawer-foot" hidden></div>
+  </div>
+</div>
 
+<div class="qr-screen" id="qr-screen" role="dialog" aria-modal="true" aria-label="Carte de membre" hidden>
+  <div>
+    <h2 id="qr-name"></h2>
+    <p id="qr-meta"></p>
+    <div class="qr-big" id="qr-big"></div>
+    <p class="ok-line"><svg class="icon" aria-hidden="true"><use href="#i-check"></use></svg>Membre à jour de sa cotisation</p>
+    <p style="font-size:.85rem;margin-top:6px">Montez la luminosité de l'écran pour faciliter le scan.</p>
+    <button type="button" class="btn" id="qr-close">Fermer</button>
+  </div>
+</div>
 
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<!-- Données du club : les mêmes que le site public (Admin), via le magasin de données partagé -->
+<script src="assets/js/config.js"></script>
+<script>
+  /* Espace membre : mode réel (Firebase, mêmes comptes que l'espace actuel) quand le site est en
+     mode Firebase ; démonstration (données fictives, dans ce navigateur) avec ?demo ou en aperçu local.
+     Branché : connexion, profil, carte QR, avantages, agenda + inscriptions, messages du bureau, annuaire. Les autres rubriques arrivent module par module. */
+  (function () {
+    var C = window.USM_CONFIG;
+    window.USM_REAL_MODE = C.mode; // réglages Équipes / Boutique de l'admin lus même en démo
+    var demo = C.mode !== 'firebase' || /[?&]demo\b/.test(location.search);
+    window.USM_MEMBER_DEMO_MODE = demo;
+    if (demo) C.mode = 'local';
+    document.addEventListener('DOMContentLoaded', function () {
+      var b = document.createElement('div');
+      b.setAttribute('role', 'note');
+      b.style.cssText = 'position:sticky;top:0;z-index:9999;background:#e3ff00;color:#020617;font:600 13px/1.4 system-ui,sans-serif;text-align:center;padding:8px 12px';
+      b.textContent = demo
+        ? 'Démonstration : données fictives, rien n\'est enregistré.'
+        : 'Nouvel espace membre en test : profil, carte, avantages, agenda, messages du bureau et annuaire des joueurs sont branchés. L\'espace habituel reste disponible sur tennismontargis.fr.';
+      document.body.insertBefore(b, document.body.firstChild);
+    });
+  })();
+</script>
+<script src="assets/js/data-seed.js"></script>
+<script src="assets/js/store.js"></script>
+<!-- Exemple d'avantage partenaire, affiché tant qu'aucune vraie offre n'est saisie dans Admin › Partenaires -->
+<script>window.USM_MEMBER_DEMO=[{"name": "Votre enseigne", "desc": "Exemple d'affichage d'une offre", "perk": "-10 % sur présentation de la carte", "perkDetails": "Sur présentation de la carte de membre en caisse, hors promotions.\nCet exemple montre ce que verront les membres dès qu'un partenaire aura saisi son offre dans l'admin.", "perkCode": "USM10", "perkUntil": "2027-06-30", "demo": true}];</script>
+<script src="assets/js/member.js"></script>
 </body>
 </html>
