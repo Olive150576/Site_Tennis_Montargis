@@ -58,7 +58,7 @@ h = json.loads(read(os.path.join(V2, 'firebase.json')))['hosting']
 h.pop('site', None)                                   # site principal (tennismontargis.fr)
 h['headers'] = [x for x in h.get('headers', []) if not any(k.get('key') == 'X-Robots-Tag' for k in x.get('headers', []))]
 ignore = list(h.get('ignore', []))
-for x in old_hosting.get('ignore', []) + ['v2/**', 'tools/**', 'src/**', 'docs/**']:
+for x in old_hosting.get('ignore', []) + ['v2/**', 'tools/**', 'src/**', 'docs/**', '.git/**', '**/.git/**', '.claude/**', '**/.*/**']:
     if x not in ignore:
         ignore.append(x)
 h['ignore'] = ignore
@@ -75,6 +75,7 @@ if missing:
     sys.exit('ATTENTION, fichiers de l\'ancien site manquants : ' + ', '.join(missing))
 cfg = json.loads(read(os.path.join(ROOT, 'firebase.json')))
 assert 'site' not in cfg['hosting'] and 'noindex' not in json.dumps(cfg['hosting'])
+assert '.git/**' in cfg['hosting']['ignore'] and '**/.*/**' in cfg['hosting']['ignore']
 assert any(r['source'] == '/v/**' for r in cfg['hosting']['rewrites'])
 assert all(k in cfg for k in ('database', 'storage', 'functions'))
 print('OK : assemblage prêt. Répétition :  firebase hosting:channel:deploy bascule --expires 7d')

@@ -11,7 +11,11 @@
       "docs/**",
       "firebase/**",
       "README.md",
-      "**/node_modules/**"
+      "**/node_modules/**",
+      ".git/**",
+      "**/.git/**",
+      ".claude/**",
+      "**/.*/**"
     ],
     "trailingSlash": false,
     "redirects": [
