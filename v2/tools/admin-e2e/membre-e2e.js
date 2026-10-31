@@ -31,7 +31,9 @@ const OVERRIDE = `;(function(c){c.mode='firebase';c.firebase=Object.assign({},c.
     partenaire: { public_profile: false, updatedAt: 1, style_jeu: 'competitif', dispo: { samedi: { matin: true } }, partager_telephone: false, partager_email: false, message: '' } };
   const iso = (n) => { const d = new Date(Date.now() + n * 864e5); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
   const ev = (id, o) => Object.assign({ id, title: 'Évé ' + id, category: 'animation', location: 'Club house', dateStart: iso(10), dateEnd: '', time: '', summary: 'Résumé ' + id, draft: false, memberSignup: false }, o);
-  const site_v2 = { settings: { email: 'club@test.fr' }, events: {
+  const site_v2 = { settings: { email: 'club@test.fr' },
+    sponsors: { s1: { id: 's1', name: 'Sport 2000 Amilly', perk: '-10 % sur les raquettes', order: 1 }, s2: { id: 's2', name: 'Boulangerie Durand', perk: 'Offres à venir', order: 2 } },
+    events: {
     ev1: ev('ev1', { title: 'Soirée double surprise', time: '18 h 30', memberSignup: true }),
     ev2: ev('ev2', { title: 'Tournoi interne', category: 'tournoi', dateStart: iso(20) }),
     ev3: ev('ev3', { title: 'Brouillon secret', draft: true }),
@@ -39,7 +41,10 @@ const OVERRIDE = `;(function(c){c.mode='firebase';c.firebase=Object.assign({},c.
   const club_messages = { cm1: { titre: 'Courts fermés mardi', contenu: 'Entretien de 8 h à 12 h.', type: 'urgent', actif: true, createdAt: Date.now() - 36e5 },
     cm2: { titre: 'Assemblée générale', contenu: 'En novembre au club house.', type: 'info', actif: true, createdAt: Date.now() - 864e5 },
     cm3: { titre: 'Ancien message masqué', contenu: 'x', type: 'info', actif: false, createdAt: 1 } };
-  await fetch(DB(''), { method: 'PUT', headers: OWN, body: JSON.stringify({ members: { [uid]: camille, [inactif]: { prenom: 'I', nom: 'N', actif: false } }, site_v2, club_messages }) });
+  await fetch(DB(''), { method: 'PUT', headers: OWN, body: JSON.stringify({ members: { [uid]: camille, [inactif]: { prenom: 'I', nom: 'N', actif: false } }, site_v2, club_messages,
+    partenaire_index: {
+      p1: { prenom: 'Léa', nom: 'Martin', classement: '30/1', style_jeu: 'competitif', dispo: { lundi: { soir: true } }, partager_telephone: true, telephone: '06 12 34 56 78', partager_email: false, email: '', message: 'Dispo le lundi soir' },
+      p2: { prenom: 'Hugo', nom: 'Bernard', classement: '40', style_jeu: 'loisir', dispo: { samedi: { matin: true } }, partager_telephone: false, telephone: '', partager_email: false, email: '', message: '' } } }) });
   const M = async () => (await (await fetch(DB('members/' + uid), { headers: OWN })).json());
 
   const browser = await chromium.launch();
@@ -95,12 +100,23 @@ const OVERRIDE = `;(function(c){c.mode='firebase';c.firebase=Object.assign({},c.
   ok('Désinscription : supprimée de Firebase', reg === null, JSON.stringify(reg));
   await page.click('#v-agenda [data-evin="ev1"]'); await page.waitForTimeout(1200); // réinscrit pour la suite
 
+  // Annuaire des joueurs (partenaire_index, format de l'espace actuel)
+  await page.goto(SITE + '/espace-membre.html#jouer'); await page.waitForTimeout(1200);
+  let jo = await page.innerText('#v-jouer');
+  ok('Jouer : annuaire réel (Léa M., Hugo B.), sans onglet « Annonces » (plus tard)', /Léa M\./.test(jo) && /Hugo B\./.test(jo) && !(await page.$('#v-jouer [data-ptab="annonces"]')), jo.slice(0, 200));
+  const lea = await page.$$eval('#v-jouer .player', (cards) => cards.map((c) => ({ t: c.innerText, to: [...c.querySelectorAll('[data-contact]')].map((b) => b.dataset.contact + ':' + b.dataset.to) })));
+  const L = lea.find((x) => /Léa/.test(x.t)), H = lea.find((x) => /Hugo/.test(x.t));
+  ok('Jouer : contact seulement si partagé (Léa SMS/appel, Hugo aucun)', L && L.to.some((x) => x === 'sms:06 12 34 56 78') && H && H.to.length === 0, JSON.stringify(lea.map((x) => x.to)));
+  await page.click('#v-jouer [data-f="slot"][data-v="soir"]'); await page.waitForTimeout(400); jo = await page.innerText('#v-jouer');
+  ok('Jouer : filtre « Soir » → Léa seule', /Léa M\./.test(jo) && !/Hugo B\./.test(jo));
+
   await page.goto(SITE + '/espace-membre.html#carte'); await page.waitForSelector('#app:not([hidden])', { timeout: 20000 }); await page.waitForTimeout(1200);
   const carte = await page.innerText('#v-carte');
   const qr = await page.$eval('#mc-qr', (e) => e.getAttribute('title') || '').catch(() => '');
   ok('Carte : nom, licence, classement réels', /Camille/.test(carte) && /DURAND/.test(carte) && /1234567 X/.test(carte) && /30\/3/.test(carte), carte.slice(0, 160));
   ok('Carte : QR vers /v/{uid} (page de vérification existante)', qr.endsWith('/v/' + uid), qr);
   ok('Carte : « Membre · cotisation à jour »', /Membre · cotisation à jour/.test(carte));
+  ok('Avantages : offre réelle du partenaire, aucun exemple fictif', /Sport 2000 Amilly/.test(carte) && /-10 % sur les raquettes/.test(carte) && !/Votre enseigne|Exemple/.test(carte), carte.slice(-300));
 
   await page.goto(SITE + '/espace-membre.html#profil'); await page.waitForTimeout(1200);
   ok('Profil : « Membre depuis 2019 · Adulte F »', /Membre depuis 2019 · Adulte F/.test(await page.innerText('#v-profil')));
@@ -116,7 +132,7 @@ const OVERRIDE = `;(function(c){c.mode='firebase';c.firebase=Object.assign({},c.
   ok('Classement : 30/2 enregistré + historique {from, to, at} (format actuel)', m.classement === '30/2' && hist.length === 2 && hist.some((h) => h.from === '30/3' && h.to === '30/2' && h.at > 0), JSON.stringify(hist));
 
   await page.click('#v-profil [data-pstyle="Double"]'); await page.click('#v-profil [data-cell="lun|soir"]'); await page.waitForTimeout(300);
-  await page.goto(SITE + '/espace-membre.html#jouer'); await page.waitForTimeout(800); await page.click('#v-jouer [data-ptab="annuaire"]'); await page.waitForTimeout(400);
+  await page.goto(SITE + '/espace-membre.html#jouer'); await page.waitForTimeout(800);
   await page.check('#v-jouer [data-visible]', { force: true }); await page.waitForTimeout(1500);
   m = await M(); const p = m.partenaire || {}; const idx = await (await fetch(DB('partenaire_index/' + uid), { headers: OWN })).json();
   ok('Profil joueur : format actuel conservé (style_jeu, dispo.lundi…, public_profile)', p.public_profile === true && p.style_jeu === 'competitif' && p.dispo && p.dispo.lundi.soir === true && p.dispo.samedi.matin === true && p.updatedAt > 1 && JSON.stringify(p.styles) === '["Compétitif","Double"]', JSON.stringify(p).slice(0, 220));

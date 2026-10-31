@@ -180,7 +180,7 @@
 <script>
   /* Espace membre : mode réel (Firebase, mêmes comptes que l'espace actuel) quand le site est en
      mode Firebase ; démonstration (données fictives, dans ce navigateur) avec ?demo ou en aperçu local.
-     Branché : connexion, profil, carte QR, agenda + inscriptions, messages du bureau. Les autres rubriques arrivent module par module. */
+     Branché : connexion, profil, carte QR, avantages, agenda + inscriptions, messages du bureau, annuaire. Les autres rubriques arrivent module par module. */
   (function () {
     var C = window.USM_CONFIG;
     window.USM_REAL_MODE = C.mode; // réglages Équipes / Boutique de l'admin lus même en démo
@@ -193,7 +193,7 @@
       b.style.cssText = 'position:sticky;top:0;z-index:9999;background:#e3ff00;color:#020617;font:600 13px/1.4 system-ui,sans-serif;text-align:center;padding:8px 12px';
       b.textContent = demo
         ? 'Démonstration : données fictives, rien n\'est enregistré.'
-        : 'Nouvel espace membre en test : profil, carte, agenda et messages du bureau sont branchés, les autres rubriques arrivent bientôt. L\'espace habituel reste disponible sur tennismontargis.fr.';
+        : 'Nouvel espace membre en test : profil, carte, avantages, agenda, messages du bureau et annuaire des joueurs sont branchés. L\'espace habituel reste disponible sur tennismontargis.fr.';
       document.body.insertBefore(b, document.body.firstChild);
     });
   })();

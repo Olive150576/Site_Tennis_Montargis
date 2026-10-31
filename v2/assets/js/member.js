@@ -307,9 +307,12 @@
   }
   function liveLoadClub(fb) {
     var db = fb.database(), none = function () { return null; };
-    return Promise.all([window.USM.store.load(), db.ref('inscriptions_evenement').once('value').catch(none), db.ref('club_messages').once('value').catch(none)])
+    return Promise.all([window.USM.store.load(), db.ref('inscriptions_evenement').once('value').catch(none), db.ref('club_messages').once('value').catch(none),
+      db.ref('partenaire_index').once('value').catch(none)])
       .then(function (res) {
-        var c = res[0] || {}, ins = (res[1] && res[1].val()) || {}, cm = (res[2] && res[2].val()) || {};
+        var c = res[0] || {}, ins = (res[1] && res[1].val()) || {}, cm = (res[2] && res[2].val()) || {}, pi = (res[3] && res[3].val()) || {};
+        S.players = Object.keys(pi).filter(function (k) { return k !== UID && pi[k] && pi[k].prenom; }).map(function (k) { return playerFromIndex(k, pi[k]); })
+          .sort(function (a, b) { return a.prenom.localeCompare(b.prenom, 'fr'); });
         S.eventsIn = {};
         S.events = (c.events || []).filter(function (e) { return e && !e.draft && e.dateStart; }).map(function (e) {
           var reg = ins[e.id] || {};
@@ -323,6 +326,17 @@
           return { id: k, actif: m.actif, type: ['warning', 'urgent'].indexOf(m.type) >= 0 ? m.type : 'info', titre: m.titre || 'Message du club', texte: m.contenu || m.message || '', createdAt: m.createdAt || 0 };
         }).filter(function (m) { return m.actif !== false; });
       });
+  }
+  /* Fiche de l'annuaire (partenaire_index) → carte joueur ; coordonnées seulement si partagées */
+  function playerFromIndex(uid, x) {
+    var dispos = {};
+    OLD_DAYS.forEach(function (j, i) {
+      var src = (x.dispo || {})[j] || {};
+      SLOTS.forEach(function (s) { if (src[s]) { dispos[DAYS[i]] = dispos[DAYS[i]] || {}; dispos[DAYS[i]][s] = true; } });
+    });
+    return { uid: uid, prenom: x.prenom || '', nom: x.nom || '', classement: x.classement || 'NC', photoURL: x.photoURL || '',
+      style: Array.isArray(x.styles) ? x.styles.slice() : (STYLE_NEW[x.style_jeu] ? [STYLE_NEW[x.style_jeu]] : []), dispos: dispos,
+      message: x.message || '', telephone: x.partager_telephone && x.telephone ? x.telephone : '', email: x.partager_email && x.email ? x.email : '' };
   }
   function liveEventToggle(id) {
     var ev = S.events.filter(function (e) { return e.id === id; })[0]; if (!ev || !ev.inscription) return;
@@ -381,6 +395,7 @@
      En mode Firebase, USM.store lit site_v2/sponsors : rien à changer ici. */
   /* Exemple de démonstration ajouté seulement tant qu'aucune vraie offre membre n'existe */
   function withDemo(list) {
+    if (LIVE) return list.slice(); // jamais d'avantage d'exemple pour de vrais membres
     var real = list.some(function (s) { return s && !s.draft && s.perk && !/à venir|bientôt/i.test(s.perk); });
     return real ? list.slice() : list.concat(window.USM_MEMBER_DEMO || []);
   }
@@ -526,7 +541,7 @@
       '<h2 class="v-sub">Raccourcis</h2><div class="quick">' +
         '<a href="' + esc(CLUB.tenup) + '" target="_blank" rel="noopener"><span class="q-ico ball">' + ic('calendar') + '</span><span>Réserver un court<small>Sur Ten\'Up</small></span></a>' +
         '<button type="button" data-qr><span class="q-ico">' + ic('qr') + '</span><span>Montrer ma carte<small>QR plein écran</small></span></button>' +
-        '<a href="#jouer"><span class="q-ico">' + ic('users') + '</span><span>Trouver un partenaire<small>' + (fresh ? fresh + ' annonce' + (fresh > 1 ? 's' : '') + ' à mon niveau' : 'Annonces et annuaire') + '</small></span></a>' +
+        '<a href="#jouer"><span class="q-ico">' + ic('users') + '</span><span>Trouver un partenaire<small>' + (fresh ? fresh + ' annonce' + (fresh > 1 ? 's' : '') + ' à mon niveau' : (LIVE ? 'Annuaire des joueurs' : 'Annonces et annuaire')) + '</small></span></a>' +
         (SHOP_ON ? '<a href="#boutique"><span class="q-ico">' + ic('bag') + '</span><span>Boutique du club<small>Commandes groupées</small></span></a>' : '') +
       '</div>' +
       waCard() +
@@ -599,7 +614,7 @@
     var contact = [];
     if (p.telephone) contact.push('<button class="btn btn-blue" data-contact="sms" data-to="' + esc(p.telephone) + '" data-name="' + esc(p.prenom) + '">SMS</button><button class="btn" data-contact="tel" data-to="' + esc(p.telephone) + '" data-name="' + esc(p.prenom) + '">' + ic('phone') + 'Appeler</button>');
     if (p.email) contact.push('<button class="btn btn-blue" data-contact="mail" data-to="' + esc(p.email) + '" data-name="' + esc(p.prenom) + '">' + ic('mail') + 'Email</button>');
-    return '<article class="player"><div class="player-top">' + avatar(p) + '<div><b>' + esc(p.prenom + ' ' + p.nom[0] + '.') + '</b></div><span class="rank" title="Classement">' + esc(p.classement) + '</span></div>' +
+    return '<article class="player"><div class="player-top">' + avatar(p) + '<div><b>' + esc(p.prenom + ' ' + (p.nom || ' ')[0] + '.') + '</b></div><span class="rank" title="Classement">' + esc(p.classement) + '</span></div>' +
       '<div class="player-tags">' + p.style.map(function (s) { return '<span class="chip">' + esc(s) + '</span>'; }).join('') + '</div>' +
       (p.message ? '<p class="player-msg">« ' + esc(p.message) + ' »</p>' : '') + dispoGrid(p.dispos) +
       '<div class="player-contact">' + contact.join('') + '</div></article>';
@@ -611,7 +626,7 @@
       : iGo ? '<button class="btn btn-sm post-act" data-go="' + p.id + '">' + ic('check') + 'Partant</button>'
       : '<button class="btn btn-ball btn-sm post-act" data-go="' + p.id + '">Je suis partant</button>';
     return '<article class="post' + (mine ? ' mine' : '') + '">' + avatar(who) + '<div><div class="post-kind">' + esc(p.kind) + ' · ' + esc(relDay(p.when)) + ' à ' + fmt.time(p.when) + '</div>' +
-      '<div class="post-meta"><span>' + esc(who.prenom + ' ' + who.nom[0] + '.') + ' <span class="rank">' + esc(who.classement) + '</span></span><span>' + ic('court') + esc(p.surface) + '</span><span>' + ic('target') + esc(p.level) + '</span><span>' + ic('clock') + esc(fmt.ago(p.created)) + '</span></div>' +
+      '<div class="post-meta"><span>' + esc(who.prenom + ' ' + (who.nom || ' ')[0] + '.') + ' <span class="rank">' + esc(who.classement) + '</span></span><span>' + ic('court') + esc(p.surface) + '</span><span>' + ic('target') + esc(p.level) + '</span><span>' + ic('clock') + esc(fmt.ago(p.created)) + '</span></div>' +
       (p.text ? '<p>' + esc(p.text) + '</p>' : '') +
       (p.going.length ? '<span class="going">' + ic('users') + p.going.length + ' partant' + (p.going.length > 1 ? 's' : '') + (iGo ? ' dont vous' : '') + '</span>' : '') +
       '</div>' + act + '</article>';
@@ -619,6 +634,7 @@
   RENDER.jouer = function () {
     var me = S.me, mine = rankIdx(me.classement);
     var body;
+    if (LIVE) playTab = 'annuaire'; // annonces « cherche un double » : plus tard (décision D3)
     if (playTab === 'annonces') {
       var list = S.posts.filter(function (p) { return p.when > Date.now(); }).sort(function (a, b) { return a.when - b.when; });
       body = '<div class="filters-bar post-bar"><button class="btn btn-ball" data-newpost>' + ic('plus') + 'Publier une annonce</button><span class="muted" style="font-size:.9rem">Les annonces disparaissent seules après la date du match.</span></div>' +
@@ -645,7 +661,7 @@
         (list2.length ? '<div class="players">' + list2.map(playerCard).join('') + '</div>' : '<div class="empty">Aucun joueur ne correspond. Retirez un filtre ou publiez une annonce.</div>');
     }
     $('#v-jouer').innerHTML = '<div class="v-head"><div><h1>Jouer</h1><p>Trouvez un partenaire pour un simple, un double ou une partie à quatre.</p></div>' +
-      '<div class="seg-tabs" role="tablist"><button role="tab" data-ptab="annonces" aria-selected="' + (playTab === 'annonces') + '">Annonces</button><button role="tab" data-ptab="annuaire" aria-selected="' + (playTab === 'annuaire') + '">Annuaire</button></div></div>' + body;
+      (LIVE ? '' : '<div class="seg-tabs" role="tablist"><button role="tab" data-ptab="annonces" aria-selected="' + (playTab === 'annonces') + '">Annonces</button><button role="tab" data-ptab="annuaire" aria-selected="' + (playTab === 'annuaire') + '">Annuaire</button></div>') + '</div>' + body;
     var q = $('[data-q]'); if (q) q.addEventListener('input', function () { F.q = q.value; var pos = q.selectionStart; RENDER.jouer(); var nq = $('[data-q]'); nq.focus(); nq.setSelectionRange(pos, pos); });
   };
   function openPostForm() {
@@ -676,7 +692,7 @@
     var head = '<tr><th scope="col">Joueur</th>' + up.map(function (m) { return '<th scope="col">' + esc(fmt.short(m.date)) + '<br>' + (m.dom ? 'vs ' : '@ ') + esc(m.adv) + '</th>'; }).join('') + '</tr>';
     var rows = T.roster.map(function (p) {
       var isMe = p.uid === 'me';
-      return '<tr class="' + (isMe ? 'me' : '') + '"><td>' + esc(isMe ? 'Moi' : p.prenom + ' ' + p.nom[0] + '.') + ' <span class="rank" style="color:var(--ink-3)">' + esc(p.classement) + '</span></td>' +
+      return '<tr class="' + (isMe ? 'me' : '') + '"><td>' + esc(isMe ? 'Moi' : p.prenom + ' ' + (p.nom || ' ')[0] + '.') + ' <span class="rank" style="color:var(--ink-3)">' + esc(p.classement) + '</span></td>' +
         up.map(function (m) {
           var v = (T.dispos[m.id] || {})[p.uid] || '';
           if (isMe) return '<td><button class="av-toggle ' + v + '" data-dispo="' + m.id + '" aria-label="Ma disponibilité le ' + esc(fmt.short(m.date)) + '">' + (v === 'y' ? 'Dispo' : v === 'n' ? 'Indispo' : 'À dire') + '</button></td>';
@@ -1258,7 +1274,10 @@
       if (d.f === 'near') F.near = !F.near; else if (d.f === 'slot') F.slots[d.v] = !F.slots[d.v]; else F.styles[d.v] = !F.styles[d.v];
       RENDER.jouer(); return;
     }
-    if (d.contact) { toast('Démo : ouvrirait ' + ({ sms: 'un SMS', tel: 'un appel', mail: 'un email' })[d.contact] + ' vers ' + d.name); return; }
+    if (d.contact) {
+      if (LIVE) { location.href = ({ sms: 'sms:', tel: 'tel:', mail: 'mailto:' })[d.contact] + String(d.to || '').replace(/\s+/g, d.contact === 'mail' ? '' : ''); return; }
+      toast('Démo : ouvrirait ' + ({ sms: 'un SMS', tel: 'un appel', mail: 'un email' })[d.contact] + ' vers ' + d.name); return;
+    }
     if (d.dispo) {
       var cur = (S.team.dispos[d.dispo] = S.team.dispos[d.dispo] || {}), nx = cur.me === 'y' ? 'n' : cur.me === 'n' ? '' : 'y';
       cur.me = nx; save(); RENDER.equipes(); var b = $('[data-dispo="' + d.dispo + '"]'); if (b) b.focus(); return;
