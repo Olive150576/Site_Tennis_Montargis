@@ -178,18 +178,25 @@
 <!-- Données du club : les mêmes que le site public (Admin), via le magasin de données partagé -->
 <script src="assets/js/config.js"></script>
 <script>
-  /* MAQUETTE : l'espace membre n'est pas encore branché sur Firebase (connexion, profil, équipes…).
-     Il reste en démonstration, données fictives dans ce navigateur, même quand le site est en mode Firebase.
-     L'ancien espace membre reste en service à la bascule (voir README, étape C). */
-  window.USM_REAL_MODE = window.USM_CONFIG.mode; // pour lire quand même les réglages Équipes / Boutique de l'admin
-  window.USM_CONFIG.mode = 'local';
-  document.addEventListener('DOMContentLoaded', function () {
-    var b = document.createElement('div');
-    b.setAttribute('role', 'note');
-    b.style.cssText = 'position:sticky;top:0;z-index:9999;background:#e3ff00;color:#020617;font:600 13px/1.4 system-ui,sans-serif;text-align:center;padding:8px 12px';
-    b.textContent = 'Maquette de démonstration : données fictives, rien n\'est enregistré. L\'espace membre actuel reste celui de tennismontargis.fr.';
-    document.body.insertBefore(b, document.body.firstChild);
-  });
+  /* Espace membre : mode réel (Firebase, mêmes comptes que l'espace actuel) quand le site est en
+     mode Firebase ; démonstration (données fictives, dans ce navigateur) avec ?demo ou en aperçu local.
+     Branché : connexion, profil, carte QR. Les autres rubriques arrivent module par module. */
+  (function () {
+    var C = window.USM_CONFIG;
+    window.USM_REAL_MODE = C.mode; // réglages Équipes / Boutique de l'admin lus même en démo
+    var demo = C.mode !== 'firebase' || /[?&]demo\b/.test(location.search);
+    window.USM_MEMBER_DEMO_MODE = demo;
+    if (demo) C.mode = 'local';
+    document.addEventListener('DOMContentLoaded', function () {
+      var b = document.createElement('div');
+      b.setAttribute('role', 'note');
+      b.style.cssText = 'position:sticky;top:0;z-index:9999;background:#e3ff00;color:#020617;font:600 13px/1.4 system-ui,sans-serif;text-align:center;padding:8px 12px';
+      b.textContent = demo
+        ? 'Démonstration : données fictives, rien n\'est enregistré.'
+        : 'Nouvel espace membre en test : profil et carte sont branchés, les autres rubriques arrivent bientôt. L\'espace habituel reste disponible sur tennismontargis.fr.';
+      document.body.insertBefore(b, document.body.firstChild);
+    });
+  })();
 </script>
 <script src="assets/js/data-seed.js"></script>
 <script src="assets/js/store.js"></script>

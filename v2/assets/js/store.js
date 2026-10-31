@@ -702,6 +702,7 @@
     },
 
     seed,
+    sdk: firebaseSDK, // même instance Firebase (et mêmes émulateurs en test) pour l'espace membre
     COLLECTIONS,
     shop: Shop
   };

@@ -1,4 +1,4 @@
-# Recette de l'admin en mode Firebase
+# Recettes de l'admin et de l'espace membre en mode Firebase
 
 Vérifie, **sans toucher aux vraies données**, que l'admin du nouveau site fonctionne branché sur Firebase. Le test tourne contre les émulateurs officiels (Auth, base, Storage, fonctions), avec les vraies règles et les vraies fonctions du dépôt.
 
@@ -15,6 +15,15 @@ Vérifie, **sans toucher aux vraies données**, que l'admin du nouveau site fonc
 - reprise des actualités de l'ancien site sans doublon ;
 - session conservée.
 
+## Espace membre (`membre-e2e.js`) — 22 contrôles
+
+- connexion : mauvais mot de passe, adhésion inactive, compte sans fiche refusés ; bouton démo masqué ;
+- accueil réel, aucune donnée fictive, visite comptée ;
+- carte : nom, licence, classement, QR vers `/v/{uid}` ;
+- profil : téléphone enregistré, téléphone invalide refusé, classement + historique au format actuel ;
+- profil joueur et annuaire au format de l'espace actuel (`style_jeu`, `dispo.lundi…`, `partenaire_index`) ;
+- photo envoyée dans Storage ; session conservée ; déconnexion.
+
 ## Une seule fois
 
 - Java 11 ou plus, et l'outil Firebase (`npm install -g firebase-tools`).
@@ -23,6 +32,6 @@ Vérifie, **sans toucher aux vraies données**, que l'admin du nouveau site fonc
 
 ## Lancer
 
-Dans ce dossier : `npm test`. Résultat attendu : `26/26 contrôles admin (mode Firebase)`.
+Dans ce dossier : `npm test`. Résultat attendu : `26/26 contrôles admin (mode Firebase)` puis `22/22 contrôles espace membre (mode Firebase)`.
 
 À lancer avant la bascule, et après toute modification de `store.js`, `admin.js`, des règles ou des fonctions.

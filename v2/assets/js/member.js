@@ -159,7 +159,152 @@
 
   var S;
   function load() { try { var raw = localStorage.getItem(KEY); S = raw ? JSON.parse(raw) : seed(); } catch (e) { S = seed(); } S.shopSeen = S.shopSeen || {}; }
-  function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+  function save() { if (LIVE) { liveSave(); return; } try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+  /* =====================================================================
+     MODE RÉEL (Firebase) — mêmes comptes et mêmes données que l'espace
+     membre actuel, formats conservés à l'identique (les deux espaces
+     tournent en parallèle pendant la transition) :
+       members/{uid}           email, telephone, classement, photoURL,
+                               classementHistory/{push} {from, to, at},
+                               partenaire {public_profile, updatedAt, style_jeu,
+                               dispo {lundi: {matin…}}, partager_*, message} (+ styles[])
+       partenaire_index/{uid}  fiche publique (membres actifs) si profil visible
+       Storage members/{uid}/photo.jpg
+     Démo : espace-membre.html?demo (ou site en mode aperçu).
+     ===================================================================== */
+  var LIVE = !window.USM_MEMBER_DEMO_MODE;
+  var UID = null, SYNCED = null, syncT = null;
+  var OLD_DAYS = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'];
+  var STYLE_OLD = { 'Loisir': 'loisir', 'Compétitif': 'competitif', 'Double': 'double', 'Mixte': 'double' };
+  var STYLE_NEW = { loisir: 'Loisir', competitif: 'Compétitif', double: 'Double' };
+  function sdk() { return window.USM.store.sdk(); }
+  function seasonOf(ts) { var d = new Date(ts), y = d.getFullYear(); if (d.getMonth() < 8) y--; return y + '-' + (y + 1); }
+  function meFromRecord(uid, r) {
+    r = r || {};
+    var hist = {}, lastAt = 0, h = r.classementHistory || {};
+    Object.keys(h).map(function (k) { return h[k]; }).filter(function (x) { return x && x.at && x.to; })
+      .sort(function (a, b) { return a.at - b.at; })
+      .forEach(function (x) { hist[seasonOf(x.at)] = x.to; lastAt = x.at; });
+    var cl = r.classement || 'NC';
+    hist[SEASON] = cl;
+    var p = r.partenaire || {}, dispos = {};
+    OLD_DAYS.forEach(function (j, i) {
+      var src = (p.dispo || {})[j] || {};
+      SLOTS.forEach(function (s) { if (src[s]) { dispos[DAYS[i]] = dispos[DAYS[i]] || {}; dispos[DAYS[i]][s] = true; } });
+    });
+    var styles = Array.isArray(p.styles) ? p.styles.slice() : (STYLE_NEW[p.style_jeu] ? [STYLE_NEW[p.style_jeu]] : []);
+    return {
+      uid: uid, prenom: r.prenom || '', nom: r.nom || '', email: r.email || '', telephone: r.telephone || '',
+      classement: cl, classementAt: lastAt, classementHistory: hist,
+      licence: r.licence || '—', categorie: r.categorie || '', statut: r.statut || 'Membre',
+      depuis: r.createdAt ? new Date(r.createdAt).getFullYear() : '', photoURL: r.photoURL || '',
+      partenaire: { actif: !!p.public_profile, style: styles, dispos: dispos, partager_telephone: !!p.partager_telephone, partager_email: !!p.partager_email, message: p.message || '' },
+      notifs: { convocations: true, annonces: true, bureau: true, push: false }
+    };
+  }
+  /* Sections pas encore branchées : vides (jamais de données fictives en mode réel) */
+  function liveState(me) {
+    var ui = {}; try { ui = JSON.parse(localStorage.getItem(KEY + '_ui_' + me.uid) || '{}') || {}; } catch (e) {}
+    if (ui.notifs) Object.assign(me.notifs, ui.notifs);
+    return { me: me, players: [], posts: [], msgs: [], events: [], matches: [],
+      team: { id: '', nom: '', champ: '', capitaine: '', roster: [], dispos: {}, convocations: {} },
+      chat: [], champs: [], eventsIn: {}, readMsgs: ui.readMsgs || {}, seenPostsAt: ui.seenPostsAt || 0, shopSeen: ui.shopSeen || {} };
+  }
+  function partOld(me) {
+    var P = me.partenaire, d = { public_profile: !!P.actif, styles: P.style.slice(), style_jeu: STYLE_OLD[P.style[0]] || 'loisir', dispo: {},
+      partager_telephone: !!P.partager_telephone, partager_email: !!P.partager_email, message: String(P.message || '').slice(0, 100) };
+    OLD_DAYS.forEach(function (j, i) { d.dispo[j] = {}; SLOTS.forEach(function (s) { d.dispo[j][s] = !!((P.dispos[DAYS[i]] || {})[s]); }); });
+    return d;
+  }
+  function snapshot(me) { return { email: me.email, telephone: me.telephone, part: JSON.stringify(partOld(me)), photoURL: me.photoURL }; }
+  /* save() en mode réel : l'état d'affichage reste dans le navigateur, le reste part dans Firebase */
+  function liveSave() {
+    if (!UID) return;
+    try { localStorage.setItem(KEY + '_ui_' + UID, JSON.stringify({ readMsgs: S.readMsgs, seenPostsAt: S.seenPostsAt, shopSeen: S.shopSeen, notifs: S.me.notifs })); } catch (e) {}
+    clearTimeout(syncT); syncT = setTimeout(liveSync, 400);
+  }
+  function liveErr(e) { var s = String((e && (e.code || e.message)) || e); return /PERMISSION_DENIED|permission/i.test(s) ? 'valeur refusée par le serveur' : (e && e.message) || s; }
+  function liveSync() {
+    var me = S.me, now = snapshot(me), was = SYNCED;
+    if (!UID || !was) return Promise.resolve();
+    SYNCED = now;
+    return sdk().then(function (fb) {
+      var db = fb.database(), jobs = [], up = {};
+      if (now.email !== was.email) up.email = me.email;
+      if (now.telephone !== was.telephone) up.telephone = me.telephone;
+      if (Object.keys(up).length) jobs.push(db.ref('members/' + UID).update(up));
+      var partChanged = now.part !== was.part;
+      if (partChanged || now.photoURL !== was.photoURL || (me.partenaire.actif && Object.keys(up).length)) jobs.push(writePartner(db, me, partChanged));
+      return Promise.all(jobs);
+    }).catch(function (e) { SYNCED = was; toast('Enregistrement impossible : ' + liveErr(e), 6000); });
+  }
+  function writePartner(db, me, partChanged) {
+    var d = partOld(me), jobs = [];
+    if (partChanged) jobs.push(db.ref('members/' + UID + '/partenaire').set(Object.assign({ updatedAt: Date.now() }, d)));
+    if (d.public_profile) {
+      jobs.push(db.ref('partenaire_index/' + UID).set({ prenom: me.prenom, nom: me.nom, classement: me.classement, categorie: me.categorie, photoURL: me.photoURL || '',
+        style_jeu: d.style_jeu, styles: d.styles, dispo: d.dispo, partager_telephone: d.partager_telephone, partager_email: d.partager_email,
+        telephone: d.partager_telephone ? me.telephone : '', email: d.partager_email ? me.email : '', message: d.message }));
+    } else jobs.push(db.ref('partenaire_index/' + UID).remove());
+    return Promise.all(jobs);
+  }
+  /* Classement : même trace que l'espace actuel (classementHistory {from, to, at}) */
+  function liveRank(from, to) {
+    return sdk().then(function (fb) {
+      var db = fb.database();
+      return db.ref('members/' + UID).update({ classement: to })
+        .then(function () { return db.ref('members/' + UID + '/classementHistory').push({ from: from, to: to, at: fb.database.ServerValue.TIMESTAMP }); })
+        .then(function () { if (S.me.partenaire.actif) return db.ref('partenaire_index/' + UID + '/classement').set(to); });
+    }).catch(function (e) { toast('Classement non enregistré : ' + liveErr(e), 6000); });
+  }
+  function livePhoto(canvas) {
+    return new Promise(function (res) { canvas.toBlob(res, 'image/jpeg', 0.85); }).then(function (blob) {
+      return sdk().then(function (fb) {
+        var ref = fb.storage().ref('members/' + UID + '/photo.jpg');
+        return ref.put(blob, { contentType: 'image/jpeg' }).then(function () { return ref.getDownloadURL(); })
+          .then(function (url) { return fb.database().ref('members/' + UID + '/photoURL').set(url).then(function () { return url; }); });
+      });
+    });
+  }
+  function authMsg(e) {
+    var c = (e && e.code) || '';
+    if (/invalid-credential|wrong-password|user-not-found|invalid-email|invalid-login/.test(c)) return 'Email ou mot de passe incorrect. Besoin d\'aide ? « Mot de passe oublié ».';
+    if (/too-many-requests/.test(c)) return 'Trop d\'essais : patientez quelques minutes ou utilisez « Mot de passe oublié ».';
+    if (/network/.test(c)) return 'Pas de connexion internet : réessayez dans un instant.';
+    if (/user-disabled/.test(c)) return 'Ce compte est désactivé : contactez le secrétariat du club.';
+    return (e && e.message) || 'Connexion impossible.';
+  }
+  function liveEnter(user) {
+    return sdk().then(function (fb) {
+      return fb.database().ref('members/' + user.uid).once('value').then(function (snap) {
+        var r = snap.val();
+        if (!r || r.actif !== true) {
+          return fb.auth().signOut().then(function () {
+            throw new Error(r ? 'Votre adhésion n\'est pas active pour le moment : contactez le secrétariat du club.' : 'Aucune fiche membre n\'est liée à ce compte : contactez le secrétariat du club.');
+          });
+        }
+        UID = user.uid; S = liveState(meFromRecord(user.uid, r)); SYNCED = snapshot(S.me);
+        try { // compteur de visites (comme l'espace actuel) : une fois par session de navigation
+          if (!sessionStorage.getItem('usm_visite_comptee')) {
+            sessionStorage.setItem('usm_visite_comptee', '1');
+            var db = fb.database();
+            db.ref('members/' + UID + '/derniereVisite').set(Date.now()).catch(function () {});
+            db.ref('members/' + UID + '/visites').set(fb.database.ServerValue.increment(1)).catch(function () {});
+          }
+        } catch (e) {}
+        showApp();
+      });
+    });
+  }
+  function liveLogout() {
+    return sdk().then(function (fb) { return fb.auth().signOut(); }).then(function () {
+      UID = null; SYNCED = null; S = liveState(meFromRecord('', {})); showLogin();
+    });
+  }
+  function liveResetMail(email) {
+    return sdk().then(function (fb) { return fb.auth().sendPasswordResetEmail(email); });
+  }
+
 
   /* ---------- Réglages club (repris du site) ---------- */
   var CLUB = { tenup: 'https://tenup.fft.fr/club/53450084', phone: '02 38 85 44 30', email: 'usmmtennis@orange.fr', logo: 'assets/img/brand/logo-usm.webp', whatsapp: '' };
@@ -386,7 +531,7 @@
       '<div class="card-wrap">' +
         '<button type="button" class="mcard" data-qr aria-label="Afficher le QR code en plein écran">' + COURT_SVG +
           '<div class="mc-top"><div class="mc-club"><img src="' + CLUB.logo + '" alt=""><div><b>USM Tennis</b><span>Montargis</span></div></div><span class="mc-season">' + SEASON + '</span></div>' +
-          '<div><div class="mc-name">' + esc(me.prenom) + '<br>' + esc(me.nom.toUpperCase()) + '</div><span class="mc-status"><i></i>Membre ' + esc(me.statut.toLowerCase()) + ' · cotisation à jour</span></div>' +
+          '<div><div class="mc-name">' + esc(me.prenom) + '<br>' + esc(me.nom.toUpperCase()) + '</div><span class="mc-status"><i></i>' + (/^membre$/i.test(me.statut) ? 'Membre' : 'Membre ' + esc(me.statut.toLowerCase())) + ' · cotisation à jour</span></div>' +
           '<div class="mc-bottom"><div class="mc-data"><div><small>Licence</small><b>' + esc(me.licence) + '</b></div><div><small>Classement</small><b>' + esc(me.classement) + '</b></div></div><div class="mc-qr" id="mc-qr"></div></div>' +
         '</button>' +
         '<div class="card-side"><p class="hint">Touchez la carte pour agrandir le QR code : l\'écran passe en blanc pour un scan facile.</p>' +
@@ -584,7 +729,7 @@
     var tg = function (k, t, s) { return '<div class="toggle-row"><div><b>' + t + '</b><span>' + s + '</span></div><label class="switch"><input type="checkbox" data-notif="' + k + '"' + (me.notifs[k] ? ' checked' : '') + ' aria-label="' + t + '"><span></span></label></div>'; };
     $('#v-profil').innerHTML =
       '<div class="v-head"><div class="profile-head"><div class="photo-edit">' + avatar(me) + '<label title="Changer ma photo">' + ic('camera') + '<span class="sr-only">Changer ma photo</span><input type="file" accept="image/*" data-photo></label></div>' +
-        '<div><h1>' + esc(me.prenom + ' ' + me.nom) + '</h1><p>Membre depuis ' + me.depuis + ' · ' + esc(me.categorie) + '</p></div></div></div>' +
+        '<div><h1>' + esc(me.prenom + ' ' + me.nom) + '</h1><p>' + [me.depuis ? 'Membre depuis ' + me.depuis : '', esc(me.categorie)].filter(Boolean).join(' · ') + '</p></div></div></div>' +
       (!me.telephone ? '<div class="alert-soft">' + ic('info') + '<div><b>Sans téléphone, vos coéquipiers ne peuvent pas vous joindre rapidement avant un match.</b> Ajoutez-le ci-dessous, il n\'est visible que par les membres de vos équipes' + (P.partager_telephone ? ' et de l\'annuaire' : '') + '.</div></div>' : '') +
       '<div class="grid-2" style="margin-top:20px">' +
         '<section class="panel-m"><h2 class="v-sub" style="margin-top:0">Mes coordonnées</h2><form class="form" id="coord-form">' +
@@ -610,7 +755,7 @@
           '<button class="btn" data-install>' + ic('download') + 'Installer l\'application sur mon téléphone</button>' +
           '<button class="btn" data-pw>' + ic('lock') + 'Changer mon mot de passe</button>' +
           '<button class="btn" data-logout>' + ic('logout') + 'Se déconnecter</button>' +
-          '<button class="btn" data-reset style="border-style:dashed">' + ic('repeat') + 'Réinitialiser la démo</button>' +
+          (LIVE ? '' : '<button class="btn" data-reset style="border-style:dashed">' + ic('repeat') + 'Réinitialiser la démo</button>') +
         '</div></section>' +
       '</div>';
     $('#coord-form').addEventListener('submit', function (e) {
@@ -979,7 +1124,8 @@
   function rankRef() { var d = new Date(); return new Date(d.getFullYear(), d.getDate() < RANK_DAY ? d.getMonth() - 1 : d.getMonth(), RANK_DAY).getTime(); }
   function rankDue() { return !S.me.classementAt || S.me.classementAt < rankRef(); }
   function setRank(v) {
-    var me = S.me, delta = rankIdx(v) - rankIdx(me.classement);
+    var me = S.me, delta = rankIdx(v) - rankIdx(me.classement), from = me.classement;
+    if (LIVE) liveRank(from, v);
     me.classement = v; me.classementAt = Date.now(); me.classementHistory = me.classementHistory || {}; me.classementHistory[SEASON] = v; save();
     return delta;
   }
@@ -1093,8 +1239,11 @@
     }
     if (d.copy) { try { navigator.clipboard.writeText(d.copy); toast('Copié'); } catch (x) { toast('Copie impossible sur ce navigateur'); } return; }
     if (t.hasAttribute('data-install')) { toast('Sur iPhone : Partager › Sur l\'écran d\'accueil. Sur Android : menu › Installer l\'application.'); return; }
-    if (t.hasAttribute('data-pw')) { toast('Un lien pour changer votre mot de passe a été envoyé à ' + S.me.email); return; }
-    if (t.hasAttribute('data-logout')) { try { localStorage.removeItem(SESSION); } catch (x) {} showLogin(); return; }
+    if (t.hasAttribute('data-pw')) {
+      if (LIVE) { sdk().then(function (fb) { var em = fb.auth().currentUser && fb.auth().currentUser.email; return liveResetMail(em).then(function () { toast('Un lien pour changer votre mot de passe a été envoyé à ' + em, 6000); }); }).catch(function (x) { toast('Envoi impossible : ' + authMsg(x), 6000); }); return; }
+      toast('Un lien pour changer votre mot de passe a été envoyé à ' + S.me.email); return;
+    }
+    if (t.hasAttribute('data-logout')) { if (LIVE) { liveLogout(); return; } try { localStorage.removeItem(SESSION); } catch (x) {} showLogin(); return; }
     if (t.hasAttribute('data-reset')) {
       try { localStorage.removeItem(KEY); } catch (x) {}
       var sa = shopApi(); if (sa) sa.resetDemo();
@@ -1122,6 +1271,12 @@
         var img = new Image(); img.onload = function () {
           var c = document.createElement('canvas'), s = 240, m = Math.min(img.width, img.height); c.width = c.height = s;
           c.getContext('2d').drawImage(img, (img.width - m) / 2, (img.height - m) / 2, m, m, 0, 0, s, s);
+          if (LIVE) {
+            toast('Envoi de la photo…');
+            livePhoto(c).then(function (url) { S.me.photoURL = url; save(); RENDER.profil(); refreshTop(); toast('Photo mise à jour'); })
+              .catch(function (x) { toast('Photo non enregistrée : ' + liveErr(x), 6000); });
+            return;
+          }
           S.me.photoURL = c.toDataURL('image/jpeg', 0.82); save(); RENDER.profil(); refreshTop(); toast('Photo mise à jour');
         }; img.src = r.result;
       }; r.readAsDataURL(t.files[0]);
@@ -1145,13 +1300,14 @@
   function init() {
     load();
     initFramedPreview();
-    Promise.all([loadSponsors(), loadShop(), settingsReady]).then(function () { if (!$('#app').hidden) route(); });
+    Promise.all([loadSponsors(), LIVE ? null : loadShop(), settingsReady]).then(function () { if (!$('#app').hidden) route(); });
     $('#more').addEventListener('click', function (e) { if (e.target.id === 'more') closeMore(); });
     /* Aperçu : une modification faite dans l'admin (autre onglet) apparaît ici aussitôt */
     window.addEventListener('storage', function (e) { if (e.key === 'usm_boutique_v1' || e.key === 'usm_v2_content_ping') loadShop(e.key === 'usm_v2_content_ping').then(rerender); });
     $('#qr-close').addEventListener('click', function () { $('#qr-screen').hidden = true; });
     $('#drawer').addEventListener('click', function (e) { if (e.target.id === 'drawer') closeDrawer(); });
     $('#pw-eye').addEventListener('click', function () { var i = $('#lg-pw'); i.type = i.type === 'password' ? 'text' : 'password'; this.setAttribute('aria-pressed', i.type === 'text'); });
+    if (LIVE) { initLiveLogin(); return; }
     $('#login-form').addEventListener('submit', function (e) {
       e.preventDefault(); var em = $('#lg-email').value.trim(), pw = $('#lg-pw').value, err = $('#lg-err');
       if (!/^\S+@\S+\.\S+$/.test(em)) { err.textContent = 'Saisissez l\'adresse email donnée au club à l\'inscription.'; err.hidden = false; $('#lg-email').focus(); return; }
@@ -1167,6 +1323,35 @@
     window.addEventListener('hashchange', function () { if (!$('#app').hidden) route(); });
     var logged = false; try { logged = localStorage.getItem(SESSION) === '1'; } catch (x) {}
     if (logged) showApp();
+  }
+  function initLiveLogin() {
+    var err = $('#lg-err'), btn = $('#login-form [type="submit"]'), label = btn.innerHTML;
+    var showErr = function (m) { err.textContent = m; err.hidden = false; };
+    var demo = $('#demo-btn'); if (demo) demo.hidden = true;
+    window.addEventListener('hashchange', function () { if (!$('#app').hidden) route(); });
+    $('#login-form').addEventListener('submit', function (e) {
+      e.preventDefault(); var em = $('#lg-email').value.trim(), pw = $('#lg-pw').value;
+      if (!/^\S+@\S+\.\S+$/.test(em)) { showErr('Saisissez l\'adresse email donnée au club à l\'inscription.'); $('#lg-email').focus(); return; }
+      if (!pw) { showErr('Saisissez votre mot de passe.'); $('#lg-pw').focus(); return; }
+      err.hidden = true; btn.disabled = true; btn.textContent = 'Connexion…';
+      sdk().then(function (fb) { return fb.auth().signInWithEmailAndPassword(em, pw); })
+        .then(function (cred) { return liveEnter(cred.user); })
+        .catch(function (x) { showErr(x && x.code ? authMsg(x) : (x && x.message) || String(x)); })
+        .then(function () { btn.disabled = false; btn.innerHTML = label; });
+    });
+    $('#forgot').addEventListener('click', function (e) {
+      e.preventDefault(); var em = $('#lg-email').value.trim();
+      if (!/^\S+@\S+\.\S+$/.test(em)) { showErr('Saisissez d\'abord votre email, on vous envoie un lien.'); $('#lg-email').focus(); return; }
+      err.hidden = true;
+      // Même message que le compte existe ou non (on ne révèle pas qui est inscrit)
+      liveResetMail(em).catch(function (x) { if (/network/.test((x && x.code) || '')) throw x; })
+        .then(function () { toast('Si un compte existe pour ' + em + ', un lien de réinitialisation vient d\'être envoyé.', 6000); })
+        .catch(function (x) { showErr(authMsg(x)); });
+    });
+    // Session conservée : retour direct dans l'espace
+    sdk().then(function (fb) {
+      fb.auth().onAuthStateChanged(function (u) { if (u && !UID) liveEnter(u).catch(function (x) { showErr(x.message || String(x)); }); });
+    }).catch(function (x) { showErr('Service indisponible : ' + ((x && x.message) || x)); });
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
