@@ -106,6 +106,8 @@ Avant tout déploiement de règles, lancer `v2/tools/firebase-tests` (voir son `
 
 ### Étape C — bascule de l'hébergement
 
+> **Mise à jour du 31/10/2026 — l'espace membre bascule aussi.** Le nouvel espace membre est branché sur Firebase : connexion, profil, carte, avantages, agenda + inscriptions, messages du bureau et annuaire, testés en réel. Les équipes passent par WhatsApp (championnat terminé) : interrupteur **Équipes désactivé** et lien de la Communauté WhatsApp renseigné dans Admin › Paramètres. Le **nouvel** `espace-membre.html` remplace donc l'ancien, à la même adresse : les applications déjà installées sur les téléphones (`manifest-membre.json`, `start_url` = `/espace-membre.html`) ouvrent directement le nouvel espace. La liste « garder » ci-dessous ne vaut plus que pour l'ancien **panneau admin** (gestion des comptes membres), `verify.html` et `qr-accueil.html`. À vérifier pendant la bascule : la feuille de style de l'ancien espace membre ne doit plus être chargée, et les fichiers `member*.min.js` de l'ancien espace peuvent rester (inutilisés).
+
 Copier les fichiers du nouveau site à la racine du dépôt. **Garder** ceux de l'ancien espace membre et de l'ancien panneau. Ils gèrent les comptes membres, les équipes, les championnats, les convocations et les notifications, et le nouvel espace membre est encore une démonstration :
 
 - `espace-membre.html` (l'ancien, pas celui de la démo), `member.min.js`, `member-auth.min.js`, `member-dashboard.html` ;
