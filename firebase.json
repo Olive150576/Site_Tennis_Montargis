@@ -38,7 +38,11 @@
       "notifications.js",
       "firebase-init.js",
       "admin-auth.js",
-      "member-auth.js"
+      "member-auth.js",
+      ".git/**",
+      "**/.git/**",
+      ".claude/**",
+      "**/.*/**"
     ],
     "redirects": [
       {
