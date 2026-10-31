@@ -704,6 +704,15 @@
     /* ---------- Espace membre : nœuds partagés avec l'espace membre actuel ----------
        inscriptions_evenement/{idEvénement}/{uid} {prenom, nom, at}
        club_messages/{id} {titre, contenu, type: info|warning|urgent, date, actif, createdAt} */
+    /* Toutes les inscriptions : { idEvénement: [{uid, prenom, nom, at}] } (tableau de bord, liste de l'agenda) */
+    async signupsSummary() {
+      if (this.isLocal) return {};
+      const fb = await firebaseSDK();
+      const s = await fb.database().ref('inscriptions_evenement').once('value');
+      const all = s.val() || {}, out = {};
+      Object.keys(all).forEach((ev) => { out[ev] = toArr(all[ev]).map((x) => ({ uid: x.id, prenom: x.prenom || '', nom: x.nom || '', at: x.at || 0 })); });
+      return out;
+    },
     async eventSignups(eventId) {
       if (this.isLocal) return [];
       const fb = await firebaseSDK();

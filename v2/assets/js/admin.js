@@ -62,6 +62,18 @@
   const isoIn = (n) => { const d = new Date(); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
   const euro = (n) => { n = Math.round((Number(n) || 0) * 100) / 100; return (n % 1 ? n.toFixed(2).replace('.', ',') : String(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '\u202f') + '\u00a0€'; };
   let SHOPSUM = {}; // compteurs et montants par produit (Store.shop.summary)
+  /* Inscriptions des membres aux événements (inscriptions_evenement) */
+  let SIGNUPS = {};
+  const SIGNUPS_SEEN = 'usm_admin_signups_vus';
+  async function loadSignups() { try { SIGNUPS = await store.signupsSummary(); } catch (e) { console.warn('[USM] Inscriptions', e); SIGNUPS = {}; } }
+  const signupCount = (id) => (SIGNUPS[id] || []).length;
+  const markSignupsSeen = () => { try { localStorage.setItem(SIGNUPS_SEEN, String(Date.now())); } catch (e) { /* ignore */ } };
+  function newSignups() {
+    let seen = 0; try { seen = +localStorage.getItem(SIGNUPS_SEEN) || 0; } catch (e) { /* ignore */ }
+    const out = [];
+    Object.keys(SIGNUPS).forEach((ev) => SIGNUPS[ev].forEach((x) => { if (x.at > seen) out.push(Object.assign({ ev }, x)); }));
+    return out.sort((a, b) => b.at - a.at);
+  }
   async function loadShopSum() { try { SHOPSUM = await store.shop.summary(C.shopProducts || []); } catch (e) { console.warn('[USM] Boutique', e); SHOPSUM = {}; } }
   /* Même calcul que l'espace membre : pièces réservées, minimum, pièces manquantes */
   function shopProgress(p, sum) {
@@ -147,6 +159,7 @@
         { h: '', w: 70, r: (x) => thumb((x.images || [])[0]) },
         { h: 'Événement', r: (x) => `<div class="title">${esc(x.title)}</div><div class="sub">${esc(x.location || '')}</div>` },
         { h: 'Quand', r: (x) => (x.dateStart ? `${fmtDate(x.dateStart)}${x.dateEnd ? ' → ' + fmtDate(x.dateEnd) : ''}` : `<span class="muted">${esc(x.when || 'Sans date')}</span>`) },
+        { h: 'Inscrits', w: 90, r: (x) => (x.memberSignup || signupCount(x.id) ? `<span class="pill ${signupCount(x.id) ? 'blue' : ''}" title="Inscriptions depuis l'espace membre">${icon('users')} ${signupCount(x.id)}</span>` : '<span class="muted">—</span>') },
         { h: 'Type', cls: 'hide-sm', r: (x) => `<span class="pill">${esc(label(EVENT_CATS, x.category))}</span>` },
         { h: 'Statut', r: (x) => (x.draft ? '<span class="pill warn dot">Brouillon</span>' : x.dateStart && (x.dateEnd || x.dateStart) < todayISO() ? '<span class="pill">Passé</span>' : x.dateStart ? '<span class="pill ok dot">À venir</span>' : '<span class="pill blue">Annuel</span>') }
       ],
@@ -645,6 +658,19 @@
   }
 
   /* ---------- Tableau de bord ---------- */
+  /* Tuile « Inscriptions » : nouvelles inscriptions depuis la dernière consultation de l'agenda */
+  function signupTile() {
+    const open = (C.events || []).filter((e) => e.memberSignup && !e.draft && e.dateStart && (e.dateEnd || e.dateStart) >= todayISO());
+    if (store.isLocal || (!open.length && !Object.keys(SIGNUPS).length)) return '';
+    const fresh = newSignups();
+    const title = (id) => ((C.events || []).find((e) => e.id === id) || {}).title || 'un événement';
+    const total = open.reduce((n, e) => n + signupCount(e.id), 0);
+    const href = fresh.length ? `#/agenda/${fresh[0].ev}` : '#/agenda';
+    const sub = fresh.length
+      ? `${fresh.length > 1 ? 'nouvelles' : 'nouvelle'} · dernière : ${esc(fresh[0].prenom)} ${esc(fresh[0].nom)} → ${esc(title(fresh[0].ev))}`
+      : `aucune nouvelle · ${total} inscrit${total > 1 ? 's' : ''} sur ${open.length} événement${open.length > 1 ? 's' : ''} ouvert${open.length > 1 ? 's' : ''}`;
+    return `<a class="card kpi" href="${href}" id="kpi-inscriptions"><span class="label">${icon('users')} Inscriptions aux événements</span><b class="value num">${fresh.length}</b><span class="sub">${sub}</span></a>`;
+  }
   function viewDashboard() {
     const v = shell('Tableau de bord', '', `<a class="btn btn-primary" href="#/actualites/nouveau">${icon('plus')} Nouvelle actualité</a>`);
     const t = todayISO();
@@ -693,6 +719,7 @@
         <a class="card kpi" href="#/actualites"><span class="label">${icon('file')} Actualités publiées</span><b class="value num">${pub.length}</b><span class="sub">${drafts.length} brouillon(s)${last ? ` · dernière le ${fmtDate(last.date)}` : ''}</span></a>
         <a class="card kpi" href="#/agenda"><span class="label">${icon('calendar')} Prochain événement</span><b class="value num">${up[0] ? Math.max(0, Math.round((new Date(up[0].dateStart) - new Date(t)) / 86400000)) + ' j' : '—'}</b><span class="sub">${up[0] ? esc(up[0].title) : 'Rien de programmé'}</span></a>
         <a class="card kpi" href="#/messages"><span class="label">${icon('mail')} Messages non lus</span><b class="value num">${unread.length}</b><span class="sub">${(C.messages || []).length} au total</span></a>
+        ${signupTile()}
         <a class="card kpi" href="#/tarifs"><span class="label">${icon('euro')} Formules en ligne</span><b class="value num">${(C.rates || []).filter((r) => !r.draft).length}</b><span class="sub">Saison ${esc(C.settings.season || '')}</span></a>
         <a class="card kpi kpi-wide" href="#/boutique" id="kpi-boutique"><span class="label">${icon('bag')} Boutique · commandes groupées</span>
           <span class="kpi-row"><span><b class="value num">${shopOpen.length}</b><span class="sub">commande${shopOpen.length > 1 ? 's' : ''} ouverte${shopOpen.length > 1 ? 's' : ''}</span></span><span><b class="value num">${sh.pieces}</b><span class="sub">pièces réservées</span></span><span><b class="value num">${euro(sh.amount)}</b><span class="sub">montant total</span></span><span><b class="value num">${euro(sh.unpaid)}</b><span class="sub">reste à encaisser</span></span></span></a>
@@ -1386,6 +1413,8 @@
     const [r, id, sub] = location.hash.replace(/^#\/?/, '').split('/');
     window.scrollTo(0, 0);
     if (!r || r === 'tableau' || r === 'boutique') await loadShopSum();
+    if (!r || r === 'tableau' || (r === 'agenda' && !id)) await loadSignups();
+    if (r === 'agenda') markSignupsSeen(); // consulter l'agenda = inscriptions vues
     if (!r || r === 'tableau') viewDashboard();
     else if (r === 'boutique' && id && sub === 'suivi') await viewShopOrders(id);
     else if (ROUTES[r]) id ? viewEdit(ROUTES[r], id) : viewList(ROUTES[r]);

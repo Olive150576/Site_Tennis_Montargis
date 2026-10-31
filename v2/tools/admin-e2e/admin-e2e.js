@@ -106,6 +106,18 @@ const OVERRIDE = `;(function(c){c.mode='firebase';c.firebase=Object.assign({},c.
   await fetch(DB('inscriptions_evenement/' + evId + '/m1'), { method: 'PUT', headers: OWN, body: JSON.stringify({ prenom: 'Léa', nom: 'Martin', at: Date.now() }) });
   await go('#/agenda'); await go('#/agenda/' + evId); await page.waitForTimeout(1200);
   ok('Agenda : liste des inscrits affichée sous le formulaire', /Inscrits depuis l'espace membre \(1\)/.test(await page.innerText('body')) && /Léa Martin/.test(await page.innerText('#ev-signups')));
+  // Inscriptions plus visibles : tuile du tableau de bord + colonne dans la liste de l'agenda
+  await page.waitForTimeout(300);
+  await fetch(DB('inscriptions_evenement/' + evId + '/m2'), { method: 'PUT', headers: OWN, body: JSON.stringify({ prenom: 'Paul', nom: 'Durand', at: Date.now() + 1000 }) });
+  await go('#/tableau'); await page.waitForTimeout(800);
+  const tile = await page.innerText('#kpi-inscriptions').catch(() => '');
+  ok('Tableau de bord : tuile « 1 nouvelle inscription » avec le nom et l\'événement', /^\s*Inscriptions aux événements\s*1\b/.test(tile) && /Paul Durand/.test(tile), tile);
+  await go('#/agenda'); await page.waitForTimeout(600);
+  const row = await page.innerText(`tr[data-id="${evId}"]`).catch(() => '');
+  ok('Agenda : nombre d\'inscrits dans la liste (2)', /\b2\b/.test(row), row);
+  await go('#/tableau'); await page.waitForTimeout(600);
+  ok('Tableau de bord : après consultation de l\'agenda, plus de « nouvelle »', /aucune nouvelle/.test(await page.innerText('#kpi-inscriptions').catch(() => '')));
+
   // Messages aux membres (club_messages, format de l'ancien panneau)
   await go('#/annonces');
   const fld = async (k) => page.$eval(`#cm-form [data-f="${k}"] input, #cm-form [data-f="${k}"] textarea, #cm-form [data-f="${k}"] select`, (i) => i.id);
