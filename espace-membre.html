@@ -190,6 +190,8 @@
     window.USM_MEMBER_DEMO_MODE = demo;
     if (demo) C.mode = 'local';
     document.addEventListener('DOMContentLoaded', function () {
+      /* Bandeau et badge « Démo » : uniquement en démonstration (jamais pour les vrais membres) */
+      if (!demo) { Array.prototype.forEach.call(document.querySelectorAll('.m-top .demo-tag'), function (t) { t.remove(); }); return; }
       var b = document.createElement('div');
       b.setAttribute('role', 'note');
       b.style.cssText = 'position:sticky;top:0;z-index:9999;background:#e3ff00;color:#020617;font:600 13px/1.4 system-ui,sans-serif;text-align:center;padding:8px 12px';

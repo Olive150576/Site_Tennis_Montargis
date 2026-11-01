@@ -815,6 +815,18 @@
         await ref.update(data);
         return u.uid;
       },
+      /* Annuaire des joueurs : profils restés visibles alors que la fiche du membre n'existe plus */
+      async directoryOrphans(knownIds) {
+        if (Store.isLocal) return [];
+        const fb = await firebaseSDK();
+        const s = await fb.database().ref('partenaire_index').once('value');
+        return toArr(s.val()).filter((x) => !knownIds.has(x.id));
+      },
+      async removeFromDirectory(uid) {
+        const fb = await firebaseSDK();
+        await fb.database().ref('partenaire_index/' + uid).remove();
+        return true;
+      },
       async setActive(uid, actif) {
         const fb = await firebaseSDK();
         await (await callable(fb, 'toggleMemberStatus'))({ uid, actif: !!actif });
