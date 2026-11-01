@@ -729,6 +729,12 @@
       const s = await fb.database().ref('inscriptions_evenement/' + eventId).once('value');
       return toArr(s.val()).map((x) => ({ uid: x.id, prenom: x.prenom || '', nom: x.nom || '', at: x.at || 0 })).sort((a, b) => a.at - b.at);
     },
+    /* Retirer un inscrit (demande du membre, compte supprimé, inscription de test) */
+    async removeSignup(eventId, uid) {
+      const fb = await firebaseSDK();
+      await fb.database().ref('inscriptions_evenement/' + eventId + '/' + uid).remove();
+      return true;
+    },
     clubMessages: {
       KEY: 'usm_club_messages_apercu',
       readLocal() { try { return JSON.parse(localStorage.getItem(this.KEY) || '[]'); } catch (e) { return []; } },

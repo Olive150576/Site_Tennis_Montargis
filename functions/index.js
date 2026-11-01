@@ -682,8 +682,14 @@ exports.deleteMember = functions.https.onCall(async (data, context) => {
         throw new functions.https.HttpsError('failed-precondition', 'Ce compte a l\'accès coach — retirez d\'abord son accès coach avant de le supprimer.');
     }
 
-    // Supprimer les données DB
-    await admin.database().ref(`members/${uid}`).remove();
+    // Supprimer les données DB : la fiche, et les traces du membre ailleurs dans la base
+    // (inscriptions aux événements, annuaire des joueurs visible par les autres membres)
+    const inscriptions = (await admin.database().ref('inscriptions_evenement').once('value')).val() || {};
+    const updates = { [`members/${uid}`]: null, [`partenaire_index/${uid}`]: null };
+    Object.keys(inscriptions).forEach((ev) => {
+        if (inscriptions[ev] && inscriptions[ev][uid]) updates[`inscriptions_evenement/${ev}/${uid}`] = null;
+    });
+    await admin.database().ref().update(updates);
 
     // Supprimer le compte Auth si il existe
     try {

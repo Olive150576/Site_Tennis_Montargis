@@ -168,6 +168,19 @@ const OVERRIDE = `;(function(c){c.mode='firebase';c.firebase=Object.assign({},c.
   await page.click('#mb-active'); await page.waitForTimeout(2500);
   ok('Membres : réactivation', (await getJ(DBF('members/' + uidP + '/actif'))) === true && /Actif/.test(await page.innerText('#mb-state')));
 
+  // Agenda : retirer un inscrit (compte supprimé repéré)
+  await go('#/agenda/' + evId); await page.waitForTimeout(1200);
+  ok('Agenda : inscrit sans fiche signalé « Compte supprimé »', /Compte supprimé/.test(await page.innerText('#ev-signups').catch(() => '')));
+  await page.click('[data-su-rm="m1"]'); await page.click('.modal [data-a="1"]'); await page.waitForTimeout(1200);
+  ok('Agenda : « Retirer » supprime l\'inscription', (await getJ(DB('inscriptions_evenement/' + evId + '/m1'))) === null && !/Léa Martin/.test(await page.innerText('#ev-signups')));
+  // Suppression d'un compte (fonction deleteMember de l'ancien panneau) : plus aucune trace
+  await fetch(DBF('inscriptions_evenement/evX/' + uidP), { method: 'PUT', headers: OWN, body: JSON.stringify({ prenom: 'Paul', nom: 'Durand', at: Date.now() }) });
+  await fetch(DBF('inscriptions_evenement/evX/autre'), { method: 'PUT', headers: OWN, body: JSON.stringify({ prenom: 'A', nom: 'B', at: Date.now() }) });
+  await fetch(DBF('partenaire_index/' + uidP), { method: 'PUT', headers: OWN, body: JSON.stringify({ prenom: 'Paul', nom: 'Durand' }) });
+  const delR = await page.evaluate(async (u) => { try { await firebase.functions().httpsCallable('deleteMember')({ uid: u }); return 'ok'; } catch (e) { return e.message; } }, uidP);
+  const lk2 = await (await fetch(`http://${H}:9099/identitytoolkit.googleapis.com/v1/projects/demo-usm/accounts:lookup`, { method: 'POST', headers: OWN, body: JSON.stringify({ localId: [uidP] }) })).json();
+  ok('Suppression d\'un membre : fiche, compte, inscriptions et annuaire effacés (les autres inscrits gardés)', delR === 'ok' && (await getJ(DBF('members/' + uidP))) === null && !lk2.users && (await getJ(DBF('inscriptions_evenement/evX/' + uidP))) === null && (await getJ(DBF('inscriptions_evenement/evX/autre'))) !== null && (await getJ(DBF('partenaire_index/' + uidP))) === null, delR + ' ' + JSON.stringify(lk2).slice(0, 100));
+
   // Envoi d'image et de PDF (Storage)
   const up = await page.evaluate(async () => {
     const c = document.createElement('canvas'); c.width = 800; c.height = 600; const g = c.getContext('2d'); g.fillStyle = '#0046ad'; g.fillRect(0, 0, 800, 600);
