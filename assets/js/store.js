@@ -800,6 +800,21 @@
         await fb.database().ref('members/' + uid).update(data);
         return true;
       },
+      /* Fiche membre du compte connecté (un administrateur qui joue) : un seul identifiant pour
+         l'admin et l'espace membre. Écrit seulement les champs de la fiche (rien d'existant n'est écrasé). */
+      async createOwn(d) {
+        const fb = await firebaseSDK(); const u = fb.auth().currentUser;
+        if (!u) throw new Error('Session expirée : reconnectez-vous.');
+        const ref = fb.database().ref('members/' + u.uid);
+        const cur = (await ref.once('value')).val();
+        if (cur && (cur.nom || cur.prenom)) throw new Error('Vous avez déjà une fiche membre.');
+        const data = { email: String(u.email || '').toLowerCase(), actif: true, createdAt: Date.now() };
+        this.EDITABLE.forEach((k) => { data[k] = String(d[k] == null ? '' : d[k]).trim(); });
+        if (!data.categorie) data.categorie = 'Adulte H';
+        if (!data.statut) data.statut = 'Membre';
+        await ref.update(data);
+        return u.uid;
+      },
       async setActive(uid, actif) {
         const fb = await firebaseSDK();
         await (await callable(fb, 'toggleMemberStatus'))({ uid, actif: !!actif });
