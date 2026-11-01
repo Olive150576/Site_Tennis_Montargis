@@ -595,6 +595,8 @@
      ===================================================================== */
   const NAV = [
     { r: 'tableau', l: 'Tableau de bord', i: 'home' },
+    { g: 'Club' },
+    { r: 'membres', l: 'Membres', i: 'user' },
     { g: 'Contenus' },
     { r: 'actualites', l: 'Actualités', i: 'file', c: 'news' },
     { r: 'agenda', l: 'Agenda', i: 'calendar', c: 'events' },
@@ -727,6 +729,7 @@
       <div class="grid-2">
         <div class="card card-pad"><h2>À vérifier</h2><div class="checks">${checks.map(([lv, txt, href, act]) => `<div class="check-row ${lv}"><span class="dot"></span><span>${esc(txt)}</span><a href="${href}">${act}</a></div>`).join('')}</div></div>
         <div class="card card-pad"><h2>Raccourcis</h2><div class="quick">
+          <a href="#/membres/nouveau"><span class="ic">${icon('user')}</span>Inscrire un nouveau membre</a>
           <a href="#/actualites/nouveau"><span class="ic">${icon('plus')}</span>Publier une actualité</a>
           <a href="#/agenda/nouveau"><span class="ic">${icon('calendar')}</span>Ajouter un événement</a>
           <a href="#/reglages"><span class="ic">${icon('megaphone')}</span>Changer l'annonce</a>
@@ -1130,6 +1133,121 @@
     openForm(null); load();
   }
 
+  /* =====================================================================
+     Membres : comptes de l'espace membre (nœud members/, format de l'ancien panneau)
+     ===================================================================== */
+  const MB_CATS = [['Adulte H', 'Adulte homme'], ['Adulte F', 'Adulte femme'], ['Jeune G', 'Jeune garçon'], ['Jeune F', 'Jeune fille'], ['Vétéran H', 'Vétéran homme'], ['Vétéran F', 'Vétéran femme']];
+  const MB_STATUTS = ['Membre', 'Membre Bureau', 'Coach', 'Secrétaire Général', 'Trésorier Général Adjoint', 'Trésorier Général', 'Vice-Président', 'Président'].map((x) => [x, x]);
+  const MB_CLASSEMENTS = ['NC', '40', '30/5', '30/4', '30/3', '30/2', '30/1', '30', '15/5', '15/4', '15/3', '15/2', '15/1', '15', '5/6', '4/6', '3/6', '2/6', '1/6', '0', '-2/6', '-4/6', '-15'];
+  const MB_TEL = /^[0-9+ .()-]{6,20}$/;
+  const MB_MAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+  const mbName = (m) => [m.prenom, m.nom].filter(Boolean).join(' ') || m.email || 'Sans nom';
+  /* Une valeur existante hors liste reste affichée (et n'est pas écrasée) */
+  const withCur = (opts, v) => (v && !opts.some((o) => o[0] === v) ? [[v, v]].concat(opts) : opts);
+  function mbFields(m, isNew) {
+    return [
+      { k: 'prenom', t: 'text', l: 'Prénom', req: true, half: true },
+      { k: 'nom', t: 'text', l: 'Nom', req: true, half: true }
+    ].concat(isNew ? [{ k: 'email', t: 'text', l: 'E-mail', req: true, placeholder: 'prenom.nom@exemple.fr', hint: 'Sert d\'identifiant de connexion. Le membre y reçoit l\'e-mail pour choisir son mot de passe.' }] : [], [
+      { k: 'telephone', t: 'text', l: 'Téléphone', half: true, placeholder: '06 12 34 56 78' },
+      { k: 'licence', t: 'text', l: 'N° de licence FFT', half: true },
+      { k: 'classement', t: 'select', l: 'Classement', half: true, opts: withCur([['', 'Non renseigné']].concat(MB_CLASSEMENTS.map((c) => [c, c])), m.classement) },
+      { k: 'categorie', t: 'select', l: 'Catégorie', half: true, opts: withCur(MB_CATS, m.categorie) },
+      { k: 'statut', t: 'select', l: 'Statut au club', opts: withCur(MB_STATUTS, m.statut) }
+    ]);
+  }
+
+  async function viewMembers(id) {
+    if (store.isLocal) { const v0 = shell('Membres', ''); v0.innerHTML = '<div class="card card-pad"><p>La gestion des membres n\'est disponible qu\'en ligne (mode Firebase).</p></div>'; return; }
+    if (id) return viewMember(id === 'nouveau' ? null : id);
+    const v = shell('Membres', '', `<a class="btn btn-primary" href="#/membres/nouveau">${icon('plus')} Nouveau membre</a>`);
+    v.innerHTML = `<p class="intro">Les comptes de l'espace membre. Un nouveau membre reçoit un e-mail du club pour choisir lui-même son mot de passe : vous n'avez aucun mot de passe à lui transmettre.</p>
+      <div class="toolbar"><label class="search"><span class="sr-only">Rechercher</span>${icon('search')}<input type="search" id="mb-q" placeholder="Nom, e-mail, licence…"></label>
+        <select id="mb-f" aria-label="Filtrer"><option value="actifs">Membres actifs</option><option value="inactifs">Membres inactifs</option><option value="">Tous les membres</option></select>
+        <span class="spacer"></span><span class="small muted" id="mb-count"></span></div>
+      <div class="card"><div class="table-wrap" id="mb-table"><p class="muted card-pad">Chargement…</p></div></div>`;
+    let list = [];
+    try { list = await store.members.list(); } catch (e) { $('#mb-table', v).innerHTML = `<p class="muted card-pad">Lecture impossible : ${esc(e.message)}</p>`; return; }
+    list.sort((a, b) => String(a.nom || '').localeCompare(String(b.nom || ''), 'fr') || String(a.prenom || '').localeCompare(String(b.prenom || ''), 'fr'));
+    const norm = (x) => String(x || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    const draw = () => {
+      const q = norm($('#mb-q', v).value), f = $('#mb-f', v).value;
+      const act = list.filter((m) => m.actif === true).length, ina = list.length - act;
+      $('#mb-count', v).textContent = `${act} actif${act > 1 ? 's' : ''} · ${ina} inactif${ina > 1 ? 's' : ''}`;
+      const rows = list.filter((m) => (!f || (f === 'actifs') === (m.actif === true)) && (!q || norm([m.prenom, m.nom, m.email, m.licence, m.telephone].join(' ')).includes(q)));
+      const box = $('#mb-table', v);
+      if (!rows.length) { box.innerHTML = `<div class="empty-state">${icon('user')}<p>${list.length ? 'Aucun membre pour ce filtre.' : 'Aucun membre pour le moment.'}</p><a class="btn btn-primary" href="#/membres/nouveau">${icon('plus')} Nouveau membre</a></div>`; return; }
+      box.innerHTML = `<table class="table"><thead><tr><th>Membre</th><th class="hide-sm">Catégorie</th><th>Classement</th><th class="hide-sm">Statut</th><th>Accès</th></tr></thead><tbody>${rows.map((m) => `<tr data-id="${esc(m.id)}" style="cursor:pointer"><td><b>${esc(mbName(m))}</b>${m.email ? `<div class="small muted">${esc(m.email)}</div>` : ''}</td><td class="hide-sm">${esc(label(MB_CATS, m.categorie || ''))}</td><td>${esc(m.classement || '—')}</td><td class="hide-sm">${esc(m.statut || 'Membre')}</td><td>${m.actif === true ? '<span class="pill ok dot">Actif</span>' : '<span class="pill dot">Inactif</span>'}</td></tr>`).join('')}</tbody></table>`;
+      $$('tbody tr', box).forEach((tr) => tr.addEventListener('click', () => { location.hash = '#/membres/' + tr.dataset.id; }));
+    };
+    $('#mb-q', v).addEventListener('input', draw); $('#mb-f', v).addEventListener('change', draw); draw();
+  }
+
+  async function viewMember(uid) {
+    const isNew = !uid;
+    let m = { prenom: '', nom: '', email: '', telephone: '', licence: '', classement: '', categorie: 'Adulte H', statut: 'Membre', actif: true };
+    if (!isNew) {
+      let found = null;
+      try { found = (await store.members.list()).find((x) => x.id === uid); } catch (e) { toast(e.message, 'err'); }
+      if (!found) { toast('Membre introuvable', 'err'); location.hash = '#/membres'; return; }
+      m = Object.assign(m, found);
+    }
+    const v = shell(isNew ? 'Nouveau membre' : mbName(m), '<a href="#/membres">Membres</a> /');
+    v.innerHTML = `${isNew ? '<p class="intro">Remplissez la fiche puis cliquez sur « Créer le compte ». Le membre reçoit aussitôt un e-mail du club pour choisir son mot de passe, puis peut se connecter à l\'espace membre.</p>' : ''}
+      <section class="card form-card"><h2>${icon('user')} Fiche du membre</h2>
+        ${isNew ? '' : `<p class="muted">E-mail de connexion : <b>${esc(m.email || '—')}</b></p>`}
+        <div id="mb-form"></div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap"><a class="btn" href="#/membres">Annuler</a><button type="button" class="btn btn-primary" id="mb-save">${icon('check')} ${isNew ? 'Créer le compte' : 'Enregistrer'}</button></div></section>
+      ${isNew ? '' : `<section class="card form-card" style="margin-top:16px"><h2>${icon('shield')} Accès à l'espace membre</h2>
+        <p id="mb-state"></p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap"><button type="button" class="btn" id="mb-mail">${icon('mail')} Envoyer l'e-mail pour choisir un mot de passe</button><button type="button" class="btn" id="mb-active"></button></div>
+        <p class="hint">Un membre qui a oublié son mot de passe peut aussi cliquer lui-même sur « Mot de passe oublié » sur la page de connexion.</p></section>`}`;
+    const orig = clone(m);
+    const form = Form($('#mb-form', v), mbFields(m, isNew), m, () => { dirty = true; });
+    const drawState = () => {
+      if (isNew) return;
+      $('#mb-state', v).innerHTML = m.actif === true ? '<span class="pill ok dot">Actif</span> Le membre peut se connecter à l\'espace membre.' : '<span class="pill dot">Inactif</span> Compte bloqué : le membre ne peut plus se connecter.';
+      $('#mb-active', v).innerHTML = m.actif === true ? `${icon('close')} Désactiver le compte` : `${icon('check')} Réactiver le compte`;
+    };
+    drawState();
+    $('#mb-save', v).addEventListener('click', async () => {
+      const d = form.collect();
+      if (!form.validate()) { toast('Complétez les champs obligatoires (*).', 'err'); return; }
+      if (isNew) { d.email = String(d.email || '').trim().toLowerCase(); if (!MB_MAIL.test(d.email)) { toast('Adresse e-mail invalide.', 'err'); return; } }
+      if (d.telephone && !MB_TEL.test(d.telephone)) { toast('Numéro de téléphone invalide (chiffres, espaces, + et points uniquement).', 'err'); return; }
+      const b = $('#mb-save', v); b.disabled = true;
+      try {
+        if (isNew) {
+          const r = await store.members.create(d);
+          dirty = false;
+          await modal({ title: 'Compte créé', cancel: '', confirm: 'Compris', html: `<p>${esc(mbName(d))} peut se connecter à l'espace membre avec l'adresse <b>${esc(r.email)}</b>.</p>${r.mailed
+            ? '<p>Il va recevoir un e-mail du club intitulé « Réinitialisez votre mot de passe » : c\'est normal, c\'est ce lien qui lui permet de choisir son mot de passe. S\'il ne le voit pas, qu\'il regarde dans ses spams.</p>'
+            : '<p><b>L\'e-mail n\'a pas pu être envoyé.</b> Ouvrez sa fiche et cliquez sur « Envoyer l\'e-mail pour choisir un mot de passe ».</p>'}` });
+          location.hash = r.uid ? '#/membres/' + r.uid : '#/membres';
+        } else {
+          const diff = {};
+          store.members.EDITABLE.forEach((k) => { if ((d[k] || '') !== (orig[k] || '')) diff[k] = d[k] || ''; });
+          await store.members.update(uid, diff);
+          Object.assign(orig, diff); dirty = false; toast('Fiche enregistrée');
+          $('h1').textContent = mbName(d);
+        }
+      } catch (e) { toast((isNew ? 'Création impossible : ' : 'Enregistrement impossible : ') + ((e && e.message) || e), 'err'); } finally { b.disabled = false; }
+    });
+    if (isNew) return;
+    $('#mb-active', v).addEventListener('click', async () => {
+      const next = m.actif !== true;
+      if (!next && store.user && store.user.uid === uid) { toast('Vous ne pouvez pas désactiver votre propre compte.', 'err'); return; }
+      if (!next && !(await modal({ title: `Désactiver ${mbName(m)} ?`, body: 'Le membre ne pourra plus se connecter à l\'espace membre. Sa fiche est conservée et vous pourrez le réactiver à tout moment.', confirm: 'Désactiver', danger: true }))) return;
+      const b = $('#mb-active', v); b.disabled = true;
+      try { await store.members.setActive(uid, next); m.actif = next; drawState(); toast(next ? 'Compte réactivé' : 'Compte désactivé'); } catch (e) { toast('Modification impossible : ' + ((e && e.message) || e), 'err'); } finally { b.disabled = false; }
+    });
+    $('#mb-mail', v).addEventListener('click', async () => {
+      if (!m.email) { toast('Ce membre n\'a pas d\'adresse e-mail.', 'err'); return; }
+      if (!(await modal({ title: 'Envoyer l\'e-mail ?', body: `${mbName(m)} va recevoir à ${m.email} un e-mail du club pour choisir un nouveau mot de passe.`, confirm: 'Envoyer' }))) return;
+      try { await store.members.sendPasswordEmail(m.email); toast('E-mail envoyé à ' + m.email); } catch (e) { toast('Envoi impossible : ' + ((e && e.message) || e), 'err'); }
+    });
+  }
+
   /* ---------- Agenda : inscrits depuis l'espace membre (inscriptions_evenement) ---------- */
   async function renderSignups(v, ev) {
     const box = document.createElement('section'); box.className = 'card form-card'; box.style.marginTop = '16px'; box.id = 'ev-signups';
@@ -1421,6 +1539,7 @@
     else if (r === 'galerie') viewGallery();
     else if (r === 'messages') await viewMessages();
     else if (r === 'annonces') viewClubMessages();
+    else if (r === 'membres') await viewMembers(id);
     else if (r === 'textes') viewTexts();
     else if (r === 'reglages') viewSettings();
     else if (r === 'sauvegarde') viewBackup();
