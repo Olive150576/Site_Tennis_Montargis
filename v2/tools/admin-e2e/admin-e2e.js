@@ -131,6 +131,43 @@ const OVERRIDE = `;(function(c){c.mode='firebase';c.firebase=Object.assign({},c.
   await page.click(`[data-cm-del="${cm[0]}"]`); await page.click('.modal [data-a="1"]'); await page.waitForTimeout(1200);
   ok('Messages aux membres : supprimer', (await (await fetch(DB('club_messages/' + cm[0]), { headers: OWN })).json()) === null);
 
+  // Membres : création par la fonction createMember, e-mail « choisir son mot de passe », fiche, désactivation
+  // (dans l'émulateur, la fonction écrit dans le namespace par défaut « demo-usm » : on lit les deux)
+  const DBF = (p) => `http://${H}:9000/${p}.json?ns=demo-usm`;
+  const getJ = async (u) => (await fetch(u, { headers: OWN })).json();
+  await go('#/membres');
+  ok('Membres : rubrique ouverte, membre existant listé', /\bM B\b/.test(await page.innerText('#mb-table').catch(() => '')));
+  await go('#/membres/nouveau');
+  const mf = async (k) => page.$eval(`#mb-form [data-f="${k}"] input, #mb-form [data-f="${k}"] select`, (i) => i.id);
+  await page.fill('#' + await mf('prenom'), 'Paul'); await page.fill('#' + await mf('nom'), 'Durand');
+  await page.fill('#' + await mf('email'), ' Paul.Durand@Test.fr ');
+  await page.fill('#' + await mf('telephone'), '06 12 34 56 78'); await page.fill('#' + await mf('licence'), '1234567');
+  await page.selectOption('#' + await mf('classement'), '30/2'); await page.selectOption('#' + await mf('categorie'), 'Vétéran H');
+  await page.click('#mb-save'); await page.waitForSelector('.modal', { timeout: 25000 });
+  ok('Membres : confirmation de création (e-mail annoncé)', /Réinitialisez votre mot de passe/.test(await page.innerText('.modal')), await page.innerText('.modal'));
+  const allM = Object.assign({}, await getJ(DB('members')), await getJ(DBF('members')));
+  const pd = Object.entries(allM).find(([, m]) => m && m.nom === 'Durand');
+  ok('Membres : fiche créée au format actuel (actif, e-mail en minuscules, classement, catégorie)', pd && pd[1].actif === true && pd[1].email === 'paul.durand@test.fr' && pd[1].classement === '30/2' && pd[1].categorie === 'Vétéran H' && pd[1].telephone === '06 12 34 56 78', JSON.stringify(pd).slice(0, 220));
+  const oobs = async () => ((await (await fetch(`http://${H}:9099/emulator/v1/projects/demo-usm/oobCodes`)).json()).oobCodes || []).filter((c) => c.email === 'paul.durand@test.fr' && c.requestType === 'PASSWORD_RESET');
+  ok('Membres : e-mail « choisir son mot de passe » envoyé au nouveau membre', (await oobs()).length === 1);
+  const uidP = pd && pd[0];
+  if (uidP) await fetch(DB('members/' + uidP), { method: 'PUT', headers: OWN, body: JSON.stringify(pd[1]) }); // une seule base en production
+  await page.click('.modal [data-a="1"]'); await page.waitForTimeout(1500);
+  ok('Membres : ouverture de la fiche après création', page.url().endsWith('#/membres/' + uidP) && /Paul Durand/.test(await page.innerText('h1')), page.url());
+  await page.selectOption('#' + await mf('classement'), '30/1'); await page.click('#mb-save'); await page.waitForTimeout(1200);
+  ok('Membres : fiche modifiée (classement)', (await getJ(DB('members/' + uidP + '/classement'))) === '30/1');
+  await page.fill('#' + await mf('telephone'), 'abc'); await page.click('#mb-save'); await page.waitForTimeout(500);
+  ok('Membres : téléphone invalide refusé', /téléphone invalide/i.test(await page.innerText('.toasts').catch(() => '')) && (await getJ(DB('members/' + uidP + '/telephone'))) === '06 12 34 56 78');
+  await page.fill('#' + await mf('telephone'), '06 12 34 56 78'); await page.click('#mb-save'); await page.waitForTimeout(800);
+  await page.click('#mb-mail'); await page.click('.modal [data-a="1"]'); await page.waitForTimeout(1500);
+  ok('Membres : renvoi de l\'e-mail de mot de passe', (await oobs()).length === 2);
+  await page.click('#mb-active'); await page.click('.modal [data-a="1"]'); await page.waitForTimeout(2500);
+  const look = await (await fetch(`http://${H}:9099/identitytoolkit.googleapis.com/v1/projects/demo-usm/accounts:lookup`, { method: 'POST', headers: OWN, body: JSON.stringify({ localId: [uidP] }) })).json();
+  const actF = await getJ(DBF('members/' + uidP + '/actif'));
+  ok('Membres : désactivation (fiche inactive + compte bloqué)', actF === false && look.users && look.users[0].disabled === true && /Inactif/.test(await page.innerText('#mb-state')), JSON.stringify({ actF, look }).slice(0, 200));
+  await page.click('#mb-active'); await page.waitForTimeout(2500);
+  ok('Membres : réactivation', (await getJ(DBF('members/' + uidP + '/actif'))) === true && /Actif/.test(await page.innerText('#mb-state')));
+
   // Envoi d'image et de PDF (Storage)
   const up = await page.evaluate(async () => {
     const c = document.createElement('canvas'); c.width = 800; c.height = 600; const g = c.getContext('2d'); g.fillStyle = '#0046ad'; g.fillRect(0, 0, 800, 600);
