@@ -1174,6 +1174,14 @@
       $('.toolbar', v).insertAdjacentHTML('beforebegin', `<div class="card card-pad" id="mb-own" style="margin-bottom:16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap"><span style="flex:1;min-width:240px">${icon('info')} Votre compte administrateur (<b>${esc(store.user.email || '')}</b>) n'a pas de fiche membre : il ne permet pas encore de vous connecter à l'espace membre.</span><a class="btn btn-primary" href="#/membres/moi">${icon('user')} Créer ma fiche membre</a></div>`);
     }
     const norm = (x) => String(x || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    store.members.directoryOrphans(new Set(list.map((m) => m.id))).then((orph) => {
+      if (!orph.length || !$('#mb-q', v)) return;
+      const names = orph.map((o) => esc([o.prenom, o.nom].filter(Boolean).join(' ') || o.id)).join(', ');
+      $('.toolbar', v).insertAdjacentHTML('beforebegin', `<div class="card card-pad" id="mb-orph" style="margin-bottom:16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap"><span style="flex:1;min-width:240px">${icon('info')} Annuaire des joueurs : ${orph.length > 1 ? orph.length + ' profils de comptes supprimés restent visibles' : '1 profil d\'un compte supprimé reste visible'} par les membres (${names}).</span><button type="button" class="btn" id="mb-orph-clean">${icon('trash')} Retirer de l'annuaire</button></div>`);
+      $('#mb-orph-clean', v).addEventListener('click', async () => {
+        try { for (const o of orph) await store.members.removeFromDirectory(o.id); toast('Annuaire nettoyé'); const b = $('#mb-orph', v); if (b) b.remove(); } catch (e) { toast('Nettoyage impossible : ' + ((e && e.message) || e), 'err'); }
+      });
+    }).catch((e) => console.warn('[USM] Annuaire', e));
     const draw = () => {
       const q = norm($('#mb-q', v).value), f = $('#mb-f', v).value;
       const act = list.filter((m) => m.actif === true).length, ina = list.length - act;
