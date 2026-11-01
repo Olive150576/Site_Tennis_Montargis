@@ -65,7 +65,7 @@ const OVERRIDE = `;(function(c){c.mode='firebase';c.firebase=Object.assign({},c.
 
   await page.goto(SITE + '/espace-membre.html'); await page.waitForTimeout(1500);
   ok('Mode réel : bouton « compte démo » masqué', !(await page.isVisible('#demo-btn')));
-  ok('Bandeau « Nouvel espace membre en test »', /en test/.test(await body()));
+  ok('Mode réel : ni bandeau « en test » ni badge « Démo »', !/en test|Démonstration/.test(await body()) && !(await page.$('.m-top .demo-tag')));
   expectAuthFail = true;
   await login('camille@test.fr', 'mauvais');
   ok('Mauvais mot de passe refusé', /incorrect/i.test(await err()), await err());

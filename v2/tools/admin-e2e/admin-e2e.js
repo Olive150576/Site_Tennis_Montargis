@@ -135,7 +135,11 @@ const OVERRIDE = `;(function(c){c.mode='firebase';c.firebase=Object.assign({},c.
   // (dans l'émulateur, la fonction écrit dans le namespace par défaut « demo-usm » : on lit les deux)
   const DBF = (p) => `http://${H}:9000/${p}.json?ns=demo-usm`;
   const getJ = async (u) => (await fetch(u, { headers: OWN })).json();
-  await go('#/membres');
+  await fetch(DB('partenaire_index/fantome'), { method: 'PUT', headers: OWN, body: JSON.stringify({ prenom: 'Ancien', nom: 'Compte' }) });
+  await go('#/membres'); await page.waitForTimeout(800);
+  ok('Membres : profil d\'annuaire d\'un compte supprimé signalé', /Ancien Compte/.test(await page.innerText('#mb-orph').catch(() => '')));
+  await page.click('#mb-orph-clean'); await page.waitForTimeout(1200);
+  ok('Membres : « Retirer de l\'annuaire » efface le profil', (await getJ(DB('partenaire_index/fantome'))) === null && !(await page.isVisible('#mb-orph')));
   ok('Membres : rubrique ouverte, membre existant listé', /\bM B\b/.test(await page.innerText('#mb-table').catch(() => '')));
   await go('#/membres/nouveau');
   const mf = async (k) => page.$eval(`#mb-form [data-f="${k}"] input, #mb-form [data-f="${k}"] select`, (i) => i.id);
