@@ -1159,6 +1159,7 @@
 
   async function viewMembers(id) {
     if (store.isLocal) { const v0 = shell('Membres', ''); v0.innerHTML = '<div class="card card-pad"><p>La gestion des membres n\'est disponible qu\'en ligne (mode Firebase).</p></div>'; return; }
+    if (id === 'moi') return viewMember(null, true);
     if (id) return viewMember(id === 'nouveau' ? null : id);
     const v = shell('Membres', '', `<a class="btn btn-primary" href="#/membres/nouveau">${icon('plus')} Nouveau membre</a>`);
     v.innerHTML = `<p class="intro">Les comptes de l'espace membre. Un nouveau membre reçoit un e-mail du club pour choisir lui-même son mot de passe : vous n'avez aucun mot de passe à lui transmettre.</p>
@@ -1169,6 +1170,9 @@
     let list = [];
     try { list = await store.members.list(); } catch (e) { $('#mb-table', v).innerHTML = `<p class="muted card-pad">Lecture impossible : ${esc(e.message)}</p>`; return; }
     list.sort((a, b) => String(a.nom || '').localeCompare(String(b.nom || ''), 'fr') || String(a.prenom || '').localeCompare(String(b.prenom || ''), 'fr'));
+    if (store.user && store.user.uid && !list.some((m) => m.id === store.user.uid)) {
+      $('.toolbar', v).insertAdjacentHTML('beforebegin', `<div class="card card-pad" id="mb-own" style="margin-bottom:16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap"><span style="flex:1;min-width:240px">${icon('info')} Votre compte administrateur (<b>${esc(store.user.email || '')}</b>) n'a pas de fiche membre : il ne permet pas encore de vous connecter à l'espace membre.</span><a class="btn btn-primary" href="#/membres/moi">${icon('user')} Créer ma fiche membre</a></div>`);
+    }
     const norm = (x) => String(x || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
     const draw = () => {
       const q = norm($('#mb-q', v).value), f = $('#mb-f', v).value;
@@ -1183,27 +1187,35 @@
     $('#mb-q', v).addEventListener('input', draw); $('#mb-f', v).addEventListener('change', draw); draw();
   }
 
-  async function viewMember(uid) {
+  async function viewMember(uid, own) {
     const isNew = !uid;
     let m = { prenom: '', nom: '', email: '', telephone: '', licence: '', classement: '', categorie: 'Adulte H', statut: 'Membre', actif: true };
+    if (own) {
+      const me = store.user && store.user.uid;
+      let mine = null;
+      try { mine = (await store.members.list()).find((x) => x.id === me); } catch (e) { /* création possible */ }
+      if (!me) { location.hash = '#/membres'; return; }
+      if (mine) { location.hash = '#/membres/' + me; return; }
+      m.email = store.user.email || '';
+    }
     if (!isNew) {
       let found = null;
       try { found = (await store.members.list()).find((x) => x.id === uid); } catch (e) { toast(e.message, 'err'); }
       if (!found) { toast('Membre introuvable', 'err'); location.hash = '#/membres'; return; }
       m = Object.assign(m, found);
     }
-    const v = shell(isNew ? 'Nouveau membre' : mbName(m), '<a href="#/membres">Membres</a> /');
-    v.innerHTML = `${isNew ? '<p class="intro">Remplissez la fiche puis cliquez sur « Créer le compte ». Le membre reçoit aussitôt un e-mail du club pour choisir son mot de passe, puis peut se connecter à l\'espace membre.</p>' : ''}
+    const v = shell(own ? 'Ma fiche membre' : isNew ? 'Nouveau membre' : mbName(m), '<a href="#/membres">Membres</a> /');
+    v.innerHTML = `${own ? `<p class="intro">Votre compte administrateur devient aussi un compte membre : même e-mail, même mot de passe pour l'admin et l'espace membre.</p>` : isNew ? '<p class="intro">Remplissez la fiche puis cliquez sur « Créer le compte ». Le membre reçoit aussitôt un e-mail du club pour choisir son mot de passe, puis peut se connecter à l\'espace membre.</p>' : ''}
       <section class="card form-card"><h2>${icon('user')} Fiche du membre</h2>
-        ${isNew ? '' : `<p class="muted">E-mail de connexion : <b>${esc(m.email || '—')}</b></p>`}
+        ${isNew && !own ? '' : `<p class="muted">E-mail de connexion : <b>${esc(m.email || '—')}</b></p>`}
         <div id="mb-form"></div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap"><a class="btn" href="#/membres">Annuler</a><button type="button" class="btn btn-primary" id="mb-save">${icon('check')} ${isNew ? 'Créer le compte' : 'Enregistrer'}</button></div></section>
+        <div style="display:flex;gap:10px;flex-wrap:wrap"><a class="btn" href="#/membres">Annuler</a><button type="button" class="btn btn-primary" id="mb-save">${icon('check')} ${own ? 'Créer ma fiche membre' : isNew ? 'Créer le compte' : 'Enregistrer'}</button></div></section>
       ${isNew ? '' : `<section class="card form-card" style="margin-top:16px"><h2>${icon('shield')} Accès à l'espace membre</h2>
         <p id="mb-state"></p>
         <div style="display:flex;gap:10px;flex-wrap:wrap"><button type="button" class="btn" id="mb-mail">${icon('mail')} Envoyer l'e-mail pour choisir un mot de passe</button><button type="button" class="btn" id="mb-active"></button></div>
         <p class="hint">Un membre qui a oublié son mot de passe peut aussi cliquer lui-même sur « Mot de passe oublié » sur la page de connexion.</p></section>`}`;
     const orig = clone(m);
-    const form = Form($('#mb-form', v), mbFields(m, isNew), m, () => { dirty = true; });
+    const form = Form($('#mb-form', v), mbFields(m, isNew && !own), m, () => { dirty = true; });
     const drawState = () => {
       if (isNew) return;
       $('#mb-state', v).innerHTML = m.actif === true ? '<span class="pill ok dot">Actif</span> Le membre peut se connecter à l\'espace membre.' : '<span class="pill dot">Inactif</span> Compte bloqué : le membre ne peut plus se connecter.';
@@ -1213,11 +1225,15 @@
     $('#mb-save', v).addEventListener('click', async () => {
       const d = form.collect();
       if (!form.validate()) { toast('Complétez les champs obligatoires (*).', 'err'); return; }
-      if (isNew) { d.email = String(d.email || '').trim().toLowerCase(); if (!MB_MAIL.test(d.email)) { toast('Adresse e-mail invalide.', 'err'); return; } }
+      if (isNew && !own) { d.email = String(d.email || '').trim().toLowerCase(); if (!MB_MAIL.test(d.email)) { toast('Adresse e-mail invalide.', 'err'); return; } }
       if (d.telephone && !MB_TEL.test(d.telephone)) { toast('Numéro de téléphone invalide (chiffres, espaces, + et points uniquement).', 'err'); return; }
       const b = $('#mb-save', v); b.disabled = true;
       try {
-        if (isNew) {
+        if (own) {
+          const me = await store.members.createOwn(d);
+          dirty = false; toast('Fiche membre créée : connectez-vous à l\'espace membre avec vos identifiants admin');
+          location.hash = '#/membres/' + me;
+        } else if (isNew) {
           const r = await store.members.create(d);
           dirty = false;
           await modal({ title: 'Compte créé', cancel: '', confirm: 'Compris', html: `<p>${esc(mbName(d))} peut se connecter à l'espace membre avec l'adresse <b>${esc(r.email)}</b>.</p>${r.mailed

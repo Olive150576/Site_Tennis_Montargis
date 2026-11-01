@@ -168,6 +168,22 @@ const OVERRIDE = `;(function(c){c.mode='firebase';c.firebase=Object.assign({},c.
   await page.click('#mb-active'); await page.waitForTimeout(2500);
   ok('Membres : réactivation', (await getJ(DBF('members/' + uidP + '/actif'))) === true && /Actif/.test(await page.innerText('#mb-state')));
 
+  // Un seul identifiant : l'admin connecté crée sa propre fiche membre
+  await go('#/membres');
+  ok('Membres : bandeau « Créer ma fiche membre » pour l\'admin sans fiche', await page.isVisible('#mb-own'));
+  await page.click('#mb-own a'); await page.waitForTimeout(1200);
+  await page.fill('#' + await mf('prenom'), 'Olivier'); await page.fill('#' + await mf('nom'), 'Admin'); await page.selectOption('#' + await mf('classement'), '30/3');
+  await page.click('#mb-save'); await page.waitForTimeout(1500);
+  const own = await getJ(DB('members/' + adm));
+  ok('Membres : fiche de l\'admin créée (même compte, actif)', own && own.actif === true && own.email === 'admin@test.fr' && own.nom === 'Admin' && own.classement === '30/3', JSON.stringify(own).slice(0, 200));
+  await go('#/membres');
+  ok('Membres : bandeau disparu une fois la fiche créée', !(await page.isVisible('#mb-own')));
+  const mp = await ctx.newPage(); await mp.goto(SITE + '/espace-membre.html'); await mp.waitForTimeout(1500);
+  if (await mp.isVisible('#lg-email')) { await mp.fill('#lg-email', 'admin@test.fr'); await mp.fill('#lg-pw', 'Admin-Test-123'); await mp.click('#login-form [type=submit]'); }
+  await mp.waitForSelector('#app:not([hidden])', { timeout: 20000 }).catch(() => {});
+  ok('Espace membre : connexion avec les identifiants admin', await mp.isVisible('#app'));
+  await mp.close();
+
   // Agenda : retirer un inscrit (compte supprimé repéré)
   await go('#/agenda/' + evId); await page.waitForTimeout(1200);
   ok('Agenda : inscrit sans fiche signalé « Compte supprimé »', /Compte supprimé/.test(await page.innerText('#ev-signups').catch(() => '')));
