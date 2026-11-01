@@ -170,6 +170,18 @@
     if (E) return 'http://' + E.host + ':' + E.database + '/' + path + '.json?ns=' + E.ns;
     return CFG.firebase.databaseURL + '/' + path + '.json';
   }
+  /* Fonctions serveur du dépôt (grantAdminClaim, createMember, toggleMemberStatus…) :
+     SDK chargé à la demande, émulateur branché une seule fois (tests). */
+  let fnReady = null;
+  function callable(fb, name) {
+    if (!fnReady) {
+      fnReady = (async () => {
+        if (!fb.functions) await loadScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-functions-compat.js');
+        if (CFG.emulators) fb.functions().useEmulator(CFG.emulators.host, CFG.emulators.functions);
+      })().catch((e) => { fnReady = null; throw e; });
+    }
+    return fnReady.then(() => fb.functions().httpsCallable(name));
+  }
   /* Storage n'a pas accès à la liste admins/ de la base : il vérifie le « custom claim »
      admin du compte. On le fait poser par la Cloud Function grantAdminClaim (qui contrôle
      admins/{uid}) puis on rafraîchit le jeton, sinon les envois de photos/PDF sont refusés. */
@@ -179,9 +191,7 @@
     claimReady = (async () => {
       const tok = await user.getIdTokenResult();
       if (tok.claims && tok.claims.admin === true) return true;
-      if (!fb.functions) await loadScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-functions-compat.js');
-      if (CFG.emulators) fb.functions().useEmulator(CFG.emulators.host, CFG.emulators.functions);
-      await fb.functions().httpsCallable('grantAdminClaim')();
+      await (await callable(fb, 'grantAdminClaim'))();
       await user.getIdToken(true);
       return true;
     })().catch((e) => { claimReady = null; console.warn('[USM] Droit admin Storage non accordé', e); return false; });
@@ -747,6 +757,57 @@
       }
     },
 
+
+    /* ---------- Membres : nœud members/, même format que l'ancien panneau ----------
+       Création et activation passent par les fonctions serveur existantes (createMember,
+       toggleMemberStatus). Le mot de passe provisoire est aléatoire et jamais affiché :
+       le membre choisit le sien grâce à l'e-mail de réinitialisation envoyé par le club. */
+    members: {
+      EDITABLE: ['prenom', 'nom', 'telephone', 'licence', 'classement', 'categorie', 'statut'],
+      async list() {
+        if (Store.isLocal) return [];
+        const fb = await firebaseSDK();
+        const s = await fb.database().ref('members').once('value');
+        return toArr(s.val()).filter((m) => m && (m.nom || m.prenom || m.email));
+      },
+      async create(d) {
+        if (Store.isLocal) throw new Error('Disponible uniquement en ligne.');
+        const fb = await firebaseSDK();
+        const email = String(d.email || '').trim().toLowerCase();
+        const rnd = new Uint8Array(18); crypto.getRandomValues(rnd);
+        const password = btoa(String.fromCharCode.apply(null, rnd)).replace(/[^A-Za-z0-9]/g, '') + 'Aa1!';
+        const res = await (await callable(fb, 'createMember'))({
+          prenom: String(d.prenom || '').trim(), nom: String(d.nom || '').trim(), email, password,
+          telephone: d.telephone || '', licence: d.licence || '', classement: d.classement || '',
+          categorie: d.categorie || 'Adulte H', statut: d.statut || 'Membre'
+        });
+        let mailed = true;
+        try { await this.sendPasswordEmail(email); } catch (e) { mailed = false; console.warn('[USM] E-mail de mot de passe non envoyé', e); }
+        return { uid: res && res.data && res.data.uid, email, mailed };
+      },
+      /* Écrit seulement les champs modifiés (une ancienne valeur hors format ne bloque pas l'enregistrement) */
+      async update(uid, diff) {
+        const data = {};
+        this.EDITABLE.forEach((k) => { if (diff[k] !== undefined) data[k] = String(diff[k] == null ? '' : diff[k]).trim(); });
+        if (!Object.keys(data).length) return true;
+        const fb = await firebaseSDK();
+        await fb.database().ref('members/' + uid).update(data);
+        return true;
+      },
+      async setActive(uid, actif) {
+        const fb = await firebaseSDK();
+        await (await callable(fb, 'toggleMemberStatus'))({ uid, actif: !!actif });
+        return true;
+      },
+      /* E-mail du club (modèle Firebase « Réinitialisation du mot de passe ») ; lien de retour vers l'espace membre */
+      async sendPasswordEmail(email) {
+        const fb = await firebaseSDK(); const auth = fb.auth();
+        const url = new URL('../espace-membre.html', location.href).href;
+        try { await auth.sendPasswordResetEmail(email, { url }); }
+        catch (e) { if (/continue-uri|unauthorized|invalid-continue/i.test((e && e.code) || '')) await auth.sendPasswordResetEmail(email); else throw e; }
+        return true;
+      }
+    },
     seed,
     sdk: firebaseSDK, // même instance Firebase (et mêmes émulateurs en test) pour l'espace membre
     COLLECTIONS,
