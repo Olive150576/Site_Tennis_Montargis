@@ -1256,11 +1256,22 @@
     let list = [];
     try { list = await store.eventSignups(ev.id); } catch (e) { box.querySelector('p').textContent = 'Lecture impossible : ' + e.message; return; }
     if (store.isLocal) { box.querySelector('p').textContent = 'Visible en ligne (mode Firebase) : les inscriptions de l\'aperçu ne sont pas enregistrées.'; return; }
-    if (!list.length) { box.querySelector('p').textContent = ev.memberSignup ? 'Personne pour le moment.' : 'Activez « Inscriptions dans l\'espace membre » ci-dessus pour ouvrir les inscriptions.'; return; }
-    box.innerHTML = `<h2>${icon('users')} Inscrits depuis l'espace membre (${list.length})</h2>
-      <ol style="margin:4px 0 12px 20px;line-height:1.8">${list.map((x) => `<li>${esc(x.prenom)} ${esc(x.nom)} <span class="muted small">${x.at ? 'le ' + new Date(x.at).toLocaleDateString('fr-FR') : ''}</span></li>`).join('')}</ol>
-      <div><button type="button" class="btn" id="su-copy">${icon('copy')} Copier la liste</button></div>`;
-    $('#su-copy', box).addEventListener('click', () => { try { navigator.clipboard.writeText(list.map((x) => x.prenom + ' ' + x.nom).join('\n')); toast('Liste copiée'); } catch (e) { toast('Copie impossible', 'err'); } });
+    let known = null; // uid des fiches existantes : repère les inscrits dont le compte a été supprimé
+    try { known = new Set((await store.members.list()).map((m) => m.id)); } catch (e) { /* liste sans repère */ }
+    const draw = () => {
+      if (!list.length) { box.innerHTML = `<h2>${icon('users')} Inscrits depuis l'espace membre</h2><p class="muted">${ev.memberSignup ? 'Personne pour le moment.' : 'Activez « Inscriptions dans l\'espace membre » ci-dessus pour ouvrir les inscriptions.'}</p>`; return; }
+      box.innerHTML = `<h2>${icon('users')} Inscrits depuis l'espace membre (${list.length})</h2>
+        <ol style="margin:4px 0 12px 20px;line-height:2">${list.map((x) => `<li>${esc(x.prenom)} ${esc(x.nom)} <span class="muted small">${x.at ? 'le ' + new Date(x.at).toLocaleDateString('fr-FR') : ''}</span>${known && !known.has(x.uid) ? ' <span class="pill warn">Compte supprimé</span>' : ''} <button type="button" class="btn btn-sm btn-ghost" data-su-rm="${esc(x.uid)}">Retirer</button></li>`).join('')}</ol>
+        <div><button type="button" class="btn" id="su-copy">${icon('copy')} Copier la liste</button></div>`;
+      $('#su-copy', box).addEventListener('click', () => { try { navigator.clipboard.writeText(list.map((x) => x.prenom + ' ' + x.nom).join('\n')); toast('Liste copiée'); } catch (e) { toast('Copie impossible', 'err'); } });
+      $$('[data-su-rm]', box).forEach((b) => b.addEventListener('click', async () => {
+        const x = list.find((y) => y.uid === b.dataset.suRm);
+        if (!(await modal({ title: `Retirer ${x.prenom} ${x.nom} ?`, body: 'Son inscription à cet événement est supprimée. Le membre pourra se réinscrire depuis l\'espace membre.', confirm: 'Retirer', danger: true }))) return;
+        try { await store.removeSignup(ev.id, x.uid); list = list.filter((y) => y !== x); SIGNUPS[ev.id] = (SIGNUPS[ev.id] || []).filter((y) => y.uid !== x.uid); toast('Inscription retirée'); draw(); } catch (e) { toast('Suppression impossible : ' + ((e && e.message) || e), 'err'); }
+      }));
+    };
+    if (!list.length && !ev.memberSignup) { box.querySelector('p').textContent = 'Activez « Inscriptions dans l\'espace membre » ci-dessus pour ouvrir les inscriptions.'; return; }
+    draw();
   }
 
   async function viewMessages() {
