@@ -1126,6 +1126,9 @@ body.m-app { background: var(--bg); min-height: 100vh; }
 .ev-title { font-weight: 650; }
 .ev-meta { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 0.85rem; color: var(--ink-3); margin-top: 3px; }
 .ev-meta span { display: inline-flex; align-items: center; gap: 5px; }
+.ev-season { grid-template-columns: 62px 1fr; }
+.ev-season .ev-date { display: grid; place-items: center; padding: 14px 0; color: var(--ink-3); }
+.ev-desc { margin: 6px 0 0; font-size: 0.85rem; color: var(--ink-2); line-height: 1.45; }
 .ev-meta .icon { width: 15px; height: 15px; }
 .ev-actions { display: flex; gap: 8px; align-items: center; }
 .ev.is-in { border-color: color-mix(in srgb, var(--ok) 45%, transparent); }
