@@ -37,7 +37,8 @@ const OVERRIDE = `;(function(c){c.mode='firebase';c.firebase=Object.assign({},c.
     ev1: ev('ev1', { title: 'Soirée double surprise', time: '18 h 30', memberSignup: true }),
     ev2: ev('ev2', { title: 'Tournoi interne', category: 'tournoi', dateStart: iso(20) }),
     ev3: ev('ev3', { title: 'Brouillon secret', draft: true }),
-    ev4: ev('ev4', { title: 'Événement passé', dateStart: iso(-10), memberSignup: true }) } };
+    ev4: ev('ev4', { title: 'Événement passé', dateStart: iso(-10), memberSignup: true }),
+    ev5: ev('ev5', { title: 'Fast4 de Noël', dateStart: iso(40), memberSignup: true }) } };
   const club_messages = { cm1: { titre: 'Courts fermés mardi', contenu: 'Entretien de 8 h à 12 h.', type: 'urgent', actif: true, createdAt: Date.now() - 36e5 },
     cm2: { titre: 'Assemblée générale', contenu: 'En novembre au club house.', type: 'info', actif: true, createdAt: Date.now() - 864e5 },
     cm3: { titre: 'Ancien message masqué', contenu: 'x', type: 'info', actif: false, createdAt: 1 } };
@@ -64,7 +65,7 @@ const OVERRIDE = `;(function(c){c.mode='firebase';c.firebase=Object.assign({},c.
   const err = async () => page.innerText('#lg-err').catch(() => '');
 
   await page.goto(SITE + '/espace-membre.html'); await page.waitForTimeout(1500);
-  ok('Mode réel : bouton « compte démo » masqué', !(await page.isVisible('#demo-btn')));
+  ok('Mode réel : bouton « compte démo » masqué (et son séparateur « aperçu »)', !(await page.isVisible('#demo-btn')) && !(await page.isVisible('#login-form .divider')));
   ok('Mode réel : ni bandeau « en test » ni badge « Démo »', !/en test|Démonstration/.test(await body()) && !(await page.$('.m-top .demo-tag')));
   expectAuthFail = true;
   await login('camille@test.fr', 'mauvais');
@@ -147,6 +148,21 @@ const OVERRIDE = `;(function(c){c.mode='firebase';c.firebase=Object.assign({},c.
   ok('Session conservée après rechargement', /Camille/.test(await page.textContent('#top-avatar')));
   await page.goto(SITE + '/espace-membre.html#profil'); await page.waitForTimeout(800); await page.click('#v-profil [data-logout]'); await page.waitForTimeout(1200);
   ok('Déconnexion → écran de connexion', await page.isVisible('#login-view') && !(await page.isVisible('#app')));
+  // Agenda public → bouton « S'inscrire (membres) » → connexion → confirmation (jamais d'inscription sans clic)
+  await page.goto(SITE + '/agenda.html'); await page.waitForTimeout(1800);
+  ok("Agenda public : « S'inscrire (membres) » sur les événements ouverts à venir seulement", !!(await page.$('[data-signup="ev5"]')) && !!(await page.$('[data-signup="ev1"]')) && !(await page.$('[data-signup="ev2"]')) && !(await page.$('[data-signup="ev4"]')));
+  await page.click('[data-signup="ev5"]'); await page.waitForTimeout(1800);
+  ok('Clic : page de connexion avec le rappel « confirmer votre inscription »', /espace-membre\.html\?inscription=ev5/.test(page.url()) && await page.isVisible('#login-view') && /confirmer votre inscription/.test(await page.innerText('#lg-want').catch(() => '')), page.url());
+  await login('camille@test.fr', 'Membre-Test-123'); await page.waitForTimeout(1200);
+  ok('Après connexion : confirmation de l\'événement demandé, rien d\'enregistré avant le clic', await page.isVisible('#su-confirm') && /Fast4 de Noël/.test(await page.innerText('#drawer')) && (await (await fetch(DB('inscriptions_evenement/ev5/' + uid), { headers: OWN })).json()) === null && !/inscription=/.test(page.url()) && !/ne sont pas ouvertes/.test(await page.innerText('body')));
+  await page.evaluate(() => document.querySelectorAll('.firebase-emulator-warning').forEach((x) => x.remove())); // bandeau des émulateurs (tests seulement)
+  await page.click('#su-confirm'); await page.waitForTimeout(1500);
+  const r5 = await (await fetch(DB('inscriptions_evenement/ev5/' + uid), { headers: OWN })).json();
+  ok('Confirmation : inscription enregistrée, agenda affiché', r5 && r5.prenom === 'Camille' && /#agenda$/.test(page.url()) && !!(await page.$('#v-agenda .ev.is-in [data-evin="ev5"]')), JSON.stringify(r5));
+  await page.goto(SITE + '/espace-membre.html?inscription=ev5#agenda'); await page.waitForTimeout(2500);
+  ok('Déjà inscrit : simple message, pas de nouvelle confirmation', !(await page.isVisible('#su-confirm')) && /déjà inscrit/i.test(await page.innerText('body')));
+  await page.goto(SITE + '/espace-membre.html#profil'); await page.waitForTimeout(800); await page.click('#v-profil [data-logout]'); await page.waitForTimeout(1200);
+
   ok('Aucune erreur JS sur tout le parcours', errors.length === 0, errors.join(' | '));
   await browser.close(); server.close();
   console.log(`\n${R.filter(Boolean).length}/${R.length} contrôles espace membre (mode Firebase)`); process.exit(R.every(Boolean) ? 0 : 1);

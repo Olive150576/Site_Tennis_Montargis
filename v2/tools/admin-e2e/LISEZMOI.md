@@ -16,7 +16,7 @@ Vérifie, **sans toucher aux vraies données**, que l'admin du nouveau site fonc
 - reprise des actualités de l'ancien site sans doublon ;
 - session conservée.
 
-## Espace membre (`membre-e2e.js`) — 33 contrôles
+## Espace membre (`membre-e2e.js`) — 38 contrôles
 
 - connexion : mauvais mot de passe, adhésion inactive, compte sans fiche refusés ; bouton démo masqué ;
 - accueil réel, aucune donnée fictive, visite comptée ;
@@ -25,6 +25,7 @@ Vérifie, **sans toucher aux vraies données**, que l'admin du nouveau site fonc
 - profil joueur et annuaire au format de l'espace actuel (`style_jeu`, `dispo.lundi…`, `partenaire_index`) ;
 - agenda unique (événements à venir, inscription / désinscription), messages du bureau ;
 - annuaire des joueurs (contacts seulement si partagés, filtres), avantages partenaires réels ;
+- agenda public : bouton « S'inscrire (membres) » (événements ouverts à venir seulement) → connexion avec rappel → confirmation d'un clic (rien n'est enregistré avant), « déjà inscrit » géré ; pas de bandeau « en test » ni de badge « Démo » en mode réel ;
 - photo envoyée dans Storage ; session conservée ; déconnexion.
 
 ## Une seule fois
@@ -35,6 +36,6 @@ Vérifie, **sans toucher aux vraies données**, que l'admin du nouveau site fonc
 
 ## Lancer
 
-Dans ce dossier : `npm test`. Résultat attendu : `53/53 contrôles admin (mode Firebase)` puis `33/33 contrôles espace membre (mode Firebase)`.
+Dans ce dossier : `npm test`. Résultat attendu : `53/53 contrôles admin (mode Firebase)` puis `38/38 contrôles espace membre (mode Firebase)`.
 
 À lancer avant la bascule, et après toute modification de `store.js`, `admin.js`, des règles ou des fonctions.

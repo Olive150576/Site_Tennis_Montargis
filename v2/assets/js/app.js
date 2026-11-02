@@ -361,6 +361,9 @@
     const t = today();
     return visible(c.events).filter((e) => e.dateStart && (parseISO(e.dateEnd || e.dateStart) >= t)).sort((a, b) => a.dateStart.localeCompare(b.dateStart));
   }
+  /* Inscriptions ouvertes dans l'espace membre (Admin › Agenda › « Inscriptions dans l'espace membre ») */
+  const signupOpen = (e) => !!(e && e.memberSignup && e.dateStart && parseISO(e.dateEnd || e.dateStart) >= today());
+  const signupHref = (e) => url('espace-membre.html?inscription=' + encodeURIComponent(e.id) + '#agenda');
   function countdown(e) {
     const t = today(), s = parseISO(e.dateStart), end = parseISO(e.dateEnd || e.dateStart);
     if (s <= t && end >= t) return 'En cours';
@@ -383,6 +386,7 @@
       <h3>${esc(e.title)}</h3>
       <div class="meta"><span>${icon('calendar')}${esc(whenText(e))}${e.time ? ' · ' + esc(e.time) : ''}</span>${e.location ? `<span>${icon('pin')}${esc(e.location)}</span>` : ''}</div>
       <p>${esc(e.summary || '')}</p>
+      ${signupOpen(e) ? `<span class="chip" style="margin-top:8px">${icon('check')} Inscriptions ouvertes aux membres</span>` : ''}
       ${withCountdown && e.dateStart ? `<span class="countdown">${countdown(e)}</span>` : ''}</div></a>`;
   }
   function renderAgendaHome(c, el) {
@@ -404,7 +408,7 @@
         <h3 style="margin-top:10px">${esc(e.title)}</h3>
         <div class="meta" style="display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:8px;color:var(--ink-3);font-size:.9rem"><span>${icon('calendar')} ${esc(whenText(e))}${e.time ? ' · ' + esc(e.time) : ''}</span>${e.location ? `<span>${icon('pin')} ${esc(e.location)}</span>` : ''}</div></div></div>
         <div class="body prose">${md(e.body || e.summary)}</div>
-        ${e.link ? `<p style="margin-top:18px"><a class="btn btn-blue btn-sm" href="${esc(e.link)}" target="_blank" rel="noopener">En savoir plus ${icon('external')}</a></p>` : ''}
+        ${signupOpen(e) || e.link ? `<p style="margin-top:18px;display:flex;flex-wrap:wrap;gap:10px;align-items:center">${signupOpen(e) ? `<a class="btn btn-ball btn-sm" href="${esc(signupHref(e))}" data-signup="${esc(e.id)}">${icon('check')} S'inscrire (membres)</a>` : ''}${e.link ? `<a class="btn btn-blue btn-sm" href="${esc(e.link)}" target="_blank" rel="noopener">En savoir plus ${icon('external')}</a>` : ''}</p>${signupOpen(e) ? '<p class="small" style="margin-top:6px;color:var(--ink-3)">Réservé aux membres du club : connexion à l\'espace membre, puis confirmation.</p>' : ''}` : ''}
       </div>
       <div class="ed-media">${ims.slice(0, 2).map((im, i) => `<button type="button" class="lb-trigger" data-group="ev-${esc(e.id)}" data-i="${i}" style="all:unset;cursor:zoom-in">${pic(im, { sizes: '(max-width:960px) 100vw, 45vw', alt: im.alt || e.title })}</button>`).join('')}</div>
     </article>`;
