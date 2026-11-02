@@ -38,7 +38,8 @@ const OVERRIDE = `;(function(c){c.mode='firebase';c.firebase=Object.assign({},c.
     ev2: ev('ev2', { title: 'Tournoi interne', category: 'tournoi', dateStart: iso(20) }),
     ev3: ev('ev3', { title: 'Brouillon secret', draft: true }),
     ev4: ev('ev4', { title: 'Événement passé', dateStart: iso(-10), memberSignup: true }),
-    ev5: ev('ev5', { title: 'Fast4 de Noël', dateStart: iso(40), memberSignup: true }) } };
+    ev5: ev('ev5', { title: 'Fast4 de Noël', dateStart: iso(40), memberSignup: true }),
+    ev6: ev('ev6', { title: 'Galette des rois', dateStart: '', when: 'En janvier', recurring: true }) } };
   const club_messages = { cm1: { titre: 'Courts fermés mardi', contenu: 'Entretien de 8 h à 12 h.', type: 'urgent', actif: true, createdAt: Date.now() - 36e5 },
     cm2: { titre: 'Assemblée générale', contenu: 'En novembre au club house.', type: 'info', actif: true, createdAt: Date.now() - 864e5 },
     cm3: { titre: 'Ancien message masqué', contenu: 'x', type: 'info', actif: false, createdAt: 1 } };
@@ -92,6 +93,7 @@ const OVERRIDE = `;(function(c){c.mode='firebase';c.firebase=Object.assign({},c.
   const ag = await page.innerText('#v-agenda');
   ok('Agenda : événements à venir, horaire texte « 18 h 30 », brouillon et passé exclus', /Soirée double surprise/.test(ag) && /Tournoi interne/.test(ag) && /18 h 30/.test(ag) && !/Brouillon secret|Événement passé/.test(ag), ag.slice(0, 300));
   ok('Agenda : messages du bureau (2 visibles, le masqué absent)', /Assemblée générale/.test(ag) && /Courts fermés mardi/.test(ag) && !/Ancien message masqué/.test(ag));
+  ok('Agenda : « Les grands rendez-vous de la saison » (sans date, période affichée, pas d\'inscription) ; jamais « 0 h »', /Les grands rendez-vous de la saison/i.test(ag) && /Galette des rois/.test(ag) && /En janvier/.test(ag) && !(await page.$('#v-agenda [data-evin="ev6"]')) && !/\b0 h\b/.test(ag));
   ok("Agenda : bouton d'inscription seulement si l'admin l'a ouvert", !!(await page.$('#v-agenda [data-evin="ev1"]')) && !(await page.$('#v-agenda [data-evin="ev2"]')));
   await page.click('#v-agenda [data-evin="ev1"]'); await page.waitForTimeout(1500);
   let reg = await (await fetch(DB('inscriptions_evenement/ev1/' + uid), { headers: OWN })).json();
