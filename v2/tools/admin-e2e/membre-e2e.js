@@ -39,7 +39,8 @@ const OVERRIDE = `;(function(c){c.mode='firebase';c.firebase=Object.assign({},c.
     ev3: ev('ev3', { title: 'Brouillon secret', draft: true }),
     ev4: ev('ev4', { title: 'Événement passé', dateStart: iso(-10), memberSignup: true }),
     ev5: ev('ev5', { title: 'Fast4 de Noël', dateStart: iso(40), memberSignup: true }),
-    ev6: ev('ev6', { title: 'Galette des rois', dateStart: '', when: 'En janvier', recurring: true }) } };
+    ev6: ev('ev6', { title: 'Galette des rois', dateStart: '', when: 'En janvier', recurring: true, months: [new Date().getMonth() + 1] }),
+    ev7: ev('ev7', { title: 'Rendez-vous sans mois', dateStart: '', when: 'Un jour', recurring: true }) } };
   const club_messages = { cm1: { titre: 'Courts fermés mardi', contenu: 'Entretien de 8 h à 12 h.', type: 'urgent', actif: true, createdAt: Date.now() - 36e5 },
     cm2: { titre: 'Assemblée générale', contenu: 'En novembre au club house.', type: 'info', actif: true, createdAt: Date.now() - 864e5 },
     cm3: { titre: 'Ancien message masqué', contenu: 'x', type: 'info', actif: false, createdAt: 1 } };
@@ -90,10 +91,17 @@ const OVERRIDE = `;(function(c){c.mode='firebase';c.firebase=Object.assign({},c.
   ok('Accueil : prochains événements réels (pas de brouillon ni de passé)', /Soirée double surprise/.test(acc) && !/Brouillon secret|Événement passé/.test(acc));
   // Agenda unique (site_v2/events) + inscriptions
   await page.goto(SITE + '/espace-membre.html#agenda'); await page.waitForTimeout(1200);
-  const ag = await page.innerText('#v-agenda');
-  ok('Agenda : événements à venir, horaire texte « 18 h 30 », brouillon et passé exclus', /Soirée double surprise/.test(ag) && /Tournoi interne/.test(ag) && /18 h 30/.test(ag) && !/Brouillon secret|Événement passé/.test(ag), ag.slice(0, 300));
+  const goMonth = async (d) => { await page.selectOption('#ag-month', d.slice(0, 7)); await page.waitForTimeout(500); };
+  let ag = await page.innerText('#v-agenda');
+  ok('Agenda : vue mois par mois (grille, mois courant sélectionné, aujourd\'hui marqué)', !!(await page.$('#v-agenda .cal-grid')) && (await page.$eval('#ag-month', (x) => x.value)) === iso(0).slice(0, 7) && !!(await page.$('#v-agenda .cal-d.today')));
   ok('Agenda : messages du bureau (2 visibles, le masqué absent)', /Assemblée générale/.test(ag) && /Courts fermés mardi/.test(ag) && !/Ancien message masqué/.test(ag));
-  ok('Agenda : « Les grands rendez-vous de la saison » (sans date, période affichée, pas d\'inscription) ; jamais « 0 h »', /Les grands rendez-vous de la saison/i.test(ag) && /Galette des rois/.test(ag) && /En janvier/.test(ag) && !(await page.$('#v-agenda [data-evin="ev6"]')) && !/\b0 h\b/.test(ag));
+  ok('Agenda : « Prévu en … · date à venir » (mois coché) et « Autres rendez-vous » (sans mois) ; jamais « 0 h »', /Prévu en .* date à venir/.test(ag) && /Galette des rois/.test(ag) && /Autres rendez-vous de la saison/i.test(ag) && /Rendez-vous sans mois/.test(ag) && !(await page.$('#v-agenda [data-evin="ev6"]')) && !/\b0 h\b/.test(ag), ag.slice(-400));
+  await goMonth(iso(20)); ag = await page.innerText('#v-agenda');
+  ok('Agenda : « Tournoi interne » dans son mois', /Tournoi interne/.test(ag));
+  await goMonth(iso(10)); ag = await page.innerText('#v-agenda');
+  ok('Agenda : événement dans son mois, horaire « 18 h 30 », pastille sur son jour, brouillon et passé exclus', /Soirée double surprise/.test(ag) && /18 h 30/.test(ag) && !!(await page.$('#v-agenda .cal-d.has[data-agday="' + (+iso(10).slice(8)) + '"]')) && !/Brouillon secret|Événement passé/.test(ag), ag.slice(0, 300));
+  await page.click('#v-agenda .cal-d.has[data-agday="' + (+iso(10).slice(8)) + '"]'); await page.waitForTimeout(300);
+  ok('Agenda : clic sur un jour → l\'événement est mis en évidence', !!(await page.$('#ag-ev1.flash')));
   ok("Agenda : bouton d'inscription seulement si l'admin l'a ouvert", !!(await page.$('#v-agenda [data-evin="ev1"]')) && !(await page.$('#v-agenda [data-evin="ev2"]')));
   await page.click('#v-agenda [data-evin="ev1"]'); await page.waitForTimeout(1500);
   let reg = await (await fetch(DB('inscriptions_evenement/ev1/' + uid), { headers: OWN })).json();

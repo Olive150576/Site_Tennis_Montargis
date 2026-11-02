@@ -57,6 +57,7 @@
   const RATE_CATS = [['adultes', 'Adultes'], ['jeunes', 'Jeunes'], ['licences', 'Licences'], ['cours', 'Cours'], ['ete', 'Été & stages']];
   const SURFACES = [['terre-battue', 'Terre battue'], ['couvert', 'Couvert'], ['beton-poreux', 'Béton poreux'], ['club-house', 'Club house'], ['mur', 'Mur']];
   const DAYS = [['1', 'Lundi'], ['2', 'Mardi'], ['3', 'Mercredi'], ['4', 'Jeudi'], ['5', 'Vendredi'], ['6', 'Samedi']];
+  const MONTHS_SHORT = ['Janv.', 'Févr.', 'Mars', 'Avr.', 'Mai', 'Juin', 'Juil.', 'Août', 'Sept.', 'Oct.', 'Nov.', 'Déc.'];
   const label = (opts, v) => (opts.find((o) => o[0] === String(v)) || [0, v || '—'])[1];
   const SHOP_STATUS = [['brouillon', 'Brouillon'], ['ouverte', 'Ouverte'], ['commandee', 'Commandée'], ['disponible', 'Disponible au club'], ['terminee', 'Terminée'], ['annulee', 'Annulée']];
   const isoIn = (n) => { const d = new Date(); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
@@ -144,6 +145,7 @@
         { k: 'dateEnd', t: 'date', l: 'Date de fin (facultatif)', half: true },
         { k: 'time', t: 'text', l: 'Horaires', half: true, placeholder: '14 h – 17 h' },
         { k: 'when', t: 'text', l: 'Période (si pas de date)', half: true, placeholder: 'Chaque année en juin' },
+        { k: 'months', t: 'months', l: 'Mois concernés (si pas de date)', hint: 'Agenda mois par mois de l\'espace membre : l\'événement apparaît dans les mois cochés, en « date à venir ».' },
         { k: 'summary', t: 'textarea', l: 'Résumé', max: 200, hint: 'Deux lignes affichées dans les cartes de l\'agenda.' },
         { k: 'body', t: 'markdown', l: 'Description complète' },
         { k: 'images', t: 'images', l: 'Visuels' },
@@ -153,7 +155,7 @@
         { k: 'featured', t: 'switch', l: 'Mettre en avant', half: true },
         { k: 'draft', t: 'switch', l: 'Brouillon (non visible)', half: true }
       ],
-      blank: () => ({ id: uid('e'), title: '', category: 'animation', location: 'Au club', dateStart: '', dateEnd: '', time: '', when: '', summary: '', body: '', images: [], link: '', memberSignup: false, recurring: false, featured: false, draft: false }),
+      blank: () => ({ id: uid('e'), title: '', category: 'animation', location: 'Au club', dateStart: '', dateEnd: '', time: '', when: '', months: [], summary: '', body: '', images: [], link: '', memberSignup: false, recurring: false, featured: false, draft: false }),
       sort: (a, b) => (b.dateStart || '0').localeCompare(a.dateStart || '0'),
       columns: [
         { h: '', w: 70, r: (x) => thumb((x.images || [])[0]) },
@@ -450,6 +452,10 @@
           <textarea id="${id}" class="tall">${esc(val)}</textarea><div class="md-preview" hidden></div>${hint}</div>`;
       case 'select':
         return `<div class="${cls}" data-f="${f.k}">${lab}<select id="${id}">${f.opts.map(([k, l]) => `<option value="${esc(k)}"${String(val) === String(k) ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select>${hint}</div>`;
+      case 'months': {
+        const cur = (Array.isArray(val) ? val : Object.values(val || {})).map(Number);
+        return `<div class="${cls}" data-f="${f.k}"><span class="label">${esc(f.l)}</span><div class="month-chips" id="${id}">${MONTHS_SHORT.map((mn, i) => `<label class="mchip"><input type="checkbox" value="${i + 1}"${cur.includes(i + 1) ? ' checked' : ''}><span>${mn}</span></label>`).join('')}</div>${hint}</div>`;
+      }
       case 'switch':
         return `<div class="${cls}" data-f="${f.k}"><label class="switch"><input type="checkbox" id="${id}"${val ? ' checked' : ''}><span class="track"></span><span>${esc(f.l)}</span></label>${hint}</div>`;
       case 'list':
@@ -572,6 +578,7 @@
         const el = document.getElementById(`${idp}-${f.k}`);
         if (!el || ['list', 'images', 'image', 'file'].includes(f.t)) return;
         if (f.t === 'switch') state[f.k] = el.checked;
+        else if (f.t === 'months') state[f.k] = Array.from(el.querySelectorAll('input:checked')).map((i) => +i.value);
         else if (f.t === 'number') state[f.k] = el.value === '' ? null : Number(el.value);
         else state[f.k] = el.value.trim ? el.value.trim() : el.value;
       });

@@ -188,6 +188,12 @@ const OVERRIDE = `;(function(c){c.mode='firebase';c.firebase=Object.assign({},c.
   ok('Espace membre : connexion avec les identifiants admin', await mp.isVisible('#app'));
   await mp.close();
 
+  // Agenda : « Mois concernés » (événements sans date, vue mois par mois de l'espace membre)
+  await go('#/agenda/' + evId); await page.waitForTimeout(800);
+  await page.click('[data-f="months"] .mchip:nth-child(3) span'); await page.click('[data-f="months"] .mchip:nth-child(5) span');
+  await page.click('#sv-save'); await page.waitForTimeout(1500);
+  ok('Agenda : « Mois concernés » enregistrés (mars, mai)', JSON.stringify(await getJ(DB('site_v2/events/' + evId + '/months'))) === '[3,5]');
+
   // Agenda : retirer un inscrit (compte supprimé repéré)
   await go('#/agenda/' + evId); await page.waitForTimeout(1200);
   ok('Agenda : inscrit sans fiche signalé « Compte supprimé »', /Compte supprimé/.test(await page.innerText('#ev-signups').catch(() => '')));
