@@ -324,7 +324,8 @@
         /* Grands rendez-vous de la saison : événements sans date (« Période ») ou rendez-vous annuels, comme sur le site */
         S.season = (c.events || []).filter(function (e) { return e && !e.draft && (!e.dateStart || e.recurring); })
           .sort(function (a, b) { return (a.order || 0) - (b.order || 0); })
-          .map(function (e) { return { id: e.id, titre: e.title || '', cat: EV_CAT[e.category] || 'vie', when: e.when || (e.dateStart ? fmt.long(evStart(e)) : ''), lieu: e.location || 'Au club', desc: e.summary || '' }; });
+          .map(function (e) { return { id: e.id, titre: e.title || '', cat: EV_CAT[e.category] || 'vie', when: e.when || (e.dateStart ? fmt.long(evStart(e)) : ''), lieu: e.location || 'Au club', desc: e.summary || '',
+            dated: !!e.dateStart, months: (Array.isArray(e.months) ? e.months : Object.values(e.months || {})).map(Number) }; });
         S.msgs = Object.keys(cm).map(function (k) {
           var m = cm[k] || {};
           return { id: k, actif: m.actif, type: ['warning', 'urgent'].indexOf(m.type) >= 0 ? m.type : 'info', titre: m.titre || 'Message du club', texte: m.contenu || m.message || '', createdAt: m.createdAt || 0 };
@@ -742,7 +743,7 @@
   }
   function eventRow(e) {
     var inn = S.eventsIn[e.id], c = CAT[e.cat] || ['Club', 'cat-vie-du-club'];
-    return '<article class="ev' + (inn ? ' is-in' : '') + '"><div class="ev-date"><b>' + fmt.dnum(e.start) + '</b><span>' + esc(fmt.dmon(e.start)) + '</span></div>' +
+    return '<article class="ev' + (inn ? ' is-in' : '') + '" id="ag-' + esc(e.id) + '"><div class="ev-date"><b>' + fmt.dnum(e.start) + '</b><span>' + esc(fmt.dmon(e.start)) + '</span></div>' +
       '<div><div class="ev-title">' + esc(e.titre) + '</div><div class="ev-meta"><span class="chip ' + c[1] + '">' + c[0] + '</span>' + (evTime(e) ? '<span>' + ic('clock') + esc(evTime(e)) + '</span>' : '') + '<span>' + ic('pin') + esc(e.lieu) + '</span>' + (e.inscription && e.count ? '<span>' + ic('users') + e.count + ' inscrit' + (e.count > 1 ? 's' : '') + '</span>' : '') + '</div></div>' +
       '<div class="ev-actions">' + (e.inscription ? (inn ? '<button class="btn btn-sm" data-evin="' + e.id + '">' + ic('check') + 'Inscrit</button>' : '<button class="btn btn-blue btn-sm" data-evin="' + e.id + '">Je m\'inscris</button>') : '') +
       '<a class="icon-btn" href="' + esc(gcal(e)) + '" target="_blank" rel="noopener" aria-label="Ajouter à mon agenda" title="Ajouter à mon agenda">' + ic('calendar') + '</a></div></article>';
@@ -754,24 +755,68 @@
     return '<article class="ev ev-season"><div class="ev-date">' + ic('calendar') + '</div><div><div class="ev-title">' + esc(e.titre) + '</div><div class="ev-meta"><span class="chip ' + c[1] + '">' + c[0] + '</span>' +
       (e.when ? '<span>' + ic('clock') + esc(e.when) + '</span>' : '') + '<span>' + ic('pin') + esc(e.lieu) + '</span></div>' + (e.desc ? '<p class="ev-desc">' + esc(e.desc) + '</p>' : '') + '</div></article>';
   }
+  /* Agenda mois par mois (comme l'ancien calendrier du club) : grille + liste du mois + « Prévu ce mois-ci » */
+  var agMonth = '', agDayMap = {};
+  var MOIS = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
+  var CAT_DOT = { tournoi: 'var(--clay)', competition: 'var(--clay)', stage: 'var(--grass)', animation: 'var(--ball)', vie: 'var(--blue)' };
+  function ymOf(t) { var d = new Date(t); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2); }
+  function ymShift(ym, n) { var y = +ym.slice(0, 4), m = +ym.slice(5, 7) - 1 + n; y += Math.floor(m / 12); m = ((m % 12) + 12) % 12; return y + '-' + ('0' + (m + 1)).slice(-2); }
+  function agMatch(e) { return agFilter === 'tout' || (agFilter === 'inscrit' ? S.eventsIn[e.id] : e.cat === agFilter); }
   RENDER.agenda = function () {
-    var list = S.events.filter(function (e) { return (e.endTs || e.start) > Date.now() && (agFilter === 'tout' || (agFilter === 'inscrit' ? S.eventsIn[e.id] : e.cat === agFilter)); }).sort(function (a, b) { return a.start - b.start; });
-    var byMonth = {}, order = [];
-    var season = (S.season || []).filter(function (e) { return agFilter === 'tout' || (agFilter !== 'inscrit' && e.cat === agFilter); });
-    list.forEach(function (e) { var k = fmt.month(e.start); if (!byMonth[k]) { byMonth[k] = []; order.push(k); } byMonth[k].push(e); });
+    var now = Date.now(), cur = ymOf(now), last = ymShift(cur, 11);
+    if (!agMonth || agMonth < cur) agMonth = cur;
+    if (agMonth > last) agMonth = last;
+    var y = +agMonth.slice(0, 4), m = +agMonth.slice(5, 7);
+    var mStart = new Date(y, m - 1, 1).getTime(), mEnd = new Date(y, m, 1).getTime() - 1, nbJ = new Date(y, m, 0).getDate();
+    var upcoming = S.events.filter(function (e) { return (e.endTs || e.start) > now && agMatch(e); }).sort(function (a, b) { return a.start - b.start; });
+    var duMois = upcoming.filter(function (e) { return e.start <= mEnd && (e.endTs || e.start) >= mStart; });
+    var list = agFilter === 'inscrit' ? upcoming : duMois; // « Mes inscriptions » : toutes, quel que soit le mois affiché
+    var season = agFilter === 'inscrit' ? [] : (S.season || []).filter(function (e) { return !e.dated && agMatch(e); });
+    var prevus = season.filter(function (e) { return e.months.indexOf(m) >= 0; });
+    var sansMois = season.filter(function (e) { return !e.months.length; });
+    var dots = {}; agDayMap = {};
+    duMois.forEach(function (e) {
+      var a = Math.max(e.start, mStart), b = Math.min(e.endTs || e.start, mEnd), c = CAT_DOT[e.cat] || CAT_DOT.vie;
+      for (var dd = new Date(a).getDate(); dd <= new Date(b).getDate(); dd++) {
+        dots[dd] = dots[dd] || []; if (!agDayMap[dd]) agDayMap[dd] = e.id;
+        if (dots[dd].indexOf(c) < 0 && dots[dd].length < 3) dots[dd].push(c);
+      }
+    });
+    var opts = [];
+    for (var i = 0; i < 12; i++) {
+      var ym = ymShift(cur, i), mm = +ym.slice(5, 7);
+      var has = upcoming.some(function (e) { return ymOf(e.start) <= ym && ymOf(e.endTs || e.start) >= ym; }) || season.some(function (e) { return e.months.indexOf(mm) >= 0; });
+      opts.push('<option value="' + ym + '"' + (ym === agMonth ? ' selected' : '') + '>' + (has ? '• ' : '') + MOIS[mm - 1] + ' ' + ym.slice(0, 4) + '</option>');
+    }
+    var first = (new Date(y, m - 1, 1).getDay() + 6) % 7, todayD = agMonth === cur ? new Date().getDate() : 0;
+    var grid = '<div class="cal-grid" role="grid" aria-label="' + MOIS[m - 1] + ' ' + y + '">' + ['L', 'M', 'M', 'J', 'V', 'S', 'D'].map(function (j) { return '<span class="cal-h">' + j + '</span>'; }).join('');
+    for (var v = 0; v < first; v++) grid += '<span></span>';
+    for (var d = 1; d <= nbJ; d++) {
+      var ds = dots[d] || [];
+      grid += '<button type="button" class="cal-d' + (ds.length ? ' has' : '') + (d === todayD ? ' today' : '') + '"' + (ds.length ? ' data-agday="' + d + '"' : ' tabindex="-1"') + '><b>' + d + '</b><i>' +
+        ds.map(function (c) { return '<em style="background:' + c + '"></em>'; }).join('') + '</i></button>';
+    }
+    grid += '</div>';
     var unread = unreadMsgs().length;
     var msgs = allMsgs().sort(function (a, b) { return (b.type === 'urgent') - (a.type === 'urgent') || b.createdAt - a.createdAt; });
     $('#v-agenda').innerHTML =
       '<div class="v-head"><div><h1>Agenda du club</h1><p>Tournois, animations, rencontres par équipes et messages du bureau.</p></div></div>' +
       '<details class="msgs"' + (unread ? ' open' : '') + '><summary>' + ic('megaphone') + 'Messages du bureau' + (unread ? ' <span class="badge" style="margin-left:0">' + unread + ' nouveau' + (unread > 1 ? 'x' : '') + '</span>' : '') + ic('chevron-down') + '</summary><div class="stack">' +
-        msgs.map(function (m) { return '<div class="msg ' + (m.type !== 'info' ? m.type : '') + '"><div class="msg-top">' + (m.type !== 'info' ? '<span class="tag ' + m.type + '">' + (m.type === 'urgent' ? 'Urgent' : 'Important') + '</span>' : '') + '<span>' + esc(fmt.ago(m.createdAt)) + '</span></div><b>' + esc(m.titre) + '</b><p>' + esc(m.texte) + '</p></div>'; }).join('') +
+        msgs.map(function (x) { return '<div class="msg ' + (x.type !== 'info' ? x.type : '') + '"><div class="msg-top">' + (x.type !== 'info' ? '<span class="tag ' + x.type + '">' + (x.type === 'urgent' ? 'Urgent' : 'Important') + '</span>' : '') + '<span>' + esc(fmt.ago(x.createdAt)) + '</span></div><b>' + esc(x.titre) + '</b><p>' + esc(x.texte) + '</p></div>'; }).join('') +
       '</div></details>' +
       '<div class="filters-bar">' + [['tout', 'Tout'], ['inscrit', 'Mes inscriptions'], ['tournoi', 'Tournois'], ['animation', 'Animations'], ['competition', 'Compétition'], ['stage', 'Stages'], ['vie', 'Vie du club']].map(function (f) { return '<button class="fchip" data-ag="' + f[0] + '" aria-pressed="' + (agFilter === f[0]) + '">' + f[1] + '</button>'; }).join('') + '</div>' +
-      order.map(function (k) { return '<h2 class="month-label">' + esc(k) + '</h2><div class="ev-list">' + byMonth[k].map(eventRow).join('') + '</div>'; }).join('') +
-      (season.length ? '<h2 class="month-label" id="saison" style="text-transform:none">Les grands rendez-vous de la saison</h2><div class="ev-list">' + season.map(seasonRow).join('') + '</div>' : '') +
-      (order.length || season.length ? '' : '<div class="empty">Rien pour ce filtre.</div>');
-    var d = $('details.msgs'); if (d) d.addEventListener('toggle', function () { if (d.open) { allMsgs().forEach(function (m) { S.readMsgs[m.id] = 1; }); save(); updateBadges(); } });
-    if (unread) { allMsgs().forEach(function (m) { S.readMsgs[m.id] = 1; }); save(); }
+      '<div class="cal-nav"><button type="button" class="icon-btn" data-agm="-1" aria-label="Mois précédent"' + (agMonth === cur ? ' disabled' : '') + '>' + ic('chevron-left') + '</button>' +
+        '<div class="cal-title"><select id="ag-month" aria-label="Choisir le mois">' + opts.join('') + '</select>' + (agMonth !== cur ? '<button type="button" class="cal-today" data-agm="0">Revenir à aujourd\'hui</button>' : '') + '</div>' +
+        '<button type="button" class="icon-btn" data-agm="1" aria-label="Mois suivant"' + (agMonth === last ? ' disabled' : '') + '>' + ic('chevron-right') + '</button></div>' +
+      grid +
+      (agFilter === 'inscrit' ? '<h2 class="month-label" style="text-transform:none">Mes inscriptions à venir</h2>' : '') +
+      (list.length ? '<div class="ev-list">' + list.map(eventRow).join('') + '</div>' : '') +
+      (prevus.length ? '<h2 class="month-label" style="text-transform:none">Prévu en ' + MOIS[m - 1].toLowerCase() + ' · date à venir</h2><div class="ev-list">' + prevus.map(seasonRow).join('') + '</div>' : '') +
+      (list.length || prevus.length ? '' : '<div class="empty">' + (agFilter === 'inscrit' ? 'Aucune inscription à venir.' : 'Rien de prévu en ' + MOIS[m - 1].toLowerCase() + (agFilter === 'tout' ? '' : ' pour ce filtre') + '.') + '</div>') +
+      (sansMois.length ? '<h2 class="month-label" id="saison" style="text-transform:none">Autres rendez-vous de la saison</h2><div class="ev-list">' + sansMois.map(seasonRow).join('') + '</div>' : '');
+    var sel = $('#ag-month'); if (sel) sel.addEventListener('change', function () { agMonth = sel.value; RENDER.agenda(); });
+    var dt = $('details.msgs'); if (dt) dt.addEventListener('toggle', function () { if (dt.open) { allMsgs().forEach(function (x) { S.readMsgs[x.id] = 1; }); save(); updateBadges(); } });
+    if (unread) { allMsgs().forEach(function (x) { S.readMsgs[x.id] = 1; }); save(); }
   };
 
   /* ---------- Profil ---------- */
@@ -1303,6 +1348,8 @@
       toast(S.eventsIn[d.evin] ? 'Inscription enregistrée' : 'Inscription annulée'); return;
     }
     if (d.ag) { agFilter = d.ag; RENDER.agenda(); return; }
+    if (d.agm) { agMonth = d.agm === '0' ? '' : ymShift(agMonth || ymOf(Date.now()), +d.agm); RENDER.agenda(); var nb = $('[data-agm="' + d.agm + '"]'); if (nb && !nb.disabled) nb.focus(); return; }
+    if (d.agday) { var target = document.getElementById('ag-' + agDayMap[d.agday]); if (target) { target.scrollIntoView({ behavior: 'smooth', block: 'center' }); target.classList.add('flash'); setTimeout(function () { target.classList.remove('flash'); }, 1400); } return; }
     if (d.share) { S.me.partenaire[d.share] = !S.me.partenaire[d.share]; save(); t.setAttribute('aria-pressed', S.me.partenaire[d.share]); return; }
     if (d.pstyle) { var st = S.me.partenaire.style, k = st.indexOf(d.pstyle); if (k >= 0) st.splice(k, 1); else st.push(d.pstyle); save(); t.setAttribute('aria-pressed', k < 0); return; }
     if (d.cell) {
@@ -1376,6 +1423,7 @@
     if (location.hash !== '#agenda') location.hash = '#agenda';
     var ev = S.events.filter(function (e) { return e.id === id; })[0];
     if (!ev || !ev.inscription || (ev.endTs || ev.start) < Date.now()) { toast('Les inscriptions à cet événement ne sont pas ouvertes.', 5000); return; }
+    agMonth = ymOf(ev.start); RENDER.agenda(); // l'agenda s'ouvre sur le mois de l'événement
     if (S.eventsIn[id]) { toast('Vous êtes déjà inscrit : ' + ev.titre, 5000); return; }
     openDrawer('Inscription', '<p style="margin:0 0 6px"><b>' + esc(ev.titre) + '</b></p><p class="muted" style="margin:0 0 14px">' + esc(fmt.long(ev.start)) + (ev.timeTxt ? ' · ' + esc(ev.timeTxt) : '') + (ev.lieu ? ' · ' + esc(ev.lieu) : '') + '</p>' +
       (ev.desc ? '<p style="margin:0">' + esc(ev.desc) + '</p>' : ''), function () { var b = $('#su-confirm'); if (b) b.focus(); },

@@ -387,3 +387,11 @@ code, .code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monosp
 .check span { display: none; }
 @media (max-width: 960px) { .kpi-row { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .table.recap tbody th { text-transform: none; letter-spacing: 0; font-size: 14px; color: var(--ink); }
+
+/* Mois concernés (événements sans date) */
+.month-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.mchip { position: relative; }
+.mchip input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.mchip span { display: inline-block; padding: 5px 11px; border: 1px solid var(--line); border-radius: 999px; font-size: 13px; cursor: pointer; user-select: none; }
+.mchip input:checked + span { background: var(--blue); border-color: var(--blue); color: #fff; }
+.mchip input:focus-visible + span { outline: 2px solid var(--blue); outline-offset: 2px; }

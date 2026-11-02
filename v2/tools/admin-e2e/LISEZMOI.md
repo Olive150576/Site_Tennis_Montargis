@@ -2,7 +2,7 @@
 
 Vérifie, **sans toucher aux vraies données**, que l'admin du nouveau site fonctionne branché sur Firebase. Le test tourne contre les émulateurs officiels (Auth, base, Storage, fonctions), avec les vraies règles et les vraies fonctions du dépôt.
 
-53 contrôles :
+54 contrôles :
 - connexion : pas de mot de passe d'aperçu, mauvais mot de passe refusé, compte non admin refusé, admin accepté ;
 - droit admin Storage posé automatiquement ;
 - première publication du contenu de départ (bouton « Publier ») ;
@@ -16,7 +16,7 @@ Vérifie, **sans toucher aux vraies données**, que l'admin du nouveau site fonc
 - reprise des actualités de l'ancien site sans doublon ;
 - session conservée.
 
-## Espace membre (`membre-e2e.js`) — 39 contrôles
+## Espace membre (`membre-e2e.js`) — 42 contrôles
 
 - connexion : mauvais mot de passe, adhésion inactive, compte sans fiche refusés ; bouton démo masqué ;
 - accueil réel, aucune donnée fictive, visite comptée ;
@@ -25,7 +25,7 @@ Vérifie, **sans toucher aux vraies données**, que l'admin du nouveau site fonc
 - profil joueur et annuaire au format de l'espace actuel (`style_jeu`, `dispo.lundi…`, `partenaire_index`) ;
 - agenda unique (événements à venir, inscription / désinscription), messages du bureau ;
 - annuaire des joueurs (contacts seulement si partagés, filtres), avantages partenaires réels ;
-- agenda : section « Les grands rendez-vous de la saison » (événements sans date) ;
+- agenda mois par mois : grille (pastilles, aujourd'hui, clic sur un jour), choix du mois, liste du mois, « Prévu en … · date à venir » (mois concernés), « Autres rendez-vous » (sans mois), jamais « 0 h » ; admin : champ « Mois concernés » enregistré ;
 - agenda public : bouton « S'inscrire (membres) » (événements ouverts à venir seulement) → connexion avec rappel → confirmation d'un clic (rien n'est enregistré avant), « déjà inscrit » géré ; pas de bandeau « en test » ni de badge « Démo » en mode réel ;
 - photo envoyée dans Storage ; session conservée ; déconnexion.
 
@@ -37,6 +37,6 @@ Vérifie, **sans toucher aux vraies données**, que l'admin du nouveau site fonc
 
 ## Lancer
 
-Dans ce dossier : `npm test`. Résultat attendu : `53/53 contrôles admin (mode Firebase)` puis `39/39 contrôles espace membre (mode Firebase)`.
+Dans ce dossier : `npm test`. Résultat attendu : `54/54 contrôles admin (mode Firebase)` puis `42/42 contrôles espace membre (mode Firebase)`.
 
 À lancer avant la bascule, et après toute modification de `store.js`, `admin.js`, des règles ou des fonctions.
