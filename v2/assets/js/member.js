@@ -321,6 +321,10 @@
             endTs: new Date((e.dateEnd || e.dateStart) + 'T23:59:59').getTime(), end: 2, lieu: e.location || 'Au club',
             inscription: !!e.memberSignup, desc: e.summary || '', timeTxt: e.time || '', count: Object.keys(reg).length };
         });
+        /* Grands rendez-vous de la saison : événements sans date (« Période ») ou rendez-vous annuels, comme sur le site */
+        S.season = (c.events || []).filter(function (e) { return e && !e.draft && (!e.dateStart || e.recurring); })
+          .sort(function (a, b) { return (a.order || 0) - (b.order || 0); })
+          .map(function (e) { return { id: e.id, titre: e.title || '', cat: EV_CAT[e.category] || 'vie', when: e.when || (e.dateStart ? fmt.long(evStart(e)) : ''), lieu: e.location || 'Au club', desc: e.summary || '' }; });
         S.msgs = Object.keys(cm).map(function (k) {
           var m = cm[k] || {};
           return { id: k, actif: m.actif, type: ['warning', 'urgent'].indexOf(m.type) >= 0 ? m.type : 'info', titre: m.titre || 'Message du club', texte: m.contenu || m.message || '', createdAt: m.createdAt || 0 };
@@ -739,13 +743,21 @@
   function eventRow(e) {
     var inn = S.eventsIn[e.id], c = CAT[e.cat] || ['Club', 'cat-vie-du-club'];
     return '<article class="ev' + (inn ? ' is-in' : '') + '"><div class="ev-date"><b>' + fmt.dnum(e.start) + '</b><span>' + esc(fmt.dmon(e.start)) + '</span></div>' +
-      '<div><div class="ev-title">' + esc(e.titre) + '</div><div class="ev-meta"><span class="chip ' + c[1] + '">' + c[0] + '</span><span>' + ic('clock') + esc(e.timeTxt || fmt.time(e.start)) + '</span><span>' + ic('pin') + esc(e.lieu) + '</span>' + (e.inscription && e.count ? '<span>' + ic('users') + e.count + ' inscrit' + (e.count > 1 ? 's' : '') + '</span>' : '') + '</div></div>' +
+      '<div><div class="ev-title">' + esc(e.titre) + '</div><div class="ev-meta"><span class="chip ' + c[1] + '">' + c[0] + '</span>' + (evTime(e) ? '<span>' + ic('clock') + esc(evTime(e)) + '</span>' : '') + '<span>' + ic('pin') + esc(e.lieu) + '</span>' + (e.inscription && e.count ? '<span>' + ic('users') + e.count + ' inscrit' + (e.count > 1 ? 's' : '') + '</span>' : '') + '</div></div>' +
       '<div class="ev-actions">' + (e.inscription ? (inn ? '<button class="btn btn-sm" data-evin="' + e.id + '">' + ic('check') + 'Inscrit</button>' : '<button class="btn btn-blue btn-sm" data-evin="' + e.id + '">Je m\'inscris</button>') : '') +
       '<a class="icon-btn" href="' + esc(gcal(e)) + '" target="_blank" rel="noopener" aria-label="Ajouter à mon agenda" title="Ajouter à mon agenda">' + ic('calendar') + '</a></div></article>';
+  }
+  /* Horaire : texte saisi dans l'admin, sinon l'heure si elle est précisée (jamais « 0 h » pour un événement sans horaire) */
+  function evTime(e) { var d = new Date(e.start); return e.timeTxt || (d.getHours() || d.getMinutes() ? fmt.time(e.start) : ''); }
+  function seasonRow(e) {
+    var c = CAT[e.cat] || ['Club', 'cat-vie-du-club'];
+    return '<article class="ev ev-season"><div class="ev-date">' + ic('calendar') + '</div><div><div class="ev-title">' + esc(e.titre) + '</div><div class="ev-meta"><span class="chip ' + c[1] + '">' + c[0] + '</span>' +
+      (e.when ? '<span>' + ic('clock') + esc(e.when) + '</span>' : '') + '<span>' + ic('pin') + esc(e.lieu) + '</span></div>' + (e.desc ? '<p class="ev-desc">' + esc(e.desc) + '</p>' : '') + '</div></article>';
   }
   RENDER.agenda = function () {
     var list = S.events.filter(function (e) { return (e.endTs || e.start) > Date.now() && (agFilter === 'tout' || (agFilter === 'inscrit' ? S.eventsIn[e.id] : e.cat === agFilter)); }).sort(function (a, b) { return a.start - b.start; });
     var byMonth = {}, order = [];
+    var season = (S.season || []).filter(function (e) { return agFilter === 'tout' || (agFilter !== 'inscrit' && e.cat === agFilter); });
     list.forEach(function (e) { var k = fmt.month(e.start); if (!byMonth[k]) { byMonth[k] = []; order.push(k); } byMonth[k].push(e); });
     var unread = unreadMsgs().length;
     var msgs = allMsgs().sort(function (a, b) { return (b.type === 'urgent') - (a.type === 'urgent') || b.createdAt - a.createdAt; });
@@ -755,7 +767,9 @@
         msgs.map(function (m) { return '<div class="msg ' + (m.type !== 'info' ? m.type : '') + '"><div class="msg-top">' + (m.type !== 'info' ? '<span class="tag ' + m.type + '">' + (m.type === 'urgent' ? 'Urgent' : 'Important') + '</span>' : '') + '<span>' + esc(fmt.ago(m.createdAt)) + '</span></div><b>' + esc(m.titre) + '</b><p>' + esc(m.texte) + '</p></div>'; }).join('') +
       '</div></details>' +
       '<div class="filters-bar">' + [['tout', 'Tout'], ['inscrit', 'Mes inscriptions'], ['tournoi', 'Tournois'], ['animation', 'Animations'], ['competition', 'Compétition'], ['stage', 'Stages'], ['vie', 'Vie du club']].map(function (f) { return '<button class="fchip" data-ag="' + f[0] + '" aria-pressed="' + (agFilter === f[0]) + '">' + f[1] + '</button>'; }).join('') + '</div>' +
-      (order.length ? order.map(function (k) { return '<h2 class="month-label">' + esc(k) + '</h2><div class="ev-list">' + byMonth[k].map(eventRow).join('') + '</div>'; }).join('') : '<div class="empty">Rien pour ce filtre.</div>');
+      order.map(function (k) { return '<h2 class="month-label">' + esc(k) + '</h2><div class="ev-list">' + byMonth[k].map(eventRow).join('') + '</div>'; }).join('') +
+      (season.length ? '<h2 class="month-label" id="saison" style="text-transform:none">Les grands rendez-vous de la saison</h2><div class="ev-list">' + season.map(seasonRow).join('') + '</div>' : '') +
+      (order.length || season.length ? '' : '<div class="empty">Rien pour ce filtre.</div>');
     var d = $('details.msgs'); if (d) d.addEventListener('toggle', function () { if (d.open) { allMsgs().forEach(function (m) { S.readMsgs[m.id] = 1; }); save(); updateBadges(); } });
     if (unread) { allMsgs().forEach(function (m) { S.readMsgs[m.id] = 1; }); save(); }
   };
