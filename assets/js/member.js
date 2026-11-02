@@ -1352,10 +1352,35 @@
   function refreshTop() { $('#top-avatar').innerHTML = avatar(S.me) + '<span class="nm">' + esc(S.me.prenom) + '</span>'; }
   function showApp() {
     $('#login-view').hidden = true; $('#app').hidden = false; refreshTop(); route();
+    if (WANT) { var want = WANT; WANT = ''; setTimeout(function () { askSignup(want); }, 50); } // une seule fois, même si showApp est rappelé
+  }
+  /* Arrivée depuis le bouton « S'inscrire (membres) » de l'agenda public : ?inscription={id}#agenda.
+     Jamais d'inscription automatique : le membre confirme d'un clic. */
+  var WANT = (function () { try { return new URLSearchParams(location.search).get('inscription') || ''; } catch (e) { return ''; } })();
+  function askSignup(id) {
+    try { history.replaceState(null, '', location.pathname + '#agenda'); } catch (e) {}
+    if (location.hash !== '#agenda') location.hash = '#agenda';
+    var ev = S.events.filter(function (e) { return e.id === id; })[0];
+    if (!ev || !ev.inscription || (ev.endTs || ev.start) < Date.now()) { toast('Les inscriptions à cet événement ne sont pas ouvertes.', 5000); return; }
+    if (S.eventsIn[id]) { toast('Vous êtes déjà inscrit : ' + ev.titre, 5000); return; }
+    openDrawer('Inscription', '<p style="margin:0 0 6px"><b>' + esc(ev.titre) + '</b></p><p class="muted" style="margin:0 0 14px">' + esc(fmt.long(ev.start)) + (ev.timeTxt ? ' · ' + esc(ev.timeTxt) : '') + (ev.lieu ? ' · ' + esc(ev.lieu) : '') + '</p>' +
+      (ev.desc ? '<p style="margin:0">' + esc(ev.desc) + '</p>' : ''), function () { var b = $('#su-confirm'); if (b) b.focus(); },
+      '<div class="ps-foot"><button type="button" class="btn" data-close>Annuler</button><button type="button" class="btn btn-blue" id="su-confirm">' + ic('check') + 'Confirmer mon inscription</button></div>');
+    $('#su-confirm').addEventListener('click', function () {
+      closeDrawer();
+      if (LIVE) liveEventToggle(id); else { S.eventsIn[id] = true; save(); route(); toast('Inscription enregistrée'); }
+    });
   }
   function showLogin() { $('#app').hidden = true; $('#login-view').hidden = false; location.hash = ''; }
 
+  function signupNote() { // page de connexion : rappeler pourquoi on se connecte
+    if (!WANT || !$('#login-form') || $('#lg-want')) return;
+    var p = document.createElement('p'); p.id = 'lg-want'; p.className = 'form-err'; p.style.cssText = 'background:var(--blue-soft,#e8efff);color:inherit;border-color:transparent';
+    p.textContent = 'Connectez-vous pour confirmer votre inscription à l\'événement.';
+    var h = $('#login-form > div'); if (h) h.insertAdjacentElement('afterend', p);
+  }
   function init() {
+    signupNote();
     load();
     initFramedPreview();
     Promise.all([loadSponsors(), LIVE ? null : loadShop(), settingsReady]).then(function () { if (!$('#app').hidden) route(); });
@@ -1386,6 +1411,7 @@
     var err = $('#lg-err'), btn = $('#login-form [type="submit"]'), label = btn.innerHTML;
     var showErr = function (m) { err.textContent = m; err.hidden = false; };
     var demo = $('#demo-btn'); if (demo) demo.hidden = true;
+    var dv = demo && demo.previousElementSibling; if (dv && dv.classList.contains('divider')) dv.style.display = 'none'; // « aperçu » sans bouton
     window.addEventListener('hashchange', function () { if (!$('#app').hidden) route(); });
     $('#login-form').addEventListener('submit', function (e) {
       e.preventDefault(); var em = $('#lg-email').value.trim(), pw = $('#lg-pw').value;
