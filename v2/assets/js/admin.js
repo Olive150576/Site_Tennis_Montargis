@@ -1172,11 +1172,103 @@
     ]);
   }
 
+  /* ---------- Membres : export / import CSV (sans doublon : contrôle par e-mail ET par nom) ---------- */
+  const MB_COLS = [['prenom', 'Prénom'], ['nom', 'Nom'], ['email', 'E-mail'], ['telephone', 'Téléphone'], ['licence', 'Licence'], ['classement', 'Classement'], ['categorie', 'Catégorie'], ['statut', 'Statut'], ['actif', 'Actif']];
+  const MB_HEAD = { prenom: /^pr[eé]nom/, nom: /^nom\b/, email: /^(e-?mail|mail|courriel|adresse (e-?)?mail)/, telephone: /^(t[eé]l|portable|mobile)/, licence: /licence/, classement: /^classement/, categorie: /^cat[eé]gorie/, statut: /^(statut|r[oô]le|fonction)/ };
+  const mbNorm = (x) => String(x || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+  const mbNameKey = (m) => mbNorm(m.prenom) + '|' + mbNorm(m.nom);
+  const csvCell = (v) => { const s = String(v == null ? '' : v); return /[;"\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+  function membersToCsv(list) {
+    const head = MB_COLS.map((c) => c[1]).join(';');
+    const lines = list.map((m) => MB_COLS.map(([k]) => csvCell(k === 'actif' ? (m.actif === true ? 'oui' : 'non') : k === 'categorie' ? (m.categorie ? label(MB_CATS, m.categorie) : '') : m[k] || '')).join(';'));
+    return '﻿' + [head].concat(lines).join('\r\n');
+  }
+  function parseCsv(text) {
+    text = String(text || '').replace(/^﻿/, '');
+    const first = text.split(/\r?\n/)[0] || '';
+    const sep = (first.match(/;/g) || []).length >= (first.match(/,/g) || []).length ? ';' : ',';
+    const rows = []; let row = [], cell = '', q = false;
+    for (let i = 0; i < text.length; i++) {
+      const ch = text[i];
+      if (q) { if (ch === '"') { if (text[i + 1] === '"') { cell += '"'; i++; } else q = false; } else cell += ch; }
+      else if (ch === '"') q = true;
+      else if (ch === sep) { row.push(cell); cell = ''; }
+      else if (ch === '\n' || ch === '\r') { if (ch === '\r' && text[i + 1] === '\n') i++; row.push(cell); rows.push(row); row = []; cell = ''; }
+      else cell += ch;
+    }
+    if (cell || row.length) { row.push(cell); rows.push(row); }
+    return rows.filter((r) => r.some((c) => String(c).trim()));
+  }
+  /* Range chaque ligne : nouveau, mise à jour, identique, à vérifier (jamais créé), ignoré */
+  function analyseImport(rows, existing) {
+    if (rows.length < 2) throw new Error('Le fichier est vide.');
+    const head = rows[0].map((h) => String(h).trim().toLowerCase());
+    const idx = {};
+    Object.keys(MB_HEAD).forEach((k) => { const i = head.findIndex((h, j) => MB_HEAD[k].test(h) && !Object.values(idx).includes(j)); if (i >= 0) idx[k] = i; });
+    if (idx.prenom == null || idx.nom == null || idx.email == null) throw new Error('La première ligne doit contenir les colonnes « Prénom », « Nom » et « E-mail ».');
+    const byMail = {}, byName = {};
+    existing.forEach((m) => { if (m.email) byMail[String(m.email).toLowerCase().trim()] = m; byName[mbNameKey(m)] = m; });
+    const seenMail = {}, seenName = {}, out = { nouveaux: [], maj: [], identiques: [], verifier: [], ignores: [] };
+    const cats = MB_CATS.map(([k, l]) => [k, mbNorm(k), mbNorm(l)]), stats = MB_STATUTS.map(([k]) => [k, mbNorm(k)]);
+    rows.slice(1).forEach((r, i) => {
+      const line = i + 2, get = (k) => (idx[k] == null ? undefined : String(r[idx[k]] == null ? '' : r[idx[k]]).trim());
+      const d = { prenom: get('prenom'), nom: get('nom'), email: (get('email') || '').toLowerCase() }, notes = [];
+      const tel = get('telephone'), lic = get('licence'), cl = get('classement'), ca = get('categorie'), st = get('statut');
+      if (tel) { if (MB_TEL.test(tel)) d.telephone = tel; else notes.push('téléphone « ' + tel + ' » ignoré'); }
+      if (lic) d.licence = lic;
+      if (cl) { const c = MB_CLASSEMENTS.find((x) => x.toLowerCase() === cl.toLowerCase().replace(/\s+/g, '')); if (c) d.classement = c; else notes.push('classement « ' + cl + ' » ignoré'); }
+      if (ca) { const c = cats.find((x) => x[1] === mbNorm(ca) || x[2] === mbNorm(ca)); if (c) d.categorie = c[0]; else notes.push('catégorie « ' + ca + ' » ignorée'); }
+      if (st) { const c = stats.find((x) => x[1] === mbNorm(st)); if (c) d.statut = c[0]; else notes.push('statut « ' + st + ' » ignoré'); }
+      if (!d.prenom || !d.nom) { out.ignores.push({ line, d, why: 'prénom ou nom manquant' }); return; }
+      if (!MB_MAIL.test(d.email)) { out.ignores.push({ line, d, why: 'e-mail absent ou invalide' }); return; }
+      const nk = mbNameKey(d);
+      if (seenMail[d.email] || seenName[nk]) { out.ignores.push({ line, d, why: 'doublon dans le fichier (même ' + (seenMail[d.email] ? 'e-mail' : 'nom') + ' qu\'à la ligne ' + (seenMail[d.email] || seenName[nk]) + ')' }); return; }
+      seenMail[d.email] = line; seenName[nk] = line;
+      const em = byMail[d.email], nm = byName[nk];
+      if (em && nm && em.id === nm.id) {
+        const diff = {}; ['telephone', 'licence', 'classement', 'categorie', 'statut'].forEach((k) => { if (d[k] && d[k] !== (em[k] || '')) diff[k] = d[k]; });
+        (Object.keys(diff).length ? out.maj : out.identiques).push({ line, d, m: em, diff, notes });
+      } else if (em || nm) {
+        out.verifier.push({ line, d, m: em || nm, why: em && nm ? 'l\'e-mail et le nom appartiennent à deux membres différents' : em ? 'e-mail déjà utilisé par ' + mbName(em) : 'même nom que le membre existant (' + (nm.email || 'sans e-mail') + ')' });
+      } else out.nouveaux.push({ line, d, notes });
+    });
+    return out;
+  }
+  async function runMemberImport(file, existing) {
+    let a;
+    try { a = analyseImport(parseCsv(await file.text()), existing); } catch (e) { toast('Import impossible : ' + e.message, 'err'); return false; }
+    const who = (x) => esc(x.d.prenom + ' ' + x.d.nom) + ' <span class="muted small">' + esc(x.d.email || '') + '</span>';
+    const sect = (t, arr, fn) => (arr.length ? `<h3 style="margin:14px 0 6px;font-size:15px">${t} (${arr.length})</h3><ul style="margin:0 0 0 18px;line-height:1.6;max-height:160px;overflow:auto">${arr.map(fn).join('')}</ul>` : '');
+    const html = `<p class="muted" style="margin:0 0 6px">Aucun doublon n'est créé : chaque ligne est comparée aux membres existants et au reste du fichier, <b>par e-mail et par nom</b>.</p>` +
+      sect('Nouveaux membres', a.nouveaux, (x) => `<li>${who(x)}${x.notes.length ? ' <span class="pill warn">' + esc(x.notes.join(', ')) + '</span>' : ''}</li>`) +
+      sect('Fiches à mettre à jour', a.maj, (x) => `<li>${who(x)} : ${esc(Object.keys(x.diff).map((k) => k + ' ' + (x.m[k] || '—') + ' → ' + x.diff[k]).join(', '))}</li>`) +
+      sect('À vérifier (rien ne sera fait)', a.verifier, (x) => `<li>Ligne ${x.line} · ${who(x)} : ${esc(x.why)}</li>`) +
+      sect('Lignes ignorées', a.ignores, (x) => `<li>Ligne ${x.line} · ${esc((x.d.prenom || '') + ' ' + (x.d.nom || ''))} : ${esc(x.why)}</li>`) +
+      (a.identiques.length ? `<p class="muted small" style="margin-top:10px">${a.identiques.length} membre(s) déjà à jour, rien à changer.</p>` : '') +
+      `<div style="display:grid;gap:8px;margin-top:14px">` +
+      (a.nouveaux.length ? `<label class="switch"><input type="checkbox" id="imp-new" checked><span class="track"></span><span>${a.nouveaux.length > 1 ? 'Créer les ' + a.nouveaux.length + ' nouveaux comptes' : 'Créer le nouveau compte'}</span></label><label class="switch"><input type="checkbox" id="imp-mail" checked><span class="track"></span><span>Leur envoyer l'e-mail pour choisir leur mot de passe</span></label>` : '') +
+      (a.maj.length ? `<label class="switch"><input type="checkbox" id="imp-maj" checked><span class="track"></span><span>${a.maj.length > 1 ? 'Mettre à jour les ' + a.maj.length + ' fiches' : 'Mettre à jour la fiche'} (l'e-mail n'est jamais modifié)</span></label>` : '') + '</div>';
+    if (!a.nouveaux.length && !a.maj.length) { await modal({ title: 'Rien à importer', html, cancel: '', confirm: 'Fermer' }); return false; }
+    const back = await modal({ title: 'Importer des membres', html, confirm: 'Importer' });
+    if (!back) return false;
+    const doNew = !!(back.querySelector('#imp-new') || {}).checked, mail = !!(back.querySelector('#imp-mail') || {}).checked, doMaj = !!(back.querySelector('#imp-maj') || {}).checked;
+    let created = 0, updated = 0; const errors = [];
+    if (doNew) for (const x of a.nouveaux) {
+      toast(`Création ${created + errors.length + 1}/${a.nouveaux.length}…`);
+      try { await store.members.create(Object.assign({ categorie: 'Adulte H', statut: 'Membre' }, x.d), { mail }); created++; } catch (e) { errors.push(x.d.prenom + ' ' + x.d.nom + ' : ' + ((e && e.message) || e)); }
+    }
+    if (doMaj) for (const x of a.maj) { try { await store.members.update(x.m.id, x.diff); updated++; } catch (e) { errors.push(x.d.prenom + ' ' + x.d.nom + ' : ' + ((e && e.message) || e)); } }
+    await modal({ title: 'Import terminé', cancel: '', confirm: 'Fermer', html: `<p>${created} compte(s) créé(s)${doNew && mail && created ? ' (e-mail envoyé)' : ''}, ${updated} fiche(s) mise(s) à jour.</p>` +
+      (errors.length ? `<p><b>${errors.length} erreur(s) :</b></p><ul style="margin-left:18px">${errors.map((e) => '<li>' + esc(e) + '</li>').join('')}</ul>` : '') +
+      (a.verifier.length ? `<p class="muted small">${a.verifier.length} ligne(s) à vérifier n'ont pas été traitées : corrigez-les à la main si besoin.</p>` : '') });
+    return true;
+  }
+
   async function viewMembers(id) {
     if (store.isLocal) { const v0 = shell('Membres', ''); v0.innerHTML = '<div class="card card-pad"><p>La gestion des membres n\'est disponible qu\'en ligne (mode Firebase).</p></div>'; return; }
     if (id === 'moi') return viewMember(null, true);
     if (id) return viewMember(id === 'nouveau' ? null : id);
-    const v = shell('Membres', '', `<a class="btn btn-primary" href="#/membres/nouveau">${icon('plus')} Nouveau membre</a>`);
+    const v = shell('Membres', '', `<button type="button" class="btn" id="mb-exp">${icon('download')} Exporter</button><label class="btn" style="cursor:pointer">${icon('upload')} Importer<input type="file" id="mb-imp" accept=".csv,text/csv" hidden></label><a class="btn btn-primary" href="#/membres/nouveau">${icon('plus')} Nouveau membre</a>`);
     v.innerHTML = `<p class="intro">Les comptes de l'espace membre. Un nouveau membre reçoit un e-mail du club pour choisir lui-même son mot de passe : vous n'avez aucun mot de passe à lui transmettre.</p>
       <div class="toolbar"><label class="search"><span class="sr-only">Rechercher</span>${icon('search')}<input type="search" id="mb-q" placeholder="Nom, e-mail, licence…"></label>
         <select id="mb-f" aria-label="Filtrer"><option value="actifs">Membres actifs</option><option value="inactifs">Membres inactifs</option><option value="">Tous les membres</option></select>
@@ -1202,12 +1294,20 @@
       const act = list.filter((m) => m.actif === true).length, ina = list.length - act;
       $('#mb-count', v).textContent = `${act} actif${act > 1 ? 's' : ''} · ${ina} inactif${ina > 1 ? 's' : ''}`;
       const rows = list.filter((m) => (!f || (f === 'actifs') === (m.actif === true)) && (!q || norm([m.prenom, m.nom, m.email, m.licence, m.telephone].join(' ')).includes(q)));
+      shown = rows;
       const box = $('#mb-table', v);
       if (!rows.length) { box.innerHTML = `<div class="empty-state">${icon('user')}<p>${list.length ? 'Aucun membre pour ce filtre.' : 'Aucun membre pour le moment.'}</p><a class="btn btn-primary" href="#/membres/nouveau">${icon('plus')} Nouveau membre</a></div>`; return; }
       box.innerHTML = `<table class="table"><thead><tr><th>Membre</th><th class="hide-sm">Catégorie</th><th>Classement</th><th class="hide-sm">Statut</th><th>Accès</th></tr></thead><tbody>${rows.map((m) => `<tr data-id="${esc(m.id)}" style="cursor:pointer"><td><b>${esc(mbName(m))}</b>${m.email ? `<div class="small muted">${esc(m.email)}</div>` : ''}</td><td class="hide-sm">${esc(label(MB_CATS, m.categorie || ''))}</td><td>${esc(m.classement || '—')}</td><td class="hide-sm">${esc(m.statut || 'Membre')}</td><td>${m.actif === true ? '<span class="pill ok dot">Actif</span>' : '<span class="pill dot">Inactif</span>'}</td></tr>`).join('')}</tbody></table>`;
       $$('tbody tr', box).forEach((tr) => tr.addEventListener('click', () => { location.hash = '#/membres/' + tr.dataset.id; }));
     };
+    let shown = [];
     $('#mb-q', v).addEventListener('input', draw); $('#mb-f', v).addEventListener('change', draw); draw();
+    $('#mb-exp').addEventListener('click', () => {
+      if (!shown.length) { toast('Aucun membre à exporter avec ce filtre.', 'err'); return; }
+      download(`membres-usm-tennis-${todayISO()}.csv`, membersToCsv(shown), 'text/csv;charset=utf-8');
+      toast(`${shown.length} membre(s) exporté(s) · fichier de données personnelles : à conserver en lieu sûr`);
+    });
+    $('#mb-imp').addEventListener('change', async (e) => { const file = e.target.files[0]; e.target.value = ''; if (file && await runMemberImport(file, list)) route(); });
   }
 
   async function viewMember(uid, own) {

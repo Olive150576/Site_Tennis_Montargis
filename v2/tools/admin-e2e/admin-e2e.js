@@ -188,6 +188,37 @@ const OVERRIDE = `;(function(c){c.mode='firebase';c.firebase=Object.assign({},c.
   ok('Espace membre : connexion avec les identifiants admin', await mp.isVisible('#app'));
   await mp.close();
 
+  // Membres : export CSV puis import CSV sans doublon (contrôle par e-mail ET par nom)
+  await go('#/membres'); await page.selectOption('#mb-f', ''); await page.waitForTimeout(300);
+  const [dl] = await Promise.all([page.waitForEvent('download'), page.click('#mb-exp')]);
+  const csvOut = fs.readFileSync(await dl.path(), 'utf8');
+  ok('Membres : export CSV (en-têtes, séparateur « ; », membres listés)', /^﻿Prénom;Nom;E-mail;Téléphone;Licence;Classement;Catégorie;Statut;Actif/.test(csvOut) && /paul\.durand@test\.fr/.test(csvOut) && /admin@test\.fr/.test(csvOut), csvOut.slice(0, 160));
+  const csvIn = ['Prénom;Nom;E-mail;Téléphone;Classement;Catégorie',
+    'Julie;Martin;julie.martin@test.fr;06 11 22 33 44;30/4;Adulte femme', // nouveau
+    'Paul;DURAND;Paul.Durand@test.fr;;30/3;',                            // existant (même e-mail + même nom) → mise à jour du classement
+    'M;B;autre@test.fr;;;',                                             // même nom qu'un membre, autre e-mail → à vérifier
+    'Olivia;Autre;admin@test.fr;;;',                                    // e-mail d'un membre, autre nom → à vérifier
+    'JULIE;martin;julie.m2@test.fr;;;',                                 // doublon dans le fichier (nom)
+    'Zoé;Petit;pas-un-mail;;;'].join('\n');                             // e-mail invalide
+  const tmpCsv = path.join(require('os').tmpdir(), 'import-membres.csv'); fs.writeFileSync(tmpCsv, csvIn);
+  await page.setInputFiles('#mb-imp', tmpCsv); await page.waitForSelector('.modal', { timeout: 10000 });
+  const prev = await page.innerText('.modal');
+  ok('Import : aperçu (1 nouveau, 1 mise à jour, 2 à vérifier, 2 ignorées)', /Nouveaux membres \(1\)/.test(prev) && /Fiches à mettre à jour \(1\)/.test(prev) && /À vérifier \(rien ne sera fait\) \(2\)/.test(prev) && /Lignes ignorées \(2\)/.test(prev) && /doublon dans le fichier/.test(prev), prev.slice(0, 400));
+  await page.click('.modal [data-a="1"]'); await page.waitForSelector('.modal h2:has-text("Import terminé")', { timeout: 30000 });
+  const fin = await page.innerText('.modal'); await page.click('.modal [data-a="1"]'); await page.waitForTimeout(800);
+  const mAll = Object.assign({}, await getJ(DBF('members')), await getJ(DB('members')));
+  const jul = Object.values(mAll).filter((m) => m && /^julie/i.test(m.prenom || ''));
+  const pd2 = await getJ(DB('members/' + uidP));
+  ok('Import : 1 compte créé (Julie, catégorie et classement repris), Paul mis à jour, aucun doublon', /1 compte\(s\) créé\(s\)/.test(fin) && jul.length === 1 && jul[0].email === 'julie.martin@test.fr' && jul[0].categorie === 'Adulte F' && jul[0].classement === '30/4' && pd2 && pd2.classement === '30/3' && !Object.values(mAll).some((m) => m && (m.email === 'autre@test.fr' || m.prenom === 'Olivia' || m.email === 'julie.m2@test.fr')), fin + ' | ' + JSON.stringify(jul).slice(0, 200));
+  const oobJ = ((await (await fetch(`http://${H}:9099/emulator/v1/projects/demo-usm/oobCodes`)).json()).oobCodes || []).filter((c) => c.email === 'julie.martin@test.fr');
+  ok('Import : e-mail « choisir son mot de passe » envoyé au nouveau membre', oobJ.length === 1);
+  for (const [k, m] of Object.entries(await getJ(DBF('members')) || {})) if (m && m.email === 'julie.martin@test.fr') await fetch(DB('members/' + k), { method: 'PUT', headers: OWN, body: JSON.stringify(m) }); // une seule base en production
+  await go('#/tableau'); await go('#/membres'); await page.waitForTimeout(600);
+  await page.setInputFiles('#mb-imp', tmpCsv); await page.waitForSelector('.modal', { timeout: 10000 });
+  const prev2 = await page.innerText('.modal');
+  ok('Import relancé avec le même fichier : plus aucun nouveau compte (Julie reconnue)', !/Nouveaux membres/.test(prev2), prev2.slice(0, 300));
+  await page.click('.modal [data-a]'); await page.waitForTimeout(400);
+
   // Agenda : tri utile (à venir du plus proche au plus lointain, puis annuels, puis passés)
   const isoIn = (n) => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
   for (const [k, n] of [['zz-loin', 40], ['zz-proche', 5]]) await fetch(DB('site_v2/events/' + k), { method: 'PUT', headers: OWN, body: JSON.stringify({ id: k, title: 'Test ' + k, category: 'animation', dateStart: isoIn(n), draft: false }) });

@@ -307,6 +307,9 @@ img { max-width: 100%; display: block; }
 .modal { width: 100%; max-width: 460px; background: var(--surface); border-radius: 14px; box-shadow: var(--shadow-2); padding: 24px; display: grid; gap: 14px; }
 .modal h2 { font-size: 20px; }
 .modal .acts { display: flex; justify-content: flex-end; gap: 8px; margin-top: 6px; }
+/* Fenêtre plus haute que l'écran (ex. aperçu d'import) : elle défile, les boutons restent visibles en bas */
+.modal { max-height: calc(100dvh - 40px); overflow-y: auto; }
+.modal .acts { position: sticky; bottom: -24px; background: var(--surface); padding: 12px 0 0; margin-bottom: -12px; }
 @keyframes fade { from { opacity: 0; } }
 .toasts { position: fixed; right: 20px; bottom: 84px; z-index: 110; display: grid; gap: 8px; }
 .toast { display: flex; gap: 10px; align-items: center; padding: 12px 16px; border-radius: 10px; background: var(--ink); color: var(--bg); box-shadow: var(--shadow-2); font-weight: 600; font-size: 14px; animation: slide .2s ease-out; max-width: 380px; }
