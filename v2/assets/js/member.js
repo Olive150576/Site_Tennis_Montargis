@@ -608,7 +608,13 @@
 
   /* ---------- Jouer ---------- */
   var playTab = 'annonces';
-  var F = { near: false, slots: {}, styles: {}, q: '' };
+  var F = { near: false, lmin: '', lmax: '', slots: {}, styles: {}, q: '' };
+  /* Niveau (comme l'ancien espace) : « Mon niveau » = ±3 échelons, plage De/À réglable ;
+     NC ou classement inconnu = niveau inconnu (toujours affiché), jamais « le plus faible » */
+  var NIV_ECART = 3;
+  function rankKnown(r) { var i = LADDER.indexOf(String(r || '').trim()); return i <= 0 ? -1 : i; }
+  function nearRange() { var mi = rankKnown(S.me.classement); return mi < 0 ? null : [LADDER[Math.max(1, mi - NIV_ECART)], LADDER[Math.min(LADDER.length - 1, mi + NIV_ECART)]]; }
+  function commonSlots(p) { var me = (S.me.partenaire || {}).dispos || {}, n = 0; DAYS.forEach(function (dd) { SLOTS.forEach(function (s) { if (me[dd] && me[dd][s] && p.dispos && p.dispos[dd] && p.dispos[dd][s]) n++; }); }); return n; }
   function dispoGrid(d) {
     var h = '<div class="dispo" aria-label="Disponibilités"><span></span>' + DAYS_L.map(function (x) { return '<span class="d-h">' + x + '</span>'; }).join('');
     SLOTS.forEach(function (s) { h += '<span>' + s + '</span>'; DAYS.forEach(function (dd) { h += '<i class="' + (d && d[dd] && d[dd][s] ? 'on' : '') + '"></i>'; }); });
@@ -619,8 +625,11 @@
     var contact = [];
     if (p.telephone) contact.push('<button class="btn btn-blue" data-contact="sms" data-to="' + esc(p.telephone) + '" data-name="' + esc(p.prenom) + '">SMS</button><button class="btn" data-contact="tel" data-to="' + esc(p.telephone) + '" data-name="' + esc(p.prenom) + '">' + ic('phone') + 'Appeler</button>');
     if (p.email) contact.push('<button class="btn btn-blue" data-contact="mail" data-to="' + esc(p.email) + '" data-name="' + esc(p.prenom) + '">' + ic('mail') + 'Email</button>');
-    return '<article class="player"><div class="player-top">' + avatar(p) + '<div><b>' + esc(p.prenom + ' ' + (p.nom || ' ')[0] + '.') + '</b></div><span class="rank" title="Classement">' + esc(p.classement) + '</span></div>' +
-      '<div class="player-tags">' + p.style.map(function (s) { return '<span class="chip">' + esc(s) + '</span>'; }).join('') + '</div>' +
+    var mi = rankKnown(S.me.classement), pi = rankKnown(p.classement), cs = commonSlots(p);
+    var marks = (mi >= 0 && pi >= 0 && Math.abs(pi - mi) <= NIV_ECART ? '<span class="chip match">' + ic('target') + 'Niveau proche</span>' : '') +
+      (cs ? '<span class="chip match">' + ic('clock') + cs + ' créneau' + (cs > 1 ? 'x' : '') + ' commun' + (cs > 1 ? 's' : '') + '</span>' : '');
+    return '<article class="player"><div class="player-top">' + avatar(p) + '<div><b>' + esc(p.prenom + ' ' + (p.nom || ' ')[0] + '.') + '</b></div><span class="rank" title="Classement">' + esc(p.classement || 'NC') + '</span></div>' +
+      '<div class="player-tags">' + marks + p.style.map(function (s) { return '<span class="chip">' + esc(s) + '</span>'; }).join('') + '</div>' +
       (p.message ? '<p class="player-msg">« ' + esc(p.message) + ' »</p>' : '') + dispoGrid(p.dispos) +
       '<div class="player-contact">' + contact.join('') + '</div></article>';
   }
@@ -646,27 +655,37 @@
         (list.length ? '<div class="posts">' + list.map(postCard).join('') + '</div>' : '<div class="empty">Aucune annonce en cours. Lancez la première !</div>');
       S.seenPostsAt = Date.now(); save();
     } else {
+      var lo = F.lmin ? LADDER.indexOf(F.lmin) : -1, hi = F.lmax ? LADDER.indexOf(F.lmax) : -1, mk = rankKnown(me.classement);
+      if (lo > 0 && hi > 0 && lo > hi) { var sw = lo; lo = hi; hi = sw; }
       var list2 = S.players.filter(function (p) {
-        if (F.near && Math.abs(rankIdx(p.classement) - mine) > 2) return false;
+        var pi = rankKnown(p.classement);
+        if (pi >= 0 && ((lo > 0 && pi < lo) || (hi > 0 && pi > hi))) return false; // NC / inconnu : toujours affiché
         var sl = Object.keys(F.slots).filter(function (k) { return F.slots[k]; });
         if (sl.length && !sl.some(function (s) { return hasSlot(p.dispos, s); })) return false;
         var st = Object.keys(F.styles).filter(function (k) { return F.styles[k]; });
         if (st.length && !st.every(function (s) { return p.style.indexOf(s) >= 0; })) return false;
         if (F.q && (p.prenom + ' ' + p.nom).toLowerCase().indexOf(F.q.toLowerCase()) < 0) return false;
         return true;
+      }).sort(function (a, b) {
+        if (mk >= 0) { var ia = rankKnown(a.classement), ib = rankKnown(b.classement), da = ia < 0 ? 999 : Math.abs(ia - mk), db = ib < 0 ? 999 : Math.abs(ib - mk); if (da !== db) return da - db; }
+        return (a.prenom + a.nom).localeCompare(b.prenom + b.nom, 'fr');
       });
       var pressed = function (b) { return ' aria-pressed="' + (!!b) + '"'; };
+      var nr = nearRange(); F.near = !!(nr && F.lmin === nr[0] && F.lmax === nr[1]);
+      var lvlOpts = function (v) { return '<option value="">—</option>' + LADDER.slice(1).map(function (c) { return '<option' + (c === v ? ' selected' : '') + '>' + c + '</option>'; }).join(''); };
       body = '<div class="panel-m visibility" style="margin-top:18px"><div><b>' + (me.partenaire.actif ? 'Vous apparaissez dans l\'annuaire' : 'Vous êtes invisible dans l\'annuaire') + '</b><span>' + (me.partenaire.actif ? 'Les membres connectés voient votre niveau, vos créneaux et ' + (me.partenaire.partager_telephone ? 'votre téléphone.' : 'votre email.') : 'Activez pour que d\'autres membres vous proposent des matchs.') + '</span></div>' +
         '<div style="display:flex;gap:10px;align-items:center"><a class="link-arrow" href="#profil" style="font-size:.88rem">Mes créneaux</a><label class="switch"><input type="checkbox" data-visible' + (me.partenaire.actif ? ' checked' : '') + ' aria-label="Apparaître dans l\'annuaire"><span></span></label></div></div>' +
+        '<div class="lvl-row"><span class="lvl-range"><label for="lv-min">Niveau</label><select id="lv-min" data-lvl="lmin" aria-label="Niveau minimum">' + lvlOpts(F.lmin) + '</select><label for="lv-max">à</label><select id="lv-max" data-lvl="lmax" aria-label="Niveau maximum">' + lvlOpts(F.lmax) + '</select></span>' +
+          '<button class="fchip" data-f="near"' + pressed(F.near) + '>' + ic('target') + 'Mon niveau' + (mk >= 0 ? ' (' + esc(me.classement) + ')' : '') + '</button></div>' +
         '<div class="filters-bar"><label class="search-m">' + ic('search') + '<input type="search" placeholder="Rechercher un nom" value="' + esc(F.q) + '" data-q aria-label="Rechercher un joueur"></label>' +
-          '<button class="fchip" data-f="near"' + pressed(F.near) + '>' + ic('target') + 'Mon niveau (' + esc(me.classement) + ')</button>' +
           SLOTS.map(function (s) { return '<button class="fchip" data-f="slot" data-v="' + s + '"' + pressed(F.slots[s]) + '>' + s[0].toUpperCase() + s.slice(1) + '</button>'; }).join('') +
           ['Loisir', 'Compétitif', 'Double', 'Mixte'].map(function (s) { return '<button class="fchip" data-f="style" data-v="' + s + '"' + pressed(F.styles[s]) + '>' + s + '</button>'; }).join('') +
-        '</div><p class="muted" style="margin-bottom:12px;font-size:.9rem" aria-live="polite">' + list2.length + ' joueur' + (list2.length > 1 ? 's' : '') + '</p>' +
+        '</div><p class="muted" style="margin-bottom:12px;font-size:.9rem" aria-live="polite">' + list2.length + ' joueur' + (list2.length > 1 ? 's' : '') + (mk >= 0 && list2.length > 1 ? ' · les plus proches de votre niveau en premier' : '') + ((lo > 0 || hi > 0) ? ' · joueurs NC toujours affichés' : '') + '</p>' +
         (list2.length ? '<div class="players">' + list2.map(playerCard).join('') + '</div>' : '<div class="empty">Aucun joueur ne correspond. Retirez un filtre ou publiez une annonce.</div>');
     }
     $('#v-jouer').innerHTML = '<div class="v-head"><div><h1>Jouer</h1><p>Trouvez un partenaire pour un simple, un double ou une partie à quatre.</p></div>' +
       (LIVE ? '' : '<div class="seg-tabs" role="tablist"><button role="tab" data-ptab="annonces" aria-selected="' + (playTab === 'annonces') + '">Annonces</button><button role="tab" data-ptab="annuaire" aria-selected="' + (playTab === 'annuaire') + '">Annuaire</button></div>') + '</div>' + body;
+    $$('[data-lvl]').forEach(function (sel) { sel.addEventListener('change', function () { F[sel.dataset.lvl] = sel.value; RENDER.jouer(); var ns = $('[data-lvl="' + sel.dataset.lvl + '"]'); if (ns) ns.focus(); }); });
     var q = $('[data-q]'); if (q) q.addEventListener('input', function () { F.q = q.value; var pos = q.selectionStart; RENDER.jouer(); var nq = $('[data-q]'); nq.focus(); nq.setSelectionRange(pos, pos); });
   };
   function openPostForm() {
@@ -1330,7 +1349,11 @@
     if (d.go) { var p = S.posts.filter(function (x) { return x.id === d.go; })[0], i = p.going.indexOf('me'); if (i >= 0) p.going.splice(i, 1); else { p.going.push('me'); toast('Partant ! Son auteur est prévenu'); } save(); RENDER.jouer(); return; }
     if (d.delpost) { S.posts = S.posts.filter(function (x) { return x.id !== d.delpost; }); save(); RENDER.jouer(); toast('Annonce retirée'); return; }
     if (d.f) {
-      if (d.f === 'near') F.near = !F.near; else if (d.f === 'slot') F.slots[d.v] = !F.slots[d.v]; else F.styles[d.v] = !F.styles[d.v];
+      if (d.f === 'near') {
+        var nr = nearRange();
+        if (!nr) { toast('Renseignez d\'abord votre classement dans Mon profil pour utiliser ce filtre.', 5000); return; }
+        if (F.near) { F.lmin = ''; F.lmax = ''; } else { F.lmin = nr[0]; F.lmax = nr[1]; }
+      } else if (d.f === 'slot') F.slots[d.v] = !F.slots[d.v]; else F.styles[d.v] = !F.styles[d.v];
       RENDER.jouer(); return;
     }
     if (d.contact) {

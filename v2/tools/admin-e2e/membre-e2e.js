@@ -47,7 +47,8 @@ const OVERRIDE = `;(function(c){c.mode='firebase';c.firebase=Object.assign({},c.
   await fetch(DB(''), { method: 'PUT', headers: OWN, body: JSON.stringify({ members: { [uid]: camille, [inactif]: { prenom: 'I', nom: 'N', actif: false } }, site_v2, club_messages,
     partenaire_index: {
       p1: { prenom: 'Léa', nom: 'Martin', classement: '30/1', style_jeu: 'competitif', dispo: { lundi: { soir: true } }, partager_telephone: true, telephone: '06 12 34 56 78', partager_email: false, email: '', message: 'Dispo le lundi soir' },
-      p2: { prenom: 'Hugo', nom: 'Bernard', classement: '40', style_jeu: 'loisir', dispo: { samedi: { matin: true } }, partager_telephone: false, telephone: '', partager_email: false, email: '', message: '' } } }) });
+      p2: { prenom: 'Hugo', nom: 'Bernard', classement: '40', style_jeu: 'loisir', dispo: { samedi: { matin: true } }, partager_telephone: false, telephone: '', partager_email: false, email: '', message: '' },
+      p3: { prenom: 'Nina', nom: 'Petit', classement: 'NC', style_jeu: 'loisir', dispo: { dimanche: { matin: true } }, partager_telephone: false, telephone: '', partager_email: false, email: '', message: '' } } }) });
   const M = async () => (await (await fetch(DB('members/' + uid), { headers: OWN })).json());
 
   const browser = await chromium.launch();
@@ -114,12 +115,22 @@ const OVERRIDE = `;(function(c){c.mode='firebase';c.firebase=Object.assign({},c.
   // Annuaire des joueurs (partenaire_index, format de l'espace actuel)
   await page.goto(SITE + '/espace-membre.html#jouer'); await page.waitForTimeout(1200);
   let jo = await page.innerText('#v-jouer');
-  ok('Jouer : annuaire réel (Léa M., Hugo B.), sans onglet « Annonces » (plus tard)', /Léa M\./.test(jo) && /Hugo B\./.test(jo) && !(await page.$('#v-jouer [data-ptab="annonces"]')), jo.slice(0, 200));
+  ok('Jouer : annuaire réel (Léa M., Hugo B., Nina P.), sans onglet « Annonces » (plus tard)', /Léa M\./.test(jo) && /Hugo B\./.test(jo) && /Nina P\./.test(jo) && !(await page.$('#v-jouer [data-ptab="annonces"]')), jo.slice(0, 200));
   const lea = await page.$$eval('#v-jouer .player', (cards) => cards.map((c) => ({ t: c.innerText, to: [...c.querySelectorAll('[data-contact]')].map((b) => b.dataset.contact + ':' + b.dataset.to) })));
   const L = lea.find((x) => /Léa/.test(x.t)), H = lea.find((x) => /Hugo/.test(x.t));
   ok('Jouer : contact seulement si partagé (Léa SMS/appel, Hugo aucun)', L && L.to.some((x) => x === 'sms:06 12 34 56 78') && H && H.to.length === 0, JSON.stringify(lea.map((x) => x.to)));
   await page.click('#v-jouer [data-f="slot"][data-v="soir"]'); await page.waitForTimeout(400); jo = await page.innerText('#v-jouer');
   ok('Jouer : filtre « Soir » → Léa seule', /Léa M\./.test(jo) && !/Hugo B\./.test(jo));
+  await page.click('#v-jouer [data-f="slot"][data-v="soir"]'); await page.waitForTimeout(400); // retire le filtre
+  const names = async () => page.$$eval('#v-jouer .player b', (b) => b.map((x) => x.textContent.trim()));
+  ok('Jouer : les plus proches de mon niveau d\'abord (30/3 : Léa 30/1, Hugo 40), NC en dernier', JSON.stringify(await names()) === JSON.stringify(['Léa M.', 'Hugo B.', 'Nina P.']) && /plus proches de votre niveau/.test(await page.innerText('#v-jouer')), JSON.stringify(await names()));
+  const cards = await page.$$eval('#v-jouer .player', (cs) => cs.map((c) => c.innerText));
+  ok('Jouer : repères « Niveau proche » et « 1 créneau commun » (samedi matin avec Hugo)', /Niveau proche/.test(cards[0]) && /Niveau proche/.test(cards[1]) && /1 créneau commun/.test(cards[1]) && !/Niveau proche/.test(cards[2]), JSON.stringify(cards).slice(0, 300));
+  await page.click('#v-jouer [data-f="near"]'); await page.waitForTimeout(400);
+  ok('Jouer : « Mon niveau » règle la plage à ±3 échelons (40 à 30)', (await page.$eval('#lv-min', (x) => x.value)) === '40' && (await page.$eval('#lv-max', (x) => x.value)) === '30' && (await page.getAttribute('#v-jouer [data-f="near"]', 'aria-pressed')) === 'true');
+  await page.selectOption('#lv-min', '30/2'); await page.waitForTimeout(400); jo = await page.innerText('#v-jouer');
+  ok('Jouer : plage réglée à la main (30/2 → 30) : Hugo (40) masqué, Léa et Nina (NC) affichées, « Mon niveau » éteint', /Léa M\./.test(jo) && !/Hugo B\./.test(jo) && /Nina P\./.test(jo) && /NC toujours affichés/.test(jo) && (await page.getAttribute('#v-jouer [data-f="near"]', 'aria-pressed')) === 'false');
+  await page.selectOption('#lv-min', ''); await page.selectOption('#lv-max', ''); await page.waitForTimeout(300);
 
   await page.goto(SITE + '/espace-membre.html#carte'); await page.waitForSelector('#app:not([hidden])', { timeout: 20000 }); await page.waitForTimeout(1200);
   const carte = await page.innerText('#v-carte');
