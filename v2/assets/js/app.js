@@ -386,7 +386,7 @@
       <h3>${esc(e.title)}</h3>
       <div class="meta"><span>${icon('calendar')}${esc(whenText(e))}${e.time ? ' · ' + esc(e.time) : ''}</span>${e.location ? `<span>${icon('pin')}${esc(e.location)}</span>` : ''}</div>
       <p>${esc(e.summary || '')}</p>
-      ${signupOpen(e) ? `<span class="chip" style="margin-top:8px">${icon('check')} Inscriptions ouvertes aux membres</span>` : ''}
+      ${signupOpen(e) ? `<span class="chip" style="margin-top:8px">${icon('check')} Inscriptions membres</span>` : ''}
       ${withCountdown && e.dateStart ? `<span class="countdown">${countdown(e)}</span>` : ''}</div></a>`;
   }
   function renderAgendaHome(c, el) {

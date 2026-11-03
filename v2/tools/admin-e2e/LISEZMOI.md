@@ -40,3 +40,7 @@ Vérifie, **sans toucher aux vraies données**, que l'admin du nouveau site fonc
 Dans ce dossier : `npm test`. Résultat attendu : `54/54 contrôles admin (mode Firebase)` puis `46/46 contrôles espace membre (mode Firebase)`.
 
 À lancer avant la bascule, et après toute modification de `store.js`, `admin.js`, des règles ou des fonctions.
+
+## Textes qui débordent sur téléphone
+
+`node audit-debordements.js` (dans ce dossier, sans émulateurs) : ouvre chaque page publique en 320, 360, 390 et 430 px et liste les textes qui sortent de leur carte et les grands titres coupés. Résultat attendu : `TOTAL 0`. À relancer après une modification du CSS ou d'un titre de page.
