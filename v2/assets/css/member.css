@@ -1764,3 +1764,10 @@ body.m-app .btn { white-space: normal; text-align: center; line-height: 1.25; he
 .cal-d i { display: flex; gap: 2px; height: 6px; }
 .cal-d em { width: 6px; height: 6px; border-radius: 50%; }
 .ev.flash { box-shadow: 0 0 0 3px var(--ball); transition: box-shadow .3s; }
+
+/* Jouer : plage de niveau et repères */
+.lvl-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 16px 0 4px; }
+.lvl-range { display: inline-flex; align-items: center; gap: 6px; font-size: .9rem; font-weight: 600; color: var(--ink-2); white-space: nowrap; }
+.lvl-range select { font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 6px 10px; }
+.chip.match { background: color-mix(in srgb, var(--grass) 16%, transparent); color: var(--grass); display: inline-flex; align-items: center; gap: 4px; }
+.chip.match .icon { width: 13px; height: 13px; }
