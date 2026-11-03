@@ -487,6 +487,9 @@ ul, ol { margin: 0; padding: 0; }
   align-items: start;
 }
 .event:hover { color: var(--ink); border-color: var(--blue); }
+/* Le texte de la carte se plie à sa largeur (sinon les longues lignes débordent sur téléphone) */
+.event > div { min-width: 0; }
+.event .chip { white-space: normal; }
 .datebox {
   display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
   background: var(--board); color: var(--board-ink); border-radius: var(--radius-s); padding: 10px 4px; min-height: 84px;
@@ -768,6 +771,8 @@ ul, ol { margin: 0; padding: 0; }
 .page-hero .lead { color: var(--on-blue-2); margin-top: 18px; }
 .page-hero .hero-ctas { margin-top: 26px; }
 .split { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(28px, 5vw, 72px); align-items: center; }
+.split > * { min-width: 0; }
+.split h3 { overflow-wrap: break-word; }
 .split .media img { border-radius: var(--radius-l); width: 100%; aspect-ratio: 4 / 3; object-fit: cover; }
 .feature-list { list-style: none; display: grid; gap: 14px; margin-top: 22px; }
 .feature-list li { display: flex; gap: 14px; align-items: flex-start; }
@@ -1040,6 +1045,8 @@ ul, ol { margin: 0; padding: 0; }
   .section-head { margin-bottom: 22px; gap: 14px; }
   .section-head .lead { font-size: 1rem; }
   .hero h1 { font-size: clamp(2.2rem, 10.5vw, 2.8rem); }
+  /* Grands titres de page : tiennent sur la largeur d'un téléphone (« PROGRESSER, », « INSCRIPTION ») */
+  .page-hero h1 { font-size: clamp(1.7rem, 8.2vw, 2.5rem); }
   .hero .lead { font-size: 1rem; margin-top: 14px; }
 
   /* Tarifs résumés : une ligne par parcours */
