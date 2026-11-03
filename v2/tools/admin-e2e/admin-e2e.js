@@ -188,6 +188,18 @@ const OVERRIDE = `;(function(c){c.mode='firebase';c.firebase=Object.assign({},c.
   ok('Espace membre : connexion avec les identifiants admin', await mp.isVisible('#app'));
   await mp.close();
 
+  // Agenda : tri utile (à venir du plus proche au plus lointain, puis annuels, puis passés)
+  const isoIn = (n) => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
+  for (const [k, n] of [['zz-loin', 40], ['zz-proche', 5]]) await fetch(DB('site_v2/events/' + k), { method: 'PUT', headers: OWN, body: JSON.stringify({ id: k, title: 'Test ' + k, category: 'animation', dateStart: isoIn(n), draft: false }) });
+  const pAg = await ctx.newPage(); await pAg.goto(SITE + '/admin/#/agenda'); await pAg.waitForSelector('#l-table tbody tr', { timeout: 20000 }); // nouvel onglet : contenu rechargé
+  const rowsAg = await pAg.$$eval('#l-table tbody tr', (trs) => trs.map((tr) => tr.dataset.id));
+  const evAll = await getJ(DB('site_v2/events')); const tISO = new Date().toISOString().slice(0, 10);
+  const grpOf = (e) => (!e.dateStart ? 1 : (e.dateEnd || e.dateStart) < tISO ? 2 : 0);
+  const gs = rowsAg.map((id) => grpOf(evAll[id] || {}));
+  const upAg = rowsAg.filter((id) => grpOf(evAll[id]) === 0).map((id) => evAll[id].dateStart), past = rowsAg.filter((id) => grpOf(evAll[id]) === 2).map((id) => evAll[id].dateStart);
+  ok('Agenda (admin) : à venir du plus proche au plus lointain, puis annuels, puis passés', gs.every((g, i) => !i || gs[i - 1] <= g) && upAg.every((d, i) => !i || upAg[i - 1] <= d) && past.every((d, i) => !i || past[i - 1] >= d) && upAg.length >= 2 && rowsAg[0] === 'zz-proche', JSON.stringify(gs));
+  await pAg.close();
+
   // Agenda : « Mois concernés » (événements sans date, vue mois par mois de l'espace membre)
   await go('#/agenda/' + evId); await page.waitForTimeout(800);
   await page.click('[data-f="months"] .mchip:nth-child(3) span'); await page.click('[data-f="months"] .mchip:nth-child(5) span');
