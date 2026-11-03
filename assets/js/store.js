@@ -776,7 +776,7 @@
         const s = await fb.database().ref('members').once('value');
         return toArr(s.val()).filter((m) => m && (m.nom || m.prenom || m.email));
       },
-      async create(d) {
+      async create(d, opts) {
         if (Store.isLocal) throw new Error('Disponible uniquement en ligne.');
         const fb = await firebaseSDK();
         const email = String(d.email || '').trim().toLowerCase();
@@ -787,8 +787,8 @@
           telephone: d.telephone || '', licence: d.licence || '', classement: d.classement || '',
           categorie: d.categorie || 'Adulte H', statut: d.statut || 'Membre'
         });
-        let mailed = true;
-        try { await this.sendPasswordEmail(email); } catch (e) { mailed = false; console.warn('[USM] E-mail de mot de passe non envoyé', e); }
+        let mailed = false;
+        if (!opts || opts.mail !== false) { try { await this.sendPasswordEmail(email); mailed = true; } catch (e) { console.warn('[USM] E-mail de mot de passe non envoyé', e); } }
         return { uid: res && res.data && res.data.uid, email, mailed };
       },
       /* Écrit seulement les champs modifiés (une ancienne valeur hors format ne bloque pas l'enregistrement) */
