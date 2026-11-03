@@ -156,7 +156,15 @@
         { k: 'draft', t: 'switch', l: 'Brouillon (non visible)', half: true }
       ],
       blank: () => ({ id: uid('e'), title: '', category: 'animation', location: 'Au club', dateStart: '', dateEnd: '', time: '', when: '', months: [], summary: '', body: '', images: [], link: '', memberSignup: false, recurring: false, featured: false, draft: false }),
-      sort: (a, b) => (b.dateStart || '0').localeCompare(a.dateStart || '0'),
+      /* À venir (le plus proche en haut), puis rendez-vous annuels (ordre de la saison, sept → août), puis passés (le plus récent en haut) */
+      sort: (a, b) => {
+        const t = todayISO(), grp = (x) => (!x.dateStart ? 1 : (x.dateEnd || x.dateStart) < t ? 2 : 0), ga = grp(a), gb = grp(b);
+        if (ga !== gb) return ga - gb;
+        if (ga === 0) return a.dateStart.localeCompare(b.dateStart);
+        if (ga === 2) return b.dateStart.localeCompare(a.dateStart);
+        const sm = (x) => { const m = (Array.isArray(x.months) ? x.months : Object.values(x.months || {})).map((v) => (+v + 3) % 12); return m.length ? Math.min.apply(null, m) : 99; };
+        return sm(a) - sm(b) || (a.order || 0) - (b.order || 0);
+      },
       columns: [
         { h: '', w: 70, r: (x) => thumb((x.images || [])[0]) },
         { h: 'Événement', r: (x) => `<div class="title">${esc(x.title)}</div><div class="sub">${esc(x.location || '')}</div>` },
