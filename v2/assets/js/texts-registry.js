@@ -99,6 +99,20 @@ window.USM_TEXTS = [
   "long": true
  },
  {
+  "key": "club.team.title",
+  "page": "Le club",
+  "label": "Section « L'équipe » — titre",
+  "def": "Ceux qui font vivre le club",
+  "long": false
+ },
+ {
+  "key": "club.team.lead",
+  "page": "Le club",
+  "label": "Section « L'équipe » — texte",
+  "def": "Des bénévoles au bureau, un enseignant diplômé sur les courts, et une école de tennis encadrée par Cédric, Laetitia et Arnaud.",
+  "long": true
+ },
+ {
   "key": "cours.hero.title",
   "page": "Cours & école",
   "label": "En-tête de page — titre",

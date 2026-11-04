@@ -77,7 +77,7 @@ for src in sorted(glob.glob(P('src/pages', '*.html')), key=lambda f: list(PAGE_N
         seen.add(key)
         txt = re.sub(r'<em>(.*?)</em>', r'*\1*', inner)
         txt = re.sub(r'<[^>]+>', '', txt).replace('&amp;', '&').replace('&#39;', "'").strip()
-        sec = {'hero': 'En-tête de page', 'paths': 'Section « Pour qui ? »', 'facilities': 'Section Installations', 'cta': 'Bandeau d\'appel final', 'spirit': 'Section « Notre esprit »', 'reviews': 'Section Avis', 'ask': 'Section « Une question ? »', 'packs': 'Section Offres'}.get(key.split('.')[1], key.split('.')[1])
+        sec = {'hero': 'En-tête de page', 'paths': 'Section « Pour qui ? »', 'facilities': 'Section Installations', 'cta': 'Bandeau d\'appel final', 'spirit': 'Section « Notre esprit »', 'reviews': 'Section Avis', 'ask': 'Section « Une question ? »', 'packs': 'Section Offres', 'team': 'Section « L\'équipe »'}.get(key.split('.')[1], key.split('.')[1])
         lab = sec + ' — ' + ('titre' if tag != 'p' else 'texte')
         reg.append({'key': key, 'page': PAGE_NAMES.get(name, name), 'label': lab, 'def': txt, 'long': tag == 'p'})
 open(P('assets/js/texts-registry.js'), 'w', encoding='utf-8').write('/* Généré par tools/build_pages.py : textes modifiables depuis l\'admin */\nwindow.USM_TEXTS = ' + json.dumps(reg, ensure_ascii=False, indent=1) + ';\n')
