@@ -1526,6 +1526,7 @@
       { k: 'tenup', t: 'url', l: 'Réservation Ten\'Up (page du club)' }, { k: 'competitions', t: 'url', l: 'Compétitions Ten\'Up' },
       { k: 'espaceMembre', t: 'text', l: 'Espace membre', placeholder: 'espace-membre.html', hint: 'Page du site (espace-membre.html) ou adresse complète d\'un espace hébergé ailleurs.' }, { k: 'facebook', t: 'url', l: 'Facebook' },
       { k: 'instagram', t: 'url', l: 'Instagram', hint: 'Laissez vide pour masquer l\'icône.' }, { k: 'whatsapp', t: 'url', l: 'Communauté WhatsApp (lien d\'invitation)', hint: 'Laissez vide pour masquer l\'icône du site et la carte « Communauté WhatsApp » de l\'espace membre.' }
+    , { k: 'ideas', t: 'url', l: 'Boîte à idées (formulaire)', placeholder: 'https://docs.google.com/forms/d/…/viewform', hint: 'Lien du formulaire (Google Forms…). Ajoute la tuile « Boîte à idées » sur l\'accueil de l\'espace membre ; laissez vide pour la masquer.' }
     ], s.links, mark);
     const fMember = Form($('#s-member', v), [
       { k: 'showTeams', t: 'switch', l: 'Afficher la section Équipes (championnats, convocations)' },

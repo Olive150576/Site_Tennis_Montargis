@@ -31,7 +31,7 @@ const OVERRIDE = `;(function(c){c.mode='firebase';c.firebase=Object.assign({},c.
     partenaire: { public_profile: false, updatedAt: 1, style_jeu: 'competitif', dispo: { samedi: { matin: true } }, partager_telephone: false, partager_email: false, message: '' } };
   const iso = (n) => { const d = new Date(Date.now() + n * 864e5); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
   const ev = (id, o) => Object.assign({ id, title: 'Évé ' + id, category: 'animation', location: 'Club house', dateStart: iso(10), dateEnd: '', time: '', summary: 'Résumé ' + id, draft: false, memberSignup: false }, o);
-  const site_v2 = { settings: { email: 'club@test.fr' },
+  const site_v2 = { settings: { email: 'club@test.fr', links: { ideas: 'https://docs.google.com/forms/d/test-idees/viewform' } },
     sponsors: { s1: { id: 's1', name: 'Sport 2000 Amilly', perk: '-10 % sur les raquettes', order: 1 }, s2: { id: 's2', name: 'Boulangerie Durand', perk: 'Offres à venir', order: 2 } },
     events: {
     ev1: ev('ev1', { title: 'Soirée double surprise', time: '18 h 30', memberSignup: true, body: '**Format** : partenaires tirés au sort\n\n- Apéro offert\n- Ouvert à tous les niveaux', link: 'https://tenup.fft.fr/club/53450084' }),
@@ -89,6 +89,7 @@ const OVERRIDE = `;(function(c){c.mode='firebase';c.firebase=Object.assign({},c.
   // Messages du bureau (club_messages) : urgent dans « À faire », masqué jamais affiché
   const acc = await page.innerText('#v-accueil');
   ok('Accueil : message urgent du bureau dans « À faire »', /Courts fermés mardi/.test(acc), acc.slice(0, 200));
+  ok('Accueil : tuile « Boîte à idées » vers le formulaire (nouvel onglet)', (await page.getAttribute('#v-accueil [data-ideas]', 'href').catch(() => '')) === 'https://docs.google.com/forms/d/test-idees/viewform' && (await page.getAttribute('#v-accueil [data-ideas]', 'target')) === '_blank');
   ok('Accueil : prochains événements réels (pas de brouillon ni de passé)', /Soirée double surprise/.test(acc) && !/Brouillon secret|Événement passé/.test(acc));
   // Agenda unique (site_v2/events) + inscriptions
   await page.goto(SITE + '/espace-membre.html#agenda'); await page.waitForTimeout(1200);
