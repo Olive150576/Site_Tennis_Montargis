@@ -319,13 +319,14 @@
           if (reg[UID]) S.eventsIn[e.id] = true;
           return { id: e.id, titre: e.title || '', cat: EV_CAT[e.category] || 'vie', start: evStart(e),
             endTs: new Date((e.dateEnd || e.dateStart) + 'T23:59:59').getTime(), end: 2, lieu: e.location || 'Au club',
-            inscription: !!e.memberSignup, desc: e.summary || '', timeTxt: e.time || '', count: Object.keys(reg).length };
+            inscription: !!e.memberSignup, desc: e.summary || '', timeTxt: e.time || '', count: Object.keys(reg).length,
+            body: e.body || '', image: (e.images || [])[0] || null, link: e.link || '' };
         });
         /* Grands rendez-vous de la saison : événements sans date (« Période ») ou rendez-vous annuels, comme sur le site */
         S.season = (c.events || []).filter(function (e) { return e && !e.draft && (!e.dateStart || e.recurring); })
           .sort(function (a, b) { return (a.order || 0) - (b.order || 0); })
           .map(function (e) { return { id: e.id, titre: e.title || '', cat: EV_CAT[e.category] || 'vie', when: e.when || (e.dateStart ? fmt.long(evStart(e)) : ''), lieu: e.location || 'Au club', desc: e.summary || '',
-            dated: !!e.dateStart, months: (Array.isArray(e.months) ? e.months : Object.values(e.months || {})).map(Number) }; });
+            body: e.body || '', image: (e.images || [])[0] || null, link: e.link || '', dated: !!e.dateStart, months: (Array.isArray(e.months) ? e.months : Object.values(e.months || {})).map(Number) }; });
         S.msgs = Object.keys(cm).map(function (k) {
           var m = cm[k] || {};
           return { id: k, actif: m.actif, type: ['warning', 'urgent'].indexOf(m.type) >= 0 ? m.type : 'info', titre: m.titre || 'Message du club', texte: m.contenu || m.message || '', createdAt: m.createdAt || 0 };
@@ -763,7 +764,8 @@
   function eventRow(e) {
     var inn = S.eventsIn[e.id], c = CAT[e.cat] || ['Club', 'cat-vie-du-club'];
     return '<article class="ev' + (inn ? ' is-in' : '') + '" id="ag-' + esc(e.id) + '"><div class="ev-date"><b>' + fmt.dnum(e.start) + '</b><span>' + esc(fmt.dmon(e.start)) + '</span></div>' +
-      '<div><div class="ev-title">' + esc(e.titre) + '</div><div class="ev-meta"><span class="chip ' + c[1] + '">' + c[0] + '</span>' + (evTime(e) ? '<span>' + ic('clock') + esc(evTime(e)) + '</span>' : '') + '<span>' + ic('pin') + esc(e.lieu) + '</span>' + (e.inscription && e.count ? '<span>' + ic('users') + e.count + ' inscrit' + (e.count > 1 ? 's' : '') + '</span>' : '') + '</div></div>' +
+      '<div><button type="button" class="ev-title ev-open" data-evinfo="' + esc(e.id) + '">' + esc(e.titre) + '</button><div class="ev-meta"><span class="chip ' + c[1] + '">' + c[0] + '</span>' + (evTime(e) ? '<span>' + ic('clock') + esc(evTime(e)) + '</span>' : '') + '<span>' + ic('pin') + esc(e.lieu) + '</span>' + (e.inscription && e.count ? '<span>' + ic('users') + e.count + ' inscrit' + (e.count > 1 ? 's' : '') + '</span>' : '') + '</div>' +
+      (e.desc ? '<p class="ev-desc">' + esc(e.desc) + '</p>' : '') + '<button type="button" class="ev-more" data-evinfo="' + esc(e.id) + '">' + ic('info') + 'Détails' + (e.inscription ? ' et inscription' : '') + '</button></div>' +
       '<div class="ev-actions">' + (e.inscription ? (inn ? '<button class="btn btn-sm" data-evin="' + e.id + '">' + ic('check') + 'Inscrit</button>' : '<button class="btn btn-blue btn-sm" data-evin="' + e.id + '">Je m\'inscris</button>') : '') +
       '<a class="icon-btn" href="' + esc(gcal(e)) + '" target="_blank" rel="noopener" aria-label="Ajouter à mon agenda" title="Ajouter à mon agenda">' + ic('calendar') + '</a></div></article>';
   }
@@ -771,7 +773,7 @@
   function evTime(e) { var d = new Date(e.start); return e.timeTxt || (d.getHours() || d.getMinutes() ? fmt.time(e.start) : ''); }
   function seasonRow(e) {
     var c = CAT[e.cat] || ['Club', 'cat-vie-du-club'];
-    return '<article class="ev ev-season"><div class="ev-date">' + ic('calendar') + '</div><div><div class="ev-title">' + esc(e.titre) + '</div><div class="ev-meta"><span class="chip ' + c[1] + '">' + c[0] + '</span>' +
+    return '<article class="ev ev-season"><div class="ev-date">' + ic('calendar') + '</div><div><button type="button" class="ev-title ev-open" data-evinfo="s:' + esc(e.id) + '">' + esc(e.titre) + '</button><div class="ev-meta"><span class="chip ' + c[1] + '">' + c[0] + '</span>' +
       (e.when ? '<span>' + ic('clock') + esc(e.when) + '</span>' : '') + '<span>' + ic('pin') + esc(e.lieu) + '</span></div>' + (e.desc ? '<p class="ev-desc">' + esc(e.desc) + '</p>' : '') + '</div></article>';
   }
   /* Agenda mois par mois (comme l'ancien calendrier du club) : grille + liste du mois + « Prévu ce mois-ci » */
@@ -781,6 +783,39 @@
   function ymOf(t) { var d = new Date(t); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2); }
   function ymShift(ym, n) { var y = +ym.slice(0, 4), m = +ym.slice(5, 7) - 1 + n; y += Math.floor(m / 12); m = ((m % 12) + 12) % 12; return y + '-' + ('0' + (m + 1)).slice(-2); }
   function agMatch(e) { return agFilter === 'tout' || (agFilter === 'inscrit' ? S.eventsIn[e.id] : e.cat === agFilter); }
+  /* Fiche détaillée d'un événement : photo, quand / où, résumé, description complète (format de l'admin), lien, inscription */
+  function mdLite(t) {
+    var inl = function (s) { return esc(s).replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>').replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>'); };
+    return String(t || '').trim().split(/\n{2,}/).map(function (blk) {
+      var lines = blk.split('\n');
+      if (lines.every(function (l) { return /^\s*[-•]\s+/.test(l); })) return '<ul>' + lines.map(function (l) { return '<li>' + inl(l.replace(/^\s*[-•]\s+/, '')) + '</li>'; }).join('') + '</ul>';
+      return '<p>' + lines.map(inl).join('<br>') + '</p>';
+    }).join('');
+  }
+  function eventInfoHtml(e) {
+    var src = e.image && (e.image.sm || e.image.src || e.image), meta = []; // version allégée : plus rapide sur téléphone
+    meta.push(ic('calendar') + esc(e.dated === false || e.when && !e.start ? e.when : fmt.long(e.start)));
+    if (e.start && evTime(e)) meta.push(ic('clock') + esc(evTime(e)));
+    if (e.lieu) meta.push(ic('pin') + esc(e.lieu));
+    if (e.inscription) meta.push(ic('users') + (e.count ? e.count + ' inscrit' + (e.count > 1 ? 's' : '') : 'Aucun inscrit pour le moment'));
+    return (src ? '<img class="ei-img" src="' + esc(src) + '" alt="" onerror="this.remove()">' : '') +
+      '<ul class="ei-meta">' + meta.map(function (m) { return '<li>' + m + '</li>'; }).join('') + '</ul>' +
+      (e.desc ? '<p class="ei-lead">' + esc(e.desc) + '</p>' : '') +
+      (e.body && e.body.trim() !== (e.desc || '').trim() ? '<div class="ei-body">' + mdLite(e.body) + '</div>' : '') +
+      (!e.desc && !e.body ? '<p class="muted">Pas encore de description : renseignez-vous auprès du bureau.</p>' : '') +
+      (e.link ? '<a class="link-arrow" href="' + esc(e.link) + '" target="_blank" rel="noopener">En savoir plus ' + ic('external') + '</a>' : '');
+  }
+  function openEventInfo(key) {
+    var isSeason = key.indexOf('s:') === 0, id = isSeason ? key.slice(2) : key;
+    var e = (isSeason ? S.season : S.events).filter(function (x) { return x.id === id; })[0]; if (!e) return;
+    var inn = !isSeason && S.eventsIn[id], open = !isSeason && e.inscription && (e.endTs || e.start) > Date.now();
+    openDrawer(e.titre, eventInfoHtml(isSeason ? Object.assign({ start: 0 }, e) : e), null,
+      open ? '<div class="ps-foot"><button type="button" class="btn" data-close>Fermer</button><button type="button" class="btn ' + (inn ? '' : 'btn-blue') + '" id="ei-toggle">' + (inn ? 'Me désinscrire' : ic('check') + 'Je m\'inscris') + '</button></div>' : '');
+    var tg = $('#ei-toggle'); if (tg) tg.addEventListener('click', function () {
+      closeDrawer();
+      if (LIVE) liveEventToggle(id); else { S.eventsIn[id] = !S.eventsIn[id]; save(); route(); toast(S.eventsIn[id] ? 'Inscription enregistrée' : 'Inscription annulée'); }
+    });
+  }
   RENDER.agenda = function () {
     var now = Date.now(), cur = ymOf(now), last = ymShift(cur, 11);
     if (!agMonth || agMonth < cur) agMonth = cur;
@@ -1372,6 +1407,7 @@
     }
     if (d.ag) { agFilter = d.ag; RENDER.agenda(); return; }
     if (d.agm) { agMonth = d.agm === '0' ? '' : ymShift(agMonth || ymOf(Date.now()), +d.agm); RENDER.agenda(); var nb = $('[data-agm="' + d.agm + '"]'); if (nb && !nb.disabled) nb.focus(); return; }
+    if (d.evinfo) { openEventInfo(d.evinfo); return; }
     if (d.agday) { var target = document.getElementById('ag-' + agDayMap[d.agday]); if (target) { target.scrollIntoView({ behavior: 'smooth', block: 'center' }); target.classList.add('flash'); setTimeout(function () { target.classList.remove('flash'); }, 1400); } return; }
     if (d.share) { S.me.partenaire[d.share] = !S.me.partenaire[d.share]; save(); t.setAttribute('aria-pressed', S.me.partenaire[d.share]); return; }
     if (d.pstyle) { var st = S.me.partenaire.style, k = st.indexOf(d.pstyle); if (k >= 0) st.splice(k, 1); else st.push(d.pstyle); save(); t.setAttribute('aria-pressed', k < 0); return; }
@@ -1448,8 +1484,7 @@
     if (!ev || !ev.inscription || (ev.endTs || ev.start) < Date.now()) { toast('Les inscriptions à cet événement ne sont pas ouvertes.', 5000); return; }
     agMonth = ymOf(ev.start); RENDER.agenda(); // l'agenda s'ouvre sur le mois de l'événement
     if (S.eventsIn[id]) { toast('Vous êtes déjà inscrit : ' + ev.titre, 5000); return; }
-    openDrawer('Inscription', '<p style="margin:0 0 6px"><b>' + esc(ev.titre) + '</b></p><p class="muted" style="margin:0 0 14px">' + esc(fmt.long(ev.start)) + (ev.timeTxt ? ' · ' + esc(ev.timeTxt) : '') + (ev.lieu ? ' · ' + esc(ev.lieu) : '') + '</p>' +
-      (ev.desc ? '<p style="margin:0">' + esc(ev.desc) + '</p>' : ''), function () { var b = $('#su-confirm'); if (b) b.focus(); },
+    openDrawer('Inscription · ' + ev.titre, eventInfoHtml(ev), function () { var b = $('#su-confirm'); if (b) b.focus(); },
       '<div class="ps-foot"><button type="button" class="btn" data-close>Annuler</button><button type="button" class="btn btn-blue" id="su-confirm">' + ic('check') + 'Confirmer mon inscription</button></div>');
     $('#su-confirm').addEventListener('click', function () {
       closeDrawer();

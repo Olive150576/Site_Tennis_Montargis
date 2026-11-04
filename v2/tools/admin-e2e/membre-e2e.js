@@ -34,7 +34,7 @@ const OVERRIDE = `;(function(c){c.mode='firebase';c.firebase=Object.assign({},c.
   const site_v2 = { settings: { email: 'club@test.fr' },
     sponsors: { s1: { id: 's1', name: 'Sport 2000 Amilly', perk: '-10 % sur les raquettes', order: 1 }, s2: { id: 's2', name: 'Boulangerie Durand', perk: 'Offres à venir', order: 2 } },
     events: {
-    ev1: ev('ev1', { title: 'Soirée double surprise', time: '18 h 30', memberSignup: true }),
+    ev1: ev('ev1', { title: 'Soirée double surprise', time: '18 h 30', memberSignup: true, body: '**Format** : partenaires tirés au sort\n\n- Apéro offert\n- Ouvert à tous les niveaux', link: 'https://tenup.fft.fr/club/53450084' }),
     ev2: ev('ev2', { title: 'Tournoi interne', category: 'tournoi', dateStart: iso(20) }),
     ev3: ev('ev3', { title: 'Brouillon secret', draft: true }),
     ev4: ev('ev4', { title: 'Événement passé', dateStart: iso(-10), memberSignup: true }),
@@ -111,6 +111,16 @@ const OVERRIDE = `;(function(c){c.mode='firebase';c.firebase=Object.assign({},c.
   reg = await (await fetch(DB('inscriptions_evenement/ev1/' + uid), { headers: OWN })).json();
   ok('Désinscription : supprimée de Firebase', reg === null, JSON.stringify(reg));
   await page.click('#v-agenda [data-evin="ev1"]'); await page.waitForTimeout(1200); // réinscrit pour la suite
+  ag = await page.innerText('#v-agenda');
+  ok('Agenda : résumé visible sur la carte + lien « Détails et inscription »', /Résumé ev1/.test(ag) && !!(await page.$('#v-agenda .ev-more[data-evinfo="ev1"]')));
+  await page.click('#v-agenda .ev-more[data-evinfo="ev1"]'); await page.waitForTimeout(500);
+  const fiche = await page.innerHTML('#drawer');
+  ok('Fiche détaillée : quand, où, inscrits, description mise en forme, lien, bouton d\'inscription', /Soirée double surprise/.test(fiche) && /18 h 30/.test(fiche) && /Club house/.test(fiche) && /1 inscrit/.test(fiche) && /<b>Format<\/b>/.test(fiche) && /<li>Apéro offert<\/li>/.test(fiche) && /tenup\.fft\.fr/.test(fiche) && /Me désinscrire/.test(fiche), fiche.slice(0, 300));
+  await page.click('#drawer [data-close]'); await page.waitForTimeout(300);
+  await page.goto(SITE + '/espace-membre.html#agenda'); await page.waitForTimeout(1000);
+  await page.click('#v-agenda [data-evinfo="s:ev7"]'); await page.waitForTimeout(400);
+  ok('Fiche d\'un rendez-vous sans date : période affichée, pas de bouton d\'inscription', /Un jour/.test(await page.innerText('#drawer')) && !(await page.$('#drawer #ei-toggle')));
+  await page.click('#drawer [data-close]'); await page.waitForTimeout(300);
 
   // Annuaire des joueurs (partenaire_index, format de l'espace actuel)
   await page.goto(SITE + '/espace-membre.html#jouer'); await page.waitForTimeout(1200);
