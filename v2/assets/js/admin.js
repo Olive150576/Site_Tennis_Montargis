@@ -684,8 +684,8 @@
     const total = open.reduce((n, e) => n + signupCount(e.id), 0);
     const href = fresh.length ? `#/agenda/${fresh[0].ev}` : '#/agenda';
     const sub = fresh.length
-      ? `${fresh.length > 1 ? 'nouvelles' : 'nouvelle'} · dernière : ${esc(fresh[0].prenom)} ${esc(fresh[0].nom)} → ${esc(title(fresh[0].ev))}`
-      : `aucune nouvelle · ${total} inscrit${total > 1 ? 's' : ''} sur ${open.length} événement${open.length > 1 ? 's' : ''} ouvert${open.length > 1 ? 's' : ''}`;
+      ? `${fresh.length > 1 ? 'Nouvelles' : 'Nouvelle'}<br>Dernière : ${esc(fresh[0].prenom)} ${esc(fresh[0].nom)} → ${esc(title(fresh[0].ev))}`
+      : `Aucune nouvelle<br>${total} inscrit${total > 1 ? 's' : ''} sur ${open.length} événement${open.length > 1 ? 's' : ''} ouvert${open.length > 1 ? 's' : ''}`;
     return `<a class="card kpi" href="${href}" id="kpi-inscriptions"><span class="label">${icon('users')} Inscriptions aux événements</span><b class="value num">${fresh.length}</b><span class="sub">${sub}</span></a>`;
   }
   function viewDashboard() {

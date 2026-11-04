@@ -116,7 +116,7 @@ const OVERRIDE = `;(function(c){c.mode='firebase';c.firebase=Object.assign({},c.
   const row = await page.innerText(`tr[data-id="${evId}"]`).catch(() => '');
   ok('Agenda : nombre d\'inscrits dans la liste (2)', /\b2\b/.test(row), row);
   await go('#/tableau'); await page.waitForTimeout(600);
-  ok('Tableau de bord : après consultation de l\'agenda, plus de « nouvelle »', /aucune nouvelle/.test(await page.innerText('#kpi-inscriptions').catch(() => '')));
+  ok('Tableau de bord : après consultation de l\'agenda, plus de « nouvelle »', /^Aucune nouvelle$/m.test(await page.innerText('#kpi-inscriptions').catch(() => '')));
 
   // Messages aux membres (club_messages, format de l'ancien panneau)
   await go('#/annonces');
