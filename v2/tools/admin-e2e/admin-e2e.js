@@ -97,6 +97,16 @@ const OVERRIDE = `;(function(c){c.mode='firebase';c.firebase=Object.assign({},c.
   const shopAfter = await (await fetch(DB('site_v2/settings/showShop'))).json();
   ok('Interrupteur Boutique : désactivé au départ, activation enregistrée dans Firebase', sw && shopBefore === false && shopAfter === true, `champ:${sw} avant:${shopBefore} après:${shopAfter}`);
 
+  // Textes du site : clés à point (« club.team.lead ») refusées telles quelles par Firebase → encodées « __ »
+  await go('#/textes'); await page.waitForTimeout(600);
+  const txt = 'Une école encadrée par la recette ' + Date.now();
+  await page.evaluate(() => document.querySelector('[data-k="club.team.lead"]').closest('details').open = true);
+  await page.locator('[data-k="club.team.lead"]').fill(txt); await page.click('#sv-save'); await page.waitForTimeout(1500);
+  ok('Textes du site : enregistrement dans Firebase (clé « club__team__lead »)', (await (await fetch(DB('site_v2/texts/club__team__lead'))).json()) === txt);
+  const pTx = await ctx.newPage(); await pTx.goto(SITE + '/le-club.html'); await pTx.waitForTimeout(2000);
+  ok('Textes du site : texte modifié affiché sur la page publique Le club', (await pTx.innerText('[data-text="club.team.lead"]').catch(() => '')) === txt);
+  await pTx.close();
+
   // Agenda : ouvrir les inscriptions des membres + liste des inscrits
   const evId = await page.evaluate(() => (window.USM.store.content.events || []).find((e) => e.dateStart).id);
   await go('#/agenda/' + evId);

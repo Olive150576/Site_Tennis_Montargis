@@ -111,10 +111,13 @@
     if (Array.isArray(obj)) return obj.filter(Boolean);
     return Object.keys(obj).map((k) => Object.assign({ id: k }, obj[k]));
   };
+  /* Firebase refuse les « . » dans les clés : « club.team.lead » est stocké « club__team__lead » */
+  const textsOut = (t) => { const o = {}; Object.keys(t || {}).forEach((k) => { o[k.replace(/\./g, '__')] = t[k]; }); return o; };
+  const textsIn = (t) => { const o = {}; Object.keys(t || {}).forEach((k) => { o[k.replace(/__/g, '.')] = t[k]; }); return o; };
   function normalizeRemote(raw) {
     const base = seed();
     if (!raw) return noDemoShop(base);
-    const out = Object.assign({}, base, { settings: Object.assign({}, base.settings, raw.settings || {}), texts: raw.texts || {} });
+    const out = Object.assign({}, base, { settings: Object.assign({}, base.settings, raw.settings || {}), texts: textsIn(raw.texts) });
     COLLECTIONS.forEach((c) => { if (raw[c] !== undefined) out[c] = toArr(raw[c]); });
     ['team', 'facilities', 'sponsors', 'faq', 'rates', 'reviews', 'shopProducts'].forEach((c) => out[c].sort((a, b) => (a.order || 0) - (b.order || 0)));
     return noDemoShop(out);
@@ -572,6 +575,7 @@
         return true;
       }
       if (part === 'settings') value = publicSettings(value);
+      if (part === 'texts') value = textsOut(value);
       const data = COLLECTIONS.includes(part) ? toObj(value) : value;
       await fb.database().ref(root() + '/' + part).set(data);
       await fb.database().ref(root() + '/updatedAt').set(this.content.updatedAt);
@@ -583,7 +587,7 @@
       this.content = content;
       if (this.isLocal) { content._edited = COLLECTIONS.filter((c) => c !== 'messages').concat('texts'); return writeLocal(content); }
       const fb = await firebaseSDK();
-      const payload = { settings: publicSettings(content.settings), texts: content.texts || {}, updatedAt: new Date().toISOString() };
+      const payload = { settings: publicSettings(content.settings), texts: textsOut(content.texts), updatedAt: new Date().toISOString() };
       COLLECTIONS.filter((c) => c !== 'messages').forEach((c) => { payload[c] = toObj(c === 'shopProducts' ? (content[c] || []).filter((p) => !p.demo) : content[c]); });
       await fb.database().ref(root()).update(payload);
       return true;
