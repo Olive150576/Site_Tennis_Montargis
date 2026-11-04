@@ -375,6 +375,7 @@
     var l = st.links || {};
     CLUB.tenup = l.tenup || CLUB.tenup; CLUB.phone = st.phone || CLUB.phone; CLUB.email = st.email || CLUB.email;
     CLUB.whatsapp = String(l.whatsapp || '').trim();
+    CLUB.ideas = String(l.ideas || '').trim(); // Boîte à idées (Admin › Paramètres › Liens)
     var f = REMOTE_FLAGS || st; // les réglages de l'admin (Firebase) priment sur ceux de la démo
     TEAMS_ON = f.showTeams !== false;
     SHOP_ON = f.showShop === true;
@@ -548,6 +549,7 @@
         '<a href="' + esc(CLUB.tenup) + '" target="_blank" rel="noopener"><span class="q-ico ball">' + ic('calendar') + '</span><span>Réserver un court<small>Sur Ten\'Up</small></span></a>' +
         '<button type="button" data-qr><span class="q-ico">' + ic('qr') + '</span><span>Montrer ma carte<small>QR plein écran</small></span></button>' +
         '<a href="#jouer"><span class="q-ico">' + ic('users') + '</span><span>Trouver un partenaire<small>' + (fresh ? fresh + ' annonce' + (fresh > 1 ? 's' : '') + ' à mon niveau' : (LIVE ? 'Annuaire des joueurs' : 'Annonces et annuaire')) + '</small></span></a>' +
+        (CLUB.ideas ? '<a href="' + esc(CLUB.ideas) + '" target="_blank" rel="noopener" data-ideas><span class="q-ico">' + ic('light') + '</span><span>Boîte à idées<small>Anonyme si vous le souhaitez</small></span></a>' : '') +
         (SHOP_ON ? '<a href="#boutique"><span class="q-ico">' + ic('bag') + '</span><span>Boutique du club<small>Commandes groupées</small></span></a>' : '') +
       '</div>' +
       waCard() +
