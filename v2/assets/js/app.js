@@ -12,6 +12,8 @@
 
   /* ---------- Utilitaires ---------- */
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  /* Typo : « 1 h 30 », « 3 h », « 140 € », « + 1 » ne sont jamais coupés en fin de ligne (espaces insécables) */
+  const nb = (s) => esc(s).replace(/(\d) (?=h\b|min\b|€|%|ans\b)/g, '$1&nbsp;').replace(/\bh (?=\d)/g, 'h&nbsp;').replace(/\+ (?=\d)/g, '+&nbsp;');
   const url = (p) => (!p ? '' : /^(https?:|data:|blob:|\/\/|mailto:|tel:)/.test(p) ? p : base + p);
   const icon = (id, cls = '') => `<svg class="icon ${cls}" aria-hidden="true"><use href="#i-${id}"></use></svg>`;
   const MONTHS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
@@ -305,11 +307,11 @@
         el.innerHTML = `<div class="finder-progress" aria-hidden="true">${'<i class="on"></i>'.repeat(total)}</div>
           <div class="finder-result" aria-live="polite">
             <div class="res-top"><span class="res-code">${essai ? 'NOTRE CONSEIL' : 'VOTRE FORMULE · ' + esc(r ? r.code : '')}</span></div>
-            <h3>${essai ? 'Séance d\'essai' : esc(r ? r.title : '')}</h3>
+            <h3>${essai ? 'Séance d\'essai' : nb(r ? r.title : '')}</h3>
             ${essai ? `<p class="muted">Réservez une séance d'essai avec notre enseignant, puis prenez la licence Découverte (${r ? euro(r.price) : 4} €) pour jouer quelques semaines avec l'assurance fédérale, sans engagement sur la saison.</p>`
               : `<p class="price num">${r ? euro(r.price) : ''} € <small>${esc(r ? r.unit || '' : '')}</small></p>
                  ${r && r.licence ? `<p class="lic" style="color:var(--grass);font-weight:600">${esc(r.licence)}</p>` : ''}
-                 <ul>${(r ? r.features : []).map((f) => `<li>${icon('check')}<span>${esc(f)}</span></li>`).join('')}</ul>`}
+                 <ul>${(r ? r.features : []).map((f) => `<li>${icon('check')}<span>${nb(f)}</span></li>`).join('')}</ul>`}
             <div class="res-ctas">
               ${essai ? `<a class="btn btn-blue" href="${url('contact.html#essai')}">Réserver mon essai ${icon('arrow')}</a>`
                 : `${form ? `<a class="btn btn-blue" href="${esc(url(form.url))}" target="_blank" rel="noopener">${icon('download')} Formulaire d'inscription</a>` : ''}
@@ -520,10 +522,10 @@
   const RATE_TABS = [['adultes', 'Adultes'], ['jeunes', 'Jeunes'], ['licences', 'Licences & cours'], ['ete', 'Été & stages']];
   function rateCard(r) {
     return `<article class="rate ${r.featured ? 'featured' : ''}">${r.featured ? '<span class="flag">Le plus choisi</span>' : ''}
-      <div><span class="code">${esc(r.code || '')}</span><h3>${esc(r.title)}</h3></div>
+      <div><span class="code">${esc(r.code || '')}</span><h3>${nb(r.title)}</h3></div>
       <p class="price"><span class="num">${euro(r.price)}&nbsp;€</span><small>${esc(r.unit || '')}</small></p>
       ${r.licence ? `<p class="lic">${esc(r.licence)}</p>` : ''}
-      ${r.features && r.features.length ? `<ul>${r.features.map((f) => `<li>${icon('check')}<span>${esc(f)}</span></li>`).join('')}</ul>` : ''}
+      ${r.features && r.features.length ? `<ul>${r.features.map((f) => `<li>${icon('check')}<span>${nb(f)}</span></li>`).join('')}</ul>` : ''}
       ${r.desc ? `<p>${esc(r.desc)}</p>` : ''}
       ${r.note ? `<p class="rate-note" style="margin:0">${esc(r.note)}</p>` : ''}
       <div class="rate-ctas">
@@ -699,7 +701,7 @@
         : `<p class="p-price">${esc(v)}${p.period ? ` <span class="p-period">${esc(p.period)}</span>` : ''}</p>`;
     };
     el.innerHTML = packs.map((p) => `<article class="pack ${p.highlight ? 'highlight' : ''}"><div class="pack-head"><h3>${esc(p.name)}</h3>${price(p)}</div>
-      <ul>${(p.features || []).map((f) => `<li>${icon('check')}<span>${esc(f)}</span></li>`).join('')}</ul>
+      <ul>${(p.features || []).map((f) => `<li>${icon('check')}<span>${nb(f)}</span></li>`).join('')}</ul>
       <a class="btn ${p.highlight ? 'btn-ball' : 'btn-blue'}" href="#devenir-partenaire" data-pack="${esc(p.name)}">Choisir ce pack</a></article>`).join('');
     /* Le menu du formulaire suit les packs de l'admin (nom + prix) */
     const sel = $('#pf-pack');
@@ -780,7 +782,7 @@
     const hid = $('input[name="formule"]', form); if (hid) hid.value = r.code;
     let chip = $('.formule-chip', form);
     if (!chip) { chip = document.createElement('p'); chip.className = 'formule-chip'; const t = $('h3', form); if (t) t.after(chip); else form.prepend(chip); }
-    chip.innerHTML = `${icon('check')}<span>Formule choisie : <b>${esc(r.title)}</b> · ${euro(r.price)} €</span>`;
+    chip.innerHTML = `${icon('check')}<span>Formule choisie : <b>${nb(r.title)}</b> · ${euro(r.price)} €</span>`;
     const wa = $('[data-wa]', form.closest('section') || document);
     if (wa) { const l = waLink(`Bonjour, je souhaite des informations sur la formule ${rateLabel(r)}.`); if (l) wa.href = l; }
     form.scrollIntoView({ behavior: fromClick ? 'smooth' : 'auto', block: 'start' });
