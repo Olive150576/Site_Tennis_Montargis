@@ -618,10 +618,18 @@
   function rankKnown(r) { var i = LADDER.indexOf(String(r || '').trim()); return i <= 0 ? -1 : i; }
   function nearRange() { var mi = rankKnown(S.me.classement); return mi < 0 ? null : [LADDER[Math.max(1, mi - NIV_ECART)], LADDER[Math.min(LADDER.length - 1, mi + NIV_ECART)]]; }
   function commonSlots(p) { var me = (S.me.partenaire || {}).dispos || {}, n = 0; DAYS.forEach(function (dd) { SLOTS.forEach(function (s) { if (me[dd] && me[dd][s] && p.dispos && p.dispos[dd] && p.dispos[dd][s]) n++; }); }); return n; }
-  function dispoGrid(d) {
+  function dispoGrid(d, mine) {
+    var both = 0, has = function (x, dd, s) { return !!(x && x[dd] && x[dd][s]); };
     var h = '<div class="dispo" aria-label="Disponibilités"><span></span>' + DAYS_L.map(function (x) { return '<span class="d-h">' + x + '</span>'; }).join('');
-    SLOTS.forEach(function (s) { h += '<span>' + s + '</span>'; DAYS.forEach(function (dd) { h += '<i class="' + (d && d[dd] && d[dd][s] ? 'on' : '') + '"></i>'; }); });
-    return h + '</div>';
+    SLOTS.forEach(function (s) {
+      h += '<span>' + s + '</span>';
+      DAYS.forEach(function (dd, i) {
+        var on = has(d, dd, s), c = on && has(mine, dd, s); if (c) both++;
+        h += '<i class="' + (c ? 'on both' : on ? 'on' : '') + '"' + (on ? ' title="' + OLD_DAYS[i].replace(/^./, function (m) { return m.toUpperCase(); }) + ' ' + s + (c ? ' · en commun avec vous' : '') + '"' : '') + '></i>';
+      });
+    });
+    h += '</div>';
+    return h + (both ? '<p class="dispo-key"><span><i class="on"></i>Ses dispos</span><span><i class="on both"></i>En commun avec vous</span></p>' : '');
   }
   function hasSlot(d, s) { return DAYS.some(function (dd) { return d && d[dd] && d[dd][s]; }); }
   function playerCard(p) {
@@ -633,7 +641,7 @@
       (cs ? '<span class="chip match">' + ic('clock') + cs + ' créneau' + (cs > 1 ? 'x' : '') + ' commun' + (cs > 1 ? 's' : '') + '</span>' : '');
     return '<article class="player"><div class="player-top">' + avatar(p) + '<div><b>' + esc(p.prenom + ' ' + (p.nom || ' ')[0] + '.') + '</b></div><span class="rank" title="Classement">' + esc(p.classement || 'NC') + '</span></div>' +
       '<div class="player-tags">' + marks + p.style.map(function (s) { return '<span class="chip">' + esc(s) + '</span>'; }).join('') + '</div>' +
-      (p.message ? '<p class="player-msg">« ' + esc(p.message) + ' »</p>' : '') + dispoGrid(p.dispos) +
+      (p.message ? '<p class="player-msg">« ' + esc(p.message) + ' »</p>' : '') + dispoGrid(p.dispos, (S.me.partenaire || {}).dispos) +
       '<div class="player-contact">' + contact.join('') + '</div></article>';
   }
   function postCard(p) {

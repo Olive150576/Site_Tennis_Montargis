@@ -137,6 +137,8 @@ const OVERRIDE = `;(function(c){c.mode='firebase';c.firebase=Object.assign({},c.
   ok('Jouer : les plus proches de mon niveau d\'abord (30/3 : Léa 30/1, Hugo 40), NC en dernier', JSON.stringify(await names()) === JSON.stringify(['Léa M.', 'Hugo B.', 'Nina P.']) && /plus proches de votre niveau/.test(await page.innerText('#v-jouer')), JSON.stringify(await names()));
   const cards = await page.$$eval('#v-jouer .player', (cs) => cs.map((c) => c.innerText));
   ok('Jouer : repères « Niveau proche » et « 1 créneau commun » (samedi matin avec Hugo)', /Niveau proche/.test(cards[0]) && /Niveau proche/.test(cards[1]) && /1 créneau commun/.test(cards[1]) && !/Niveau proche/.test(cards[2]), JSON.stringify(cards).slice(0, 300));
+  const both = await page.$$eval('#v-jouer .player', (cs) => cs.map((c) => [...c.querySelectorAll('.dispo i.both')].map((i) => i.title)));
+  ok('Jouer : créneau commun en couleur dans la grille (samedi matin chez Hugo seulement) + légende', both[1].length === 1 && /Samedi matin · en commun/.test(both[1][0]) && both[0].length === 0 && /En commun avec vous/.test(cards[1]), JSON.stringify(both));
   await page.click('#v-jouer [data-f="near"]'); await page.waitForTimeout(400);
   ok('Jouer : « Mon niveau » règle la plage à ±3 échelons (40 à 30)', (await page.$eval('#lv-min', (x) => x.value)) === '40' && (await page.$eval('#lv-max', (x) => x.value)) === '30' && (await page.getAttribute('#v-jouer [data-f="near"]', 'aria-pressed')) === 'true');
   await page.selectOption('#lv-min', '30/2'); await page.waitForTimeout(400); jo = await page.innerText('#v-jouer');
