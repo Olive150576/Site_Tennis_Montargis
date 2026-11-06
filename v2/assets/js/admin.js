@@ -1463,11 +1463,27 @@
     reg.forEach((t) => { (pages[t.page] = pages[t.page] || []).push(t); });
     const texts = Object.assign({}, C.texts || {});
     v.innerHTML = `<div class="callout" style="margin-bottom:16px">${icon('info')}<div>Modifiez les grands titres et accroches du site. Laissez un champ vide pour revenir au texte d'origine. Entourez un mot d'astérisques pour le mettre en valeur en jaune : <code>Le goût du *match*</code>.</div></div>
-      <div style="display:grid;gap:12px">${Object.entries(pages).map(([p, list], gi) => `<details class="card text-group"${gi === 0 ? ' open' : ''}><summary>${esc(p)} <span class="pill">${list.length} textes</span>${icon('chevron-down')}</summary><div class="fields">
+      <div class="toolbar"><label class="search"><span class="sr-only">Rechercher un texte</span>${icon('search')}<input type="search" id="tx-q" placeholder="Rechercher un mot, une page… (ex. partenaire, horaires)"></label><span class="muted small" id="tx-count" aria-live="polite"></span></div>
+      <div style="display:grid;gap:12px" id="tx-groups">${Object.entries(pages).map(([p, list], gi) => `<details class="card text-group"${gi === 0 ? ' open' : ''}><summary>${esc(p)} <span class="pill">${list.length} textes</span>${icon('chevron-down')}</summary><div class="fields">
         ${list.map((t) => `<div class="field"><label for="tx-${esc(t.key)}">${esc(t.label)}</label>${t.long ? `<textarea id="tx-${esc(t.key)}" data-k="${esc(t.key)}" placeholder="${esc(t.def)}">${esc(texts[t.key] || '')}</textarea>` : `<input type="text" id="tx-${esc(t.key)}" data-k="${esc(t.key)}" placeholder="${esc(t.def)}" value="${esc(texts[t.key] || '')}">`}<p class="text-default"><b>Texte d'origine :</b> ${esc(t.def)}</p></div>`).join('')}
       </div></details>`).join('')}</div>
       <div class="savebar"><span class="state" id="sv-state"><i></i>Tout est enregistré</span><span class="grow"></span><button type="button" class="btn btn-primary" id="sv-save">${icon('check')} Enregistrer les textes</button></div>`;
     const st = $('#sv-state', v);
+    // Recherche : dans le nom de la page, le libellé, le texte d'origine et le texte saisi (sans accents)
+    const nz = (x) => String(x || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const q = $('#tx-q', v), groups = $$('.text-group', v), openState = groups.map((g) => g.open);
+    q.addEventListener('input', () => {
+      const words = nz(q.value).split(/\s+/).filter(Boolean); let hits = 0;
+      groups.forEach((g, gi) => {
+        const page = nz($('summary', g).textContent); let gh = 0;
+        $$('.field', g).forEach((f) => {
+          const inp = $('[data-k]', f), hay = page + ' ' + nz($('label', f).textContent) + ' ' + nz(inp.placeholder) + ' ' + nz(inp.value);
+          const ok = !words.length || words.every((w) => hay.includes(w)); f.hidden = !ok; if (ok) gh++;
+        });
+        g.hidden = words.length > 0 && !gh; g.open = words.length ? gh > 0 : openState[gi]; hits += gh;
+      });
+      $('#tx-count', v).textContent = words.length ? (hits ? hits + ' texte' + (hits > 1 ? 's' : '') + ' trouvé' + (hits > 1 ? 's' : '') : 'Aucun texte trouvé') : '';
+    });
     $$('[data-k]', v).forEach((el) => el.addEventListener('input', () => { dirty = true; st.classList.add('dirty'); st.lastChild.textContent = 'Modifications non enregistrées'; }));
     const save = async () => {
       const out = {};
