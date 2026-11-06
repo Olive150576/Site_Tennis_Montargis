@@ -47,8 +47,16 @@
   }
   const emph = (s) => esc(s).replace(/\*([^*]+)\*/g, '<em>$1</em>');
 
-  function pic(im, { sizes = '100vw', eager = false, alt, cls = '', attrs = '' } = {}) {
+  /* frame = format du cadre (largeur / hauteur). Une affiche plus haute que le cadre s'affiche en entier sur un fond flouté
+     au lieu d'être coupée ; im.focus (admin) : '' auto, 'full' image entière, 'top' | 'center' | 'bottom' remplir le cadre. */
+  function pic(im, { sizes = '100vw', eager = false, alt, cls = '', attrs = '', frame = 0 } = {}) {
     if (!im) return '';
+    const fo = im.focus || '', ratio = im.w && im.h ? im.w / im.h : 0;
+    if (frame && (fo === 'full' || (!fo && ratio && ratio < frame * 0.8))) {
+      const bg = url(im.sm || im.src).replace(/["'()\\]/g, (ch) => '\\' + ch);
+      return `<span class="pf" style="--pf:url('${bg}')">${pic(Object.assign({}, im, { focus: 'none' }), { sizes, eager, alt, cls: (cls + ' pf-img').trim(), attrs })}</span>`;
+    }
+    if (fo === 'top' || fo === 'bottom') attrs += ` style="object-position:center ${fo}"`;
     const src = url(im.src), sm = url(im.sm || im.src);
     const big = im.w || 1400;
     const md = im.md && big > 1100 ? `, ${url(im.md)} 1024w` : '';
@@ -415,7 +423,7 @@
         <div class="body prose">${md(e.body || e.summary)}</div>
         ${signupOpen(e) || e.link ? `<p style="margin-top:18px;display:flex;flex-wrap:wrap;gap:10px;align-items:center">${signupOpen(e) ? `<a class="btn btn-ball btn-sm" href="${esc(signupHref(e))}" data-signup="${esc(e.id)}">${icon('check')} S'inscrire (membres)</a>` : ''}${e.link ? `<a class="btn btn-blue btn-sm" href="${esc(e.link)}" target="_blank" rel="noopener">En savoir plus ${icon('external')}</a>` : ''}</p>${signupOpen(e) ? '<p class="small" style="margin-top:6px;color:var(--ink-3)">Réservé aux membres du club : connexion à l\'espace membre, puis confirmation.</p>' : ''}` : ''}
       </div>
-      <div class="ed-media">${ims.slice(0, 2).map((im, i) => `<button type="button" class="lb-trigger" data-group="ev-${esc(e.id)}" data-i="${i}" style="all:unset;cursor:zoom-in">${pic(im, { sizes: '(max-width:960px) 100vw, 45vw', alt: im.alt || e.title })}</button>`).join('')}</div>
+      <div class="ed-media">${ims.slice(0, 2).map((im, i) => `<button type="button" class="lb-trigger" data-group="ev-${esc(e.id)}" data-i="${i}" style="all:unset;cursor:zoom-in">${pic(im, { sizes: '(max-width:960px) 100vw, 45vw', alt: im.alt || e.title , frame: 4 / 3 })}</button>`).join('')}</div>
     </article>`;
   }
   function renderAgendaFull(c) {
@@ -438,7 +446,7 @@
   function newsCard(n, variant = '') {
     const im = (n.images || [])[0];
     return `<a class="card-news ${variant}" href="${newsHref(n)}">
-      <div class="media">${im ? pic(im, { sizes: variant === 'big' ? '(max-width:960px) 100vw, 58vw' : '(max-width:640px) 100vw, 33vw', alt: n.title }) : ''}${n.featured && variant === 'big' ? '<span class="badge-une">À la une</span>' : ''}</div>
+      <div class="media">${im ? pic(im, { sizes: variant === 'big' ? '(max-width:960px) 100vw, 58vw' : '(max-width:640px) 100vw, 33vw', alt: n.title, frame: variant === 'big' ? 1.2 : 1.6 }) : ''}${n.featured && variant === 'big' ? '<span class="badge-une">À la une</span>' : ''}</div>
       <div class="body"><div class="top"><span class="chip cat-${esc(n.category)}">${esc(CATS[n.category] || 'Actualité')}</span><time datetime="${esc(n.date)}">${fmtDate(n.date)}</time></div>
       <h3>${esc(n.title)}</h3>${variant === 'row' ? '' : `<p>${esc(n.excerpt || '')}</p>`}</div></a>`;
   }
@@ -705,7 +713,7 @@
         ? `<p class="p-price is-amount"><span class="p-amount">${esc(v)}</span>${p.period ? `<span class="p-period">${esc(p.period)}</span>` : ''}</p>`
         : `<p class="p-price">${esc(v)}${p.period ? ` <span class="p-period">${esc(p.period)}</span>` : ''}</p>`;
     };
-    el.innerHTML = packs.map((p) => `<article class="pack ${p.highlight ? 'highlight' : ''}"><div class="pack-head">${p.image ? `<div class="pack-img">${pic(p.image, { sizes: '(max-width: 640px) 100vw, 360px', alt: 'Exemple : ' + (p.name || '') })}</div>` : ''}<h3>${esc(p.name)}</h3>${price(p)}</div>
+    el.innerHTML = packs.map((p) => `<article class="pack ${p.highlight ? 'highlight' : ''}"><div class="pack-head">${p.image ? `<div class="pack-img">${pic(p.image, { sizes: '(max-width: 640px) 100vw, 360px', alt: 'Exemple : ' + (p.name || ''), frame: 16 / 9 })}</div>` : ''}<h3>${esc(p.name)}</h3>${price(p)}</div>
       <ul>${(p.features || []).map((f) => `<li>${icon('check')}<span>${nb(f)}</span></li>`).join('')}</ul>
       <a class="btn ${p.highlight ? 'btn-ball' : 'btn-blue'}" href="#devenir-partenaire" data-pack="${esc(p.name)}">Ce pack m'intéresse</a></article>`).join('');
     /* Le menu du formulaire suit les packs de l'admin (nom + prix) */

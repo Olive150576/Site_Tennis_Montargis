@@ -517,11 +517,13 @@
       const commit = () => { if (single) state[f.k] = arr[0] || null; else state[f.k] = arr; change(); };
       el.innerHTML = arr.map((im, i) => `<div class="img-item">${i === 0 && !single && arr.length > 1 ? '<span class="pill ball cover">Couverture</span>' : ''}<img src="${imgUrl(im)}" alt="">
           <div class="img-tools">${!single && i > 0 ? `<button type="button" class="mv" data-first="${i}" title="Utiliser en couverture">${icon('star')}</button>` : ''}<button type="button" data-rm="${i}" title="Retirer l'image">${icon('trash')}</button></div>
-          <input type="text" value="${esc(im.alt || '')}" data-alt="${i}" placeholder="Description (accessibilité, SEO)" aria-label="Description de l'image ${i + 1}"></div>`).join('') +
+          <input type="text" value="${esc(im.alt || '')}" data-alt="${i}" placeholder="Description (accessibilité, SEO)" aria-label="Description de l'image ${i + 1}">
+          <select data-focus="${i}" aria-label="Cadrage de l'image ${i + 1}" title="Comment l'image remplit son cadre sur le site">${[['', 'Cadrage automatique'], ['full', 'Image entière (affiche)'], ['top', 'Remplir, garder le haut'], ['center', 'Remplir, centrer'], ['bottom', 'Remplir, garder le bas']].map(([v, l]) => `<option value="${v}"${(im.focus || '') === v ? ' selected' : ''}>${l}</option>`).join('')}</select></div>`).join('') +
         (single && arr.length ? '' : `<label class="dropzone">${icon('upload')}<span>${single ? 'Choisir une image' : 'Ajouter des photos'}<br><span class="muted">ou glisser-déposer</span></span><input type="file" accept="image/*" class="sr-only" ${single ? '' : 'multiple'}></label>`);
       $$('[data-rm]', el).forEach((b) => b.addEventListener('click', () => { arr.splice(+b.dataset.rm, 1); commit(); drawImages(f, el); }));
       $$('[data-first]', el).forEach((b) => b.addEventListener('click', () => { const [x] = arr.splice(+b.dataset.first, 1); arr.unshift(x); commit(); drawImages(f, el); }));
       $$('[data-alt]', el).forEach((inp) => inp.addEventListener('input', () => { arr[+inp.dataset.alt].alt = inp.value; commit(); }));
+      $$('[data-focus]', el).forEach((sel) => sel.addEventListener('change', () => { const im = arr[+sel.dataset.focus]; if (sel.value) im.focus = sel.value; else delete im.focus; commit(); }));
       const dz = $('.dropzone', el);
       if (!dz) return;
       const input = $('input[type=file]', dz);
