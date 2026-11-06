@@ -683,6 +683,10 @@ ul, ol { margin: 0; padding: 0; }
 .pack.highlight h3, .pack.highlight .p-price { color: #fff; }
 .pack.highlight li { color: var(--on-blue-2); }
 .pack.highlight li .icon { color: var(--ball); }
+.pack-img, .pack ul, .pack .pack-head { flex: none; }
+/* Photo dans l'en-tête de la carte (garde l'alignement en 3 rangées titre / liste / bouton) */
+.pack-img { margin: -28px -24px 8px; border-radius: var(--radius) var(--radius) 0 0; overflow: hidden; aspect-ratio: 16 / 9; }
+.pack-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .pack h3 { font-size: var(--step-2); font-stretch: 110%; font-weight: 800; text-transform: uppercase; }
 .pack .p-price { font-family: var(--font-display); font-weight: 700; color: var(--blue); }
 .pack ul { list-style: none; display: grid; gap: 10px; }
