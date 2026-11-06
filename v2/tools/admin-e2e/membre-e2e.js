@@ -108,10 +108,13 @@ const OVERRIDE = `;(function(c){c.mode='firebase';c.firebase=Object.assign({},c.
   await page.click('#v-agenda [data-evin="ev1"]'); await page.waitForTimeout(1500);
   let reg = await (await fetch(DB('inscriptions_evenement/ev1/' + uid), { headers: OWN })).json();
   ok('Inscription enregistrée (inscriptions_evenement, format actuel) + « 1 inscrit »', reg && reg.prenom === 'Camille' && reg.nom === 'Durand' && reg.at > 0 && /1 inscrit/.test(await page.innerText('#v-agenda')), JSON.stringify(reg));
+  ok('Inscription : la fiche reste ouverte avec « Inscription confirmée » et « Me désinscrire »', !(await page.$eval('#drawer', (d) => d.hidden)) && /Inscription confirmée/.test(await page.innerText('#drawer-body')) && /Me désinscrire/.test(await page.innerText('#drawer-foot')));
+  await page.click('#drawer [data-close]'); await page.waitForTimeout(400);
   await page.click('#v-agenda [data-evin="ev1"]'); await page.waitForTimeout(1500);
   reg = await (await fetch(DB('inscriptions_evenement/ev1/' + uid), { headers: OWN })).json();
   ok('Désinscription : supprimée de Firebase', reg === null, JSON.stringify(reg));
   await page.click('#v-agenda [data-evin="ev1"]'); await page.waitForTimeout(1200); // réinscrit pour la suite
+  await page.click('#drawer [data-close]'); await page.waitForTimeout(300);
   ag = await page.innerText('#v-agenda');
   ok('Agenda : résumé visible sur la carte + lien « Détails et inscription »', /Résumé ev1/.test(ag) && !!(await page.$('#v-agenda .ev-more[data-evinfo="ev1"]')));
   await page.click('#v-agenda .ev-more[data-evinfo="ev1"]'); await page.waitForTimeout(500);
@@ -136,7 +139,7 @@ const OVERRIDE = `;(function(c){c.mode='firebase';c.firebase=Object.assign({},c.
   const names = async () => page.$$eval('#v-jouer .player b', (b) => b.map((x) => x.textContent.trim()));
   ok('Jouer : les plus proches de mon niveau d\'abord (30/3 : Léa 30/1, Hugo 40), NC en dernier', JSON.stringify(await names()) === JSON.stringify(['Léa M.', 'Hugo B.', 'Nina P.']) && /plus proches de votre niveau/.test(await page.innerText('#v-jouer')), JSON.stringify(await names()));
   const cards = await page.$$eval('#v-jouer .player', (cs) => cs.map((c) => c.innerText));
-  ok('Jouer : repères « Niveau proche » et « 1 créneau commun » (samedi matin avec Hugo)', /Niveau proche/.test(cards[0]) && /Niveau proche/.test(cards[1]) && /1 créneau commun/.test(cards[1]) && !/Niveau proche/.test(cards[2]), JSON.stringify(cards).slice(0, 300));
+  ok('Jouer : repères « Niveau proche » et « En commun : sam. matin » (avec Hugo)', /Niveau proche/.test(cards[0]) && /Niveau proche/.test(cards[1]) && /En commun : sam. matin/.test(cards[1]) && !/Niveau proche/.test(cards[2]), JSON.stringify(cards).slice(0, 300));
   const both = await page.$$eval('#v-jouer .player', (cs) => cs.map((c) => [...c.querySelectorAll('.dispo i.both')].map((i) => i.title)));
   ok('Jouer : créneau commun en couleur dans la grille (samedi matin chez Hugo seulement) + légende', both[1].length === 1 && /Samedi matin · en commun/.test(both[1][0]) && both[0].length === 0 && /En commun avec vous/.test(cards[1]), JSON.stringify(both));
   await page.click('#v-jouer [data-f="near"]'); await page.waitForTimeout(400);
