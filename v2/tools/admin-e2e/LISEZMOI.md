@@ -44,3 +44,9 @@ Dans ce dossier : `npm test`. Résultat attendu : `62/62 contrôles admin (mode 
 ## Textes qui débordent sur téléphone
 
 `node audit-debordements.js` (dans ce dossier, sans émulateurs) : ouvre chaque page publique en 320, 360, 390 et 430 px et liste les textes qui sortent de leur carte et les grands titres coupés. Résultat attendu : `TOTAL 0`. À relancer après une modification du CSS ou d'un titre de page.
+
+## Parcours de membres simulés (`parcours-membres.js`)
+Trois profils (Monique 68 ans sur petit Android, Karim compétiteur pressé, Léa sur iPhone) jouent leur parcours dans l'espace membre et produisent des captures + `journal.json`, ensuite relues « dans le rôle » par des agents Claude.
+1. `curl -s "https://usm-tennis-default-rtdb.europe-west1.firebasedatabase.app/site_v2.json" -o site_v2.json` (contenu public uniquement)
+2. Depuis la racine du dépôt : `V2=$PWD/v2 OUT=<dossier de sortie> LIVE=<chemin>/site_v2.json PERSONA=monique firebase emulators:exec --only auth,database,storage,functions --project demo-usm "node v2/tools/admin-e2e/parcours-membres.js"` (puis `karim`, `lea`).
+Attention : certaines actions du script sont approximatives (ex. il ne valide pas la fenêtre du classement) ; vérifier chaque remarque des agents avant de corriger.
