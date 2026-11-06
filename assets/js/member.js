@@ -30,7 +30,8 @@
   var SEASON = '2026-2027';
   var LADDER = ['NC','40','30/5','30/4','30/3','30/2','30/1','30','15/5','15/4','15/3','15/2','15/1','15','5/6','4/6','3/6','2/6','1/6','0','-2/6','-4/6','-15'];
   var DAYS = ['lun','mar','mer','jeu','ven','sam','dim'];
-  var DAYS_L = ['L','M','M','J','V','S','D'];
+  var DAYS_L = ['Lu','Ma','Me','Je','Ve','Sa','Di'];
+  var DAYS_AB = ['lun.','mar.','mer.','jeu.','ven.','sam.','dim.'];
   var SLOTS = ['matin','midi','soir'];
 
   /* ---------- Utilitaires ---------- */
@@ -344,6 +345,9 @@
       style: Array.isArray(x.styles) ? x.styles.slice() : (STYLE_NEW[x.style_jeu] ? [STYLE_NEW[x.style_jeu]] : []), dispos: dispos,
       message: x.message || '', telephone: x.partager_telephone && x.telephone ? x.telephone : '', email: x.partager_email && x.email ? x.email : '' };
   }
+  function afterToggle(id, on) { // inscription : la fiche reste à l'écran avec la confirmation ; désinscription : simple message
+    if (on) { openEventInfo(id); toast('Inscription enregistrée'); } else toast('Inscription annulée');
+  }
   function liveEventToggle(id) {
     var ev = S.events.filter(function (e) { return e.id === id; })[0]; if (!ev || !ev.inscription) return;
     var on = !S.eventsIn[id];
@@ -351,7 +355,7 @@
     sdk().then(function (fb) {
       var r = fb.database().ref('inscriptions_evenement/' + id + '/' + UID);
       return on ? r.set({ prenom: S.me.prenom, nom: S.me.nom, at: fb.database.ServerValue.TIMESTAMP }) : r.remove();
-    }).then(function () { toast(on ? 'Inscription enregistrée' : 'Inscription annulée'); })
+    }).then(function () { afterToggle(id, on); })
       .catch(function (x) { S.eventsIn[id] = !on; ev.count = Math.max(0, ev.count + (on ? -1 : 1)); route(); toast('Inscription impossible : ' + liveErr(x), 6000); });
   }
   function liveLogout() {
@@ -475,7 +479,7 @@
     set('jouer', freshPosts().length);
     var shopN = SHOP_ON ? unseenShop().length : 0;
     set('boutique', shopN);
-    set('plus', unreadMsgs().length + shopN);
+    set('plus', (TEAMS_ON ? unreadMsgs().length : 0) + shopN); // Agenda déjà dans la barre quand Équipes est masqué
   }
 
   /* ---------- Navigation ---------- */
@@ -483,6 +487,7 @@
   var RENDER = {};
   function applyTeamsNav() {
     $$('[data-nav="equipes"]').forEach(function (a) { var li = a.closest('li') || a; li.style.display = TEAMS_ON ? '' : 'none'; });
+    $$('[data-tab-alt]').forEach(function (a) { a.hidden = TEAMS_ON; }); // barre du bas : Agenda prend la place d'Équipes quand l'onglet est désactivé
     $$('[data-nav="boutique"]').forEach(function (a) { var li = a.closest('li') || a; li.style.display = SHOP_ON ? '' : 'none'; });
   }
   /* Vue désactivée dans Admin › Paramètres › Espace membre → retour à l'accueil */
@@ -617,6 +622,7 @@
   var NIV_ECART = 3;
   function rankKnown(r) { var i = LADDER.indexOf(String(r || '').trim()); return i <= 0 ? -1 : i; }
   function nearRange() { var mi = rankKnown(S.me.classement); return mi < 0 ? null : [LADDER[Math.max(1, mi - NIV_ECART)], LADDER[Math.min(LADDER.length - 1, mi + NIV_ECART)]]; }
+  function commonList(p) { var me = (S.me.partenaire || {}).dispos || {}, out = []; DAYS.forEach(function (dd, i) { SLOTS.forEach(function (s) { if (me[dd] && me[dd][s] && p.dispos && p.dispos[dd] && p.dispos[dd][s]) out.push(DAYS_AB[i] + ' ' + s); }); }); return out; }
   function commonSlots(p) { var me = (S.me.partenaire || {}).dispos || {}, n = 0; DAYS.forEach(function (dd) { SLOTS.forEach(function (s) { if (me[dd] && me[dd][s] && p.dispos && p.dispos[dd] && p.dispos[dd][s]) n++; }); }); return n; }
   function dispoGrid(d, mine) {
     var both = 0, has = function (x, dd, s) { return !!(x && x[dd] && x[dd][s]); };
@@ -638,11 +644,11 @@
     if (p.email) contact.push('<button class="btn btn-blue" data-contact="mail" data-to="' + esc(p.email) + '" data-name="' + esc(p.prenom) + '">' + ic('mail') + 'Email</button>');
     var mi = rankKnown(S.me.classement), pi = rankKnown(p.classement), cs = commonSlots(p);
     var marks = (mi >= 0 && pi >= 0 && Math.abs(pi - mi) <= NIV_ECART ? '<span class="chip match">' + ic('target') + 'Niveau proche</span>' : '') +
-      (cs ? '<span class="chip match">' + ic('clock') + cs + ' créneau' + (cs > 1 ? 'x' : '') + ' commun' + (cs > 1 ? 's' : '') + '</span>' : '');
+      (cs ? '<span class="chip match both">' + ic('clock') + (cs <= 3 ? 'En commun : ' + commonList(p).join(', ') : cs + ' créneaux en commun') + '</span>' : '');
     return '<article class="player"><div class="player-top">' + avatar(p) + '<div><b>' + esc(p.prenom + ' ' + (p.nom || ' ')[0] + '.') + '</b></div><span class="rank" title="Classement">' + esc(p.classement || 'NC') + '</span></div>' +
       '<div class="player-tags">' + marks + p.style.map(function (s) { return '<span class="chip">' + esc(s) + '</span>'; }).join('') + '</div>' +
       (p.message ? '<p class="player-msg">« ' + esc(p.message) + ' »</p>' : '') + dispoGrid(p.dispos, (S.me.partenaire || {}).dispos) +
-      '<div class="player-contact">' + contact.join('') + '</div></article>';
+      (contact.length ? '<div class="player-contact">' + contact.join('') + '</div>' : '<p class="player-nocontact">' + ic('info') + 'Ne partage pas ses coordonnées : demandez-les au club ou croisez-le au club house.</p>') + '</article>';
   }
   function postCard(p) {
     var who = p.uid === 'me' ? S.me : S.players.filter(function (x) { return x.uid === p.uid; })[0] || { prenom: '?', nom: '?' };
@@ -679,19 +685,20 @@
         return true;
       }).sort(function (a, b) {
         if (mk >= 0) { var ia = rankKnown(a.classement), ib = rankKnown(b.classement), da = ia < 0 ? 999 : Math.abs(ia - mk), db = ib < 0 ? 999 : Math.abs(ib - mk); if (da !== db) return da - db; }
+        var ca = commonSlots(a), cb = commonSlots(b); if (ca !== cb) return cb - ca; // à niveau égal : le plus de créneaux en commun d'abord
         return (a.prenom + a.nom).localeCompare(b.prenom + b.nom, 'fr');
       });
       var pressed = function (b) { return ' aria-pressed="' + (!!b) + '"'; };
       var nr = nearRange(); F.near = !!(nr && F.lmin === nr[0] && F.lmax === nr[1]);
       var lvlOpts = function (v) { return '<option value="">—</option>' + LADDER.slice(1).map(function (c) { return '<option' + (c === v ? ' selected' : '') + '>' + c + '</option>'; }).join(''); };
       body = '<div class="panel-m visibility" style="margin-top:18px"><div><b>' + (me.partenaire.actif ? 'Vous apparaissez dans l\'annuaire' : 'Vous êtes invisible dans l\'annuaire') + '</b><span>' + (me.partenaire.actif ? 'Les membres connectés voient votre niveau, vos créneaux et ' + (me.partenaire.partager_telephone ? 'votre téléphone.' : 'votre email.') : 'Activez pour que d\'autres membres vous proposent des matchs.') + '</span></div>' +
-        '<div style="display:flex;gap:10px;align-items:center"><a class="link-arrow" href="#profil" style="font-size:.88rem">Mes créneaux</a><label class="switch"><input type="checkbox" data-visible' + (me.partenaire.actif ? ' checked' : '') + ' aria-label="Apparaître dans l\'annuaire"><span></span></label></div></div>' +
+        '<div class="vis-ctrl"><label class="vis-lab">Visible dans l\'annuaire<span class="switch"><input type="checkbox" data-visible' + (me.partenaire.actif ? ' checked' : '') + '><span></span></span></label><a class="link-arrow" href="#profil">Modifier mes créneaux</a></div></div>' +
         '<div class="lvl-row"><span class="lvl-range"><label for="lv-min">Niveau</label><select id="lv-min" data-lvl="lmin" aria-label="Niveau minimum">' + lvlOpts(F.lmin) + '</select><label for="lv-max">à</label><select id="lv-max" data-lvl="lmax" aria-label="Niveau maximum">' + lvlOpts(F.lmax) + '</select></span>' +
           '<button class="fchip" data-f="near"' + pressed(F.near) + '>' + ic('target') + 'Mon niveau' + (mk >= 0 ? ' (' + esc(me.classement) + ')' : '') + '</button></div>' +
-        '<div class="filters-bar"><label class="search-m">' + ic('search') + '<input type="search" placeholder="Rechercher un nom" value="' + esc(F.q) + '" data-q aria-label="Rechercher un joueur"></label>' +
+        '<div class="filters-bar wrap"><label class="search-m">' + ic('search') + '<input type="search" placeholder="Rechercher un nom" value="' + esc(F.q) + '" data-q aria-label="Rechercher un joueur"></label>' +
           SLOTS.map(function (s) { return '<button class="fchip" data-f="slot" data-v="' + s + '"' + pressed(F.slots[s]) + '>' + s[0].toUpperCase() + s.slice(1) + '</button>'; }).join('') +
           ['Loisir', 'Compétitif', 'Double', 'Mixte'].map(function (s) { return '<button class="fchip" data-f="style" data-v="' + s + '"' + pressed(F.styles[s]) + '>' + s + '</button>'; }).join('') +
-        '</div><p class="muted" style="margin-bottom:12px;font-size:.9rem" aria-live="polite">' + list2.length + ' joueur' + (list2.length > 1 ? 's' : '') + (mk >= 0 && list2.length > 1 ? ' · les plus proches de votre niveau en premier' : '') + ((lo > 0 || hi > 0) ? ' · joueurs NC toujours affichés' : '') + '</p>' +
+        '</div><p class="muted" style="margin-bottom:12px;font-size:.9rem" aria-live="polite">' + list2.length + ' joueur' + (list2.length > 1 ? 's' : '') + (list2.length > 1 ? (mk >= 0 ? ' · les plus proches de votre niveau, puis de vos créneaux, en premier' : ' · ceux qui ont le plus de créneaux en commun avec vous en premier') : '') + ((lo > 0 || hi > 0) ? ' · joueurs NC toujours affichés' : '') + '</p>' +
         (list2.length ? '<div class="players">' + list2.map(playerCard).join('') + '</div>' : '<div class="empty">Aucun joueur ne correspond. Retirez un filtre ou publiez une annonce.</div>');
     }
     $('#v-jouer').innerHTML = '<div class="v-head"><div><h1>Jouer</h1><p>Trouvez un partenaire pour un simple, un double ou une partie à quatre.</p></div>' +
@@ -808,7 +815,9 @@
     if (e.start && evTime(e)) meta.push(ic('clock') + esc(evTime(e)));
     if (e.lieu) meta.push(ic('pin') + esc(e.lieu));
     if (e.inscription) meta.push(ic('users') + (e.count ? e.count + ' inscrit' + (e.count > 1 ? 's' : '') : 'Aucun inscrit pour le moment'));
-    return (src ? '<img class="ei-img" src="' + esc(src) + '" alt="" onerror="this.remove()">' : '') +
+    var mine = e.inscription && S.eventsIn[e.id] && (e.endTs || e.start) > Date.now();
+    return (mine ? '<div class="ei-ok">' + ic('check') + '<div><b>Inscription confirmée</b><span>Vous pouvez vous désinscrire à tout moment avec le bouton ci-dessous.</span></div></div>' : '') +
+      (src ? '<img class="ei-img" src="' + esc(src) + '" alt="" onerror="this.remove()">' : '') +
       '<ul class="ei-meta">' + meta.map(function (m) { return '<li>' + m + '</li>'; }).join('') + '</ul>' +
       (e.desc ? '<p class="ei-lead">' + esc(e.desc) + '</p>' : '') +
       (e.body && e.body.trim() !== (e.desc || '').trim() ? '<div class="ei-body">' + mdLite(e.body) + '</div>' : '') +
@@ -823,7 +832,7 @@
       open ? '<div class="ps-foot"><button type="button" class="btn" data-close>Fermer</button><button type="button" class="btn ' + (inn ? '' : 'btn-blue') + '" id="ei-toggle">' + (inn ? 'Me désinscrire' : ic('check') + 'Je m\'inscris') + '</button></div>' : '');
     var tg = $('#ei-toggle'); if (tg) tg.addEventListener('click', function () {
       closeDrawer();
-      if (LIVE) liveEventToggle(id); else { S.eventsIn[id] = !S.eventsIn[id]; save(); route(); toast(S.eventsIn[id] ? 'Inscription enregistrée' : 'Inscription annulée'); }
+      if (LIVE) liveEventToggle(id); else { S.eventsIn[id] = !S.eventsIn[id]; save(); route(); afterToggle(id, S.eventsIn[id]); }
     });
   }
   RENDER.agenda = function () {
@@ -1299,7 +1308,7 @@
   /* ---------- Classement : mis à jour par le membre (rien à faire côté club) ---------- */
   var RANK_DAY = 5; // le classement mensuel sort en début de mois : on relance à partir du 5
   function rankRef() { var d = new Date(); return new Date(d.getFullYear(), d.getDate() < RANK_DAY ? d.getMonth() - 1 : d.getMonth(), RANK_DAY).getTime(); }
-  function rankDue() { return !S.me.classementAt || S.me.classementAt < rankRef(); }
+  function rankDue() { if (!S.me.classement || /^NC$/i.test(S.me.classement)) return false; return !S.me.classementAt || S.me.classementAt < rankRef(); }
   function setRank(v) {
     var me = S.me, delta = rankIdx(v) - rankIdx(me.classement), from = me.classement;
     if (LIVE) liveRank(from, v);
@@ -1412,8 +1421,7 @@
     if (d.champ) { S.champs.forEach(function (c) { if (c.id === d.champ) c.inscrit = true; }); save(); RENDER.equipes(); toast('Demande envoyée au capitaine'); return; }
     if (d.evin) {
       if (LIVE) { liveEventToggle(d.evin); return; }
-      S.eventsIn[d.evin] = !S.eventsIn[d.evin]; save(); route();
-      toast(S.eventsIn[d.evin] ? 'Inscription enregistrée' : 'Inscription annulée'); return;
+      S.eventsIn[d.evin] = !S.eventsIn[d.evin]; save(); route(); afterToggle(d.evin, S.eventsIn[d.evin]); return;
     }
     if (d.ag) { agFilter = d.ag; RENDER.agenda(); return; }
     if (d.agm) { agMonth = d.agm === '0' ? '' : ymShift(agMonth || ymOf(Date.now()), +d.agm); RENDER.agenda(); var nb = $('[data-agm="' + d.agm + '"]'); if (nb && !nb.disabled) nb.focus(); return; }
@@ -1423,7 +1431,8 @@
     if (d.pstyle) { var st = S.me.partenaire.style, k = st.indexOf(d.pstyle); if (k >= 0) st.splice(k, 1); else st.push(d.pstyle); save(); t.setAttribute('aria-pressed', k < 0); return; }
     if (d.cell) {
       var pr = d.cell.split('|'), ds = S.me.partenaire.dispos; ds[pr[0]] = ds[pr[0]] || {}; ds[pr[0]][pr[1]] = !ds[pr[0]][pr[1]]; save();
-      t.setAttribute('aria-pressed', !!ds[pr[0]][pr[1]]); t.style.background = ds[pr[0]][pr[1]] ? 'var(--grass)' : 'var(--bg-2)'; return;
+      t.setAttribute('aria-pressed', !!ds[pr[0]][pr[1]]); t.style.background = ds[pr[0]][pr[1]] ? 'var(--grass)' : 'var(--bg-2)';
+      toast('Créneaux enregistrés'); return;
     }
     if (d.copy) { try { navigator.clipboard.writeText(d.copy); toast('Copié'); } catch (x) { toast('Copie impossible sur ce navigateur'); } return; }
     if (t.hasAttribute('data-install')) { toast('Sur iPhone : Partager › Sur l\'écran d\'accueil. Sur Android : menu › Installer l\'application.'); return; }
@@ -1498,7 +1507,7 @@
       '<div class="ps-foot"><button type="button" class="btn" data-close>Annuler</button><button type="button" class="btn btn-blue" id="su-confirm">' + ic('check') + 'Confirmer mon inscription</button></div>');
     $('#su-confirm').addEventListener('click', function () {
       closeDrawer();
-      if (LIVE) liveEventToggle(id); else { S.eventsIn[id] = true; save(); route(); toast('Inscription enregistrée'); }
+      if (LIVE) liveEventToggle(id); else { S.eventsIn[id] = true; save(); route(); afterToggle(id, true); }
     });
   }
   function showLogin() { $('#app').hidden = true; $('#login-view').hidden = false; location.hash = ''; }

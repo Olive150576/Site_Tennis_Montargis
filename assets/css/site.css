@@ -282,6 +282,8 @@ ul, ol { margin: 0; padding: 0; }
 }
 .icon-btn:hover { border-color: var(--ink); color: var(--ink); }
 .icon-btn .icon { width: 19px; height: 19px; }
+.member-link .lbl { display: none; }
+.mp-top-btns { display: flex; gap: 8px; }
 .theme-toggle .i-sun { display: none; }
 :root[data-theme="dark"] .theme-toggle .i-sun { display: block; }
 :root[data-theme="dark"] .theme-toggle .i-moon { display: none; }
@@ -950,6 +952,10 @@ ul, ol { margin: 0; padding: 0; }
   .brand img { width: 48px; }
   .brand-text span { display: none; }
   .header-actions .hide-sm { display: none; }
+  /* Téléphone : accès membre écrit en toutes lettres ; le thème passe dans le menu */
+  .header-actions .theme-toggle { display: none; }
+  .header-actions .member-link { display: inline-flex; align-items: center; width: auto; padding: 0 14px 0 12px; gap: 6px; border-radius: 999px; font-weight: 700; font-size: .88rem; color: var(--ink); }
+  .member-link .lbl { display: inline; }
   .header-actions .btn-reserve { width: 42px; min-height: 42px; padding: 0; }
   .btn-reserve .lbl { display: none; }
   .hero .court { padding: 26px 20px 30px; }
@@ -1112,3 +1118,7 @@ ul, ol { margin: 0; padding: 0; }
 .toast { max-width: min(calc(100vw - 32px), 520px); width: max-content; text-align: center; line-height: 1.35; border-radius: 16px; }
 /* Installations (page Le club) : titre avant les photos ; sur ordinateur, photos à gauche une fois sur deux */
 @media (min-width: 961px) { .fac.fac-media-first > .media { order: -1; } }
+@media (max-width: 400px) {
+  /* Petit téléphone : le logo suffit, la place va au bouton « Membres » */
+  .site-header .brand-text { display: none; }
+}
