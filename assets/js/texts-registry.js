@@ -218,10 +218,136 @@ window.USM_TEXTS = [
   "long": true
  },
  {
+  "key": "partners.why.title",
+  "page": "Partenaires",
+  "label": "Section « Pourquoi nous soutenir » — titre",
+  "def": "Une vitrine locale, toute l'année",
+  "long": false
+ },
+ {
+  "key": "partners.why.lead",
+  "page": "Partenaires",
+  "label": "Section « Pourquoi nous soutenir » — texte",
+  "def": "Associer votre marque au club, c'est être vu par des familles, des sportifs et des décideurs du Montargois, sur les courts comme en ligne.",
+  "long": true
+ },
+ {
+  "key": "partners.stat1.value",
+  "page": "Partenaires",
+  "label": "Chiffres clés — chiffre 1",
+  "def": "150+",
+  "long": false
+ },
+ {
+  "key": "partners.stat1.text",
+  "page": "Partenaires",
+  "label": "Chiffres clés — légende 1",
+  "def": "licenciés et leurs familles, présents au club chaque semaine",
+  "long": true
+ },
+ {
+  "key": "partners.stat2.value",
+  "page": "Partenaires",
+  "label": "Chiffres clés — chiffre 2",
+  "def": "44",
+  "long": false
+ },
+ {
+  "key": "partners.stat2.text",
+  "page": "Partenaires",
+  "label": "Chiffres clés — légende 2",
+  "def": "éditions de l'Open USM, le tournoi phare de l'agglomération",
+  "long": true
+ },
+ {
+  "key": "partners.stat3.value",
+  "page": "Partenaires",
+  "label": "Chiffres clés — chiffre 3",
+  "def": "7",
+  "long": false
+ },
+ {
+  "key": "partners.stat3.text",
+  "page": "Partenaires",
+  "label": "Chiffres clés — légende 3",
+  "def": "courts, dont les bâches restent visibles toute la saison",
+  "long": true
+ },
+ {
+  "key": "partners.stat4.value",
+  "page": "Partenaires",
+  "label": "Chiffres clés — chiffre 4",
+  "def": "49",
+  "long": false
+ },
+ {
+  "key": "partners.stat4.text",
+  "page": "Partenaires",
+  "label": "Chiffres clés — légende 4",
+  "def": "actualités publiées depuis janvier 2026, relayées sur Facebook",
+  "long": true
+ },
+ {
+  "key": "partners.packs.title",
+  "page": "Partenaires",
+  "label": "Section Offres — titre",
+  "def": "Trois façons de s'engager",
+  "long": false
+ },
+ {
+  "key": "partners.packs.lead",
+  "page": "Partenaires",
+  "label": "Section Offres — texte",
+  "def": "Chaque partenariat est construit avec vous, selon votre budget et vos objectifs. Dotations en matériel ou en lots bienvenues.",
+  "long": true
+ },
+ {
   "key": "partners.packs.note",
   "page": "Partenaires",
   "label": "Section Offres — texte",
   "def": "Tarifs saison 2026-2027. Inclus dans chaque pack : un espace avantages réservé aux 150 membres du club, pour leur présenter vos offres.",
+  "long": true
+ },
+ {
+  "key": "partners.form.title",
+  "page": "Partenaires",
+  "label": "Section « Devenir partenaire » — titre",
+  "def": "Devenir partenaire",
+  "long": false
+ },
+ {
+  "key": "partners.form.lead",
+  "page": "Partenaires",
+  "label": "Section « Devenir partenaire » — texte",
+  "def": "Laissez-nous vos coordonnées : le responsable des partenariats vous recontacte pour construire une offre sur mesure.",
+  "long": true
+ },
+ {
+  "key": "partners.form.point1",
+  "page": "Partenaires",
+  "label": "Section « Devenir partenaire » — point 1",
+  "def": "Un interlocuteur unique",
+  "long": false
+ },
+ {
+  "key": "partners.form.point1text",
+  "page": "Partenaires",
+  "label": "Section « Devenir partenaire » — point 1, détail",
+  "def": "Pour la visibilité, les bâches, les publications et vos avantages membres.",
+  "long": true
+ },
+ {
+  "key": "partners.form.point2",
+  "page": "Partenaires",
+  "label": "Section « Devenir partenaire » — point 2",
+  "def": "Des contreparties concrètes",
+  "long": false
+ },
+ {
+  "key": "partners.form.point2text",
+  "page": "Partenaires",
+  "label": "Section « Devenir partenaire » — point 2, détail",
+  "def": "Logo sur le site, publications dédiées, présence lors de l'Open.",
   "long": true
  },
  {

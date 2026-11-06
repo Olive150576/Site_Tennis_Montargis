@@ -1132,3 +1132,12 @@ ul, ol { margin: 0; padding: 0; }
   .pl-slot { font-size: .92rem; color: var(--ink-2); padding-left: 10px; border-left: 3px solid var(--blue); }
   .pl-slot.jeunes { border-left-color: var(--ball); }
 }
+/* Carte « Votre interlocuteur » (partenariats) */
+.partner-contact { margin-top: 24px; padding: 18px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); display: grid; gap: 14px; }
+.pc-card { display: flex; gap: 14px; align-items: center; }
+.pc-card .avatar { width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; background: var(--blue); color: #fff; font-weight: 800; flex: none; }
+.pc-card small { display: block; font-size: .78rem; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-3); font-weight: 700; }
+.pc-card b { display: block; font-size: 1.08rem; }
+.pc-card span:not(.avatar) { font-size: .9rem; color: var(--ink-2); }
+.pc-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.pc-actions .btn { min-width: 0; overflow-wrap: anywhere; }
