@@ -298,7 +298,8 @@
         { k: 'name', t: 'text', l: 'Nom du pack', req: true },
         { k: 'price', t: 'text', l: 'Prix affiché', half: true, placeholder: '500 €, Sur devis…' },
         { k: 'period', t: 'text', l: 'Après le prix', half: true, placeholder: 'par saison' },
-        { k: 'features', t: 'list', l: 'Contreparties' },
+        { k: 'features', t: 'list', l: 'Contreparties', hint: 'Une ligne par contrepartie. Soyez précis : taille de la bâche, fabrication incluse ou non, nombre de publications…' },
+        { k: 'image', t: 'image', l: 'Photo (facultatif)', hint: 'Ex. une bâche déjà posée sur un court : le partenaire voit concrètement ce qu\'il achète.' },
         { k: 'highlight', t: 'switch', l: 'Mettre en avant' }
       ],
       blank: () => ({ id: uid('k-'), name: '', price: '', period: 'par saison', features: [], highlight: false }),

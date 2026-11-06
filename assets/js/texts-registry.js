@@ -29,6 +29,118 @@ window.USM_TEXTS = [
   "long": true
  },
  {
+  "key": "home.path1.tag",
+  "page": "Accueil",
+  "label": "Carte « Pour qui ? » 1 — étiquette",
+  "def": "Baby tennis",
+  "long": false
+ },
+ {
+  "key": "home.path1.title",
+  "page": "Accueil",
+  "label": "Carte « Pour qui ? » 1 — titre",
+  "def": "Les tout-petits",
+  "long": false
+ },
+ {
+  "key": "home.path1.text",
+  "page": "Accueil",
+  "label": "Carte « Pour qui ? » 1 — texte",
+  "def": "45 minutes par semaine pour découvrir la raquette en s'amusant, encadrés par notre enseignant.",
+  "long": true
+ },
+ {
+  "key": "home.path1.from",
+  "page": "Accueil",
+  "label": "Carte « Pour qui ? » 1 — mention avant le prix (ex. « à partir de », « extérieur dès »)",
+  "def": "à partir de",
+  "long": false
+ },
+ {
+  "key": "home.path2.tag",
+  "page": "Accueil",
+  "label": "Carte « Pour qui ? » 2 — étiquette",
+  "def": "5 – 18 ans",
+  "long": false
+ },
+ {
+  "key": "home.path2.title",
+  "page": "Accueil",
+  "label": "Carte « Pour qui ? » 2 — titre",
+  "def": "Enfants & ados",
+  "long": false
+ },
+ {
+  "key": "home.path2.text",
+  "page": "Accueil",
+  "label": "Carte « Pour qui ? » 2 — texte",
+  "def": "L'école de tennis : de 1 h à 3 h de cours collectif par semaine, TMC jeunes et stages pendant les vacances.",
+  "long": true
+ },
+ {
+  "key": "home.path2.from",
+  "page": "Accueil",
+  "label": "Carte « Pour qui ? » 2 — mention avant le prix (ex. « à partir de », « extérieur dès »)",
+  "def": "à partir de",
+  "long": false
+ },
+ {
+  "key": "home.path3.tag",
+  "page": "Accueil",
+  "label": "Carte « Pour qui ? » 3 — étiquette",
+  "def": "Adultes · jeu libre",
+  "long": false
+ },
+ {
+  "key": "home.path3.title",
+  "page": "Accueil",
+  "label": "Carte « Pour qui ? » 3 — titre",
+  "def": "Jouer quand je veux",
+  "long": false
+ },
+ {
+  "key": "home.path3.text",
+  "page": "Accueil",
+  "label": "Carte « Pour qui ? » 3 — texte",
+  "def": "Réservez un court en quelques clics sur Ten'Up et jouez avec vos partenaires, dehors ou à couvert.",
+  "long": true
+ },
+ {
+  "key": "home.path3.from",
+  "page": "Accueil",
+  "label": "Carte « Pour qui ? » 3 — mention avant le prix (ex. « à partir de », « extérieur dès »)",
+  "def": "à partir de",
+  "long": false
+ },
+ {
+  "key": "home.path4.tag",
+  "page": "Accueil",
+  "label": "Carte « Pour qui ? » 4 — étiquette",
+  "def": "Adultes · cours & équipes",
+  "long": false
+ },
+ {
+  "key": "home.path4.title",
+  "page": "Accueil",
+  "label": "Carte « Pour qui ? » 4 — titre",
+  "def": "Progresser & jouer en compétition",
+  "long": false
+ },
+ {
+  "key": "home.path4.text",
+  "page": "Accueil",
+  "label": "Carte « Pour qui ? » 4 — texte",
+  "def": "Cours collectifs par niveau, championnats par équipes, tournoi interne et TMC tout au long de la saison.",
+  "long": true
+ },
+ {
+  "key": "home.path4.from",
+  "page": "Accueil",
+  "label": "Carte « Pour qui ? » 4 — mention avant le prix (ex. « à partir de », « extérieur dès »)",
+  "def": "à partir de",
+  "long": false
+ },
+ {
   "key": "home.facilities.title",
   "page": "Accueil",
   "label": "Section Installations — titre",
@@ -145,6 +257,125 @@ window.USM_TEXTS = [
   "page": "Compétition",
   "label": "En-tête de page — texte",
   "def": "Championnats par équipes, tournois homologués, TMC et un Open qui fait référence dans le Gâtinais depuis plus de 40 ans : à l'USM, chacun trouve son terrain de jeu.",
+  "long": true
+ },
+ {
+  "key": "competition.squad1.value",
+  "page": "Compétition",
+  "label": "Carte « Nos équipes » 1 — chiffre",
+  "def": "5 équipes",
+  "long": false
+ },
+ {
+  "key": "competition.squad1.title",
+  "page": "Compétition",
+  "label": "Carte « Nos équipes » 1 — titre",
+  "def": "Seniors messieurs · hiver",
+  "long": false
+ },
+ {
+  "key": "competition.squad1.text",
+  "page": "Compétition",
+  "label": "Carte « Nos équipes » 1 — texte",
+  "def": "Championnat départemental d'hiver par équipes, de janvier à février.",
+  "long": true
+ },
+ {
+  "key": "competition.squad2.value",
+  "page": "Compétition",
+  "label": "Carte « Nos équipes » 2 — chiffre",
+  "def": "4 équipes",
+  "long": false
+ },
+ {
+  "key": "competition.squad2.title",
+  "page": "Compétition",
+  "label": "Carte « Nos équipes » 2 — titre",
+  "def": "Championnat d'été",
+  "long": false
+ },
+ {
+  "key": "competition.squad2.text",
+  "page": "Compétition",
+  "label": "Carte « Nos équipes » 2 — texte",
+  "def": "D'avril à mai, dont une équipe en Régionale 2 sur les courts du Loiret et de la région.",
+  "long": true
+ },
+ {
+  "key": "competition.squad3.value",
+  "page": "Compétition",
+  "label": "Carte « Nos équipes » 3 — chiffre",
+  "def": "Championnes",
+  "long": false
+ },
+ {
+  "key": "competition.squad3.title",
+  "page": "Compétition",
+  "label": "Carte « Nos équipes » 3 — titre",
+  "def": "Dames 60+",
+  "long": false
+ },
+ {
+  "key": "competition.squad3.text",
+  "page": "Compétition",
+  "label": "Carte « Nos équipes » 3 — texte",
+  "def": "Victoire au championnat 2026 pour l'équipe en entente Montargis / Pannes / ESG.",
+  "long": true
+ },
+ {
+  "key": "competition.squad4.value",
+  "page": "Compétition",
+  "label": "Carte « Nos équipes » 4 — chiffre",
+  "def": "2 équipes",
+  "long": false
+ },
+ {
+  "key": "competition.squad4.title",
+  "page": "Compétition",
+  "label": "Carte « Nos équipes » 4 — titre",
+  "def": "Championnat +35",
+  "long": false
+ },
+ {
+  "key": "competition.squad4.text",
+  "page": "Compétition",
+  "label": "Carte « Nos équipes » 4 — texte",
+  "def": "De fin septembre à fin octobre, matchs à domicile et en déplacement.",
+  "long": true
+ },
+ {
+  "key": "competition.squad5.value",
+  "page": "Compétition",
+  "label": "Carte « Nos équipes » 5 — chiffre",
+  "def": "Jeunes",
+  "long": false
+ },
+ {
+  "key": "competition.squad5.title",
+  "page": "Compétition",
+  "label": "Carte « Nos équipes » 5 — titre",
+  "def": "Championnats jeunes",
+  "long": false
+ },
+ {
+  "key": "competition.squad5.text",
+  "page": "Compétition",
+  "label": "Carte « Nos équipes » 5 — texte",
+  "def": "Les 13/14 ans garçons défendent aussi les couleurs du club en championnat par équipes.",
+  "long": true
+ },
+ {
+  "key": "competition.squad6.title",
+  "page": "Compétition",
+  "label": "Carte « Nos équipes » 6 — titre",
+  "def": "Rejoindre une équipe",
+  "long": false
+ },
+ {
+  "key": "competition.squad6.text",
+  "page": "Compétition",
+  "label": "Carte « Nos équipes » 6 — texte",
+  "def": "Vous êtes licencié et classé (ou en passe de l'être) ? Parlez-en à notre enseignant : les compositions se préparent avant chaque championnat.",
   "long": true
  },
  {

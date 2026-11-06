@@ -705,9 +705,9 @@
         ? `<p class="p-price is-amount"><span class="p-amount">${esc(v)}</span>${p.period ? `<span class="p-period">${esc(p.period)}</span>` : ''}</p>`
         : `<p class="p-price">${esc(v)}${p.period ? ` <span class="p-period">${esc(p.period)}</span>` : ''}</p>`;
     };
-    el.innerHTML = packs.map((p) => `<article class="pack ${p.highlight ? 'highlight' : ''}"><div class="pack-head"><h3>${esc(p.name)}</h3>${price(p)}</div>
+    el.innerHTML = packs.map((p) => `<article class="pack ${p.highlight ? 'highlight' : ''}"><div class="pack-head">${p.image ? `<div class="pack-img">${pic(p.image, { sizes: '(max-width: 640px) 100vw, 360px', alt: 'Exemple : ' + (p.name || '') })}</div>` : ''}<h3>${esc(p.name)}</h3>${price(p)}</div>
       <ul>${(p.features || []).map((f) => `<li>${icon('check')}<span>${nb(f)}</span></li>`).join('')}</ul>
-      <a class="btn ${p.highlight ? 'btn-ball' : 'btn-blue'}" href="#devenir-partenaire" data-pack="${esc(p.name)}">Choisir ce pack</a></article>`).join('');
+      <a class="btn ${p.highlight ? 'btn-ball' : 'btn-blue'}" href="#devenir-partenaire" data-pack="${esc(p.name)}">Ce pack m'intéresse</a></article>`).join('');
     /* Le menu du formulaire suit les packs de l'admin (nom + prix) */
     const sel = $('#pf-pack');
     if (sel && packs.length) {
