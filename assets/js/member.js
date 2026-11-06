@@ -809,6 +809,11 @@
       return '<p>' + lines.map(inl).join('<br>') + '</p>';
     }).join('');
   }
+  function eiImg(im, src) { // affiche plus haute que le cadre 16:9 : image entière sur fond flouté (même règle que le site public)
+    var fo = im.focus || '', r = im.w && im.h ? im.w / im.h : 0, tag = '<img class="ei-img" src="' + esc(src) + '" alt="" onerror="this.closest(\'.ei-pf\') ? this.closest(\'.ei-pf\').remove() : this.remove()"' + (fo === 'top' || fo === 'bottom' ? ' style="object-position:center ' + fo + '"' : '') + '>';
+    if (fo === 'full' || (!fo && r && r < 16 / 9 * 0.8)) return '<div class="ei-pf" style="--pf:url(\'' + esc(src).replace(/[()']/g, '') + '\')">' + tag + '</div>';
+    return tag;
+  }
   function eventInfoHtml(e) {
     var src = e.image && (e.image.sm || e.image.src || e.image), meta = []; // version allégée : plus rapide sur téléphone
     meta.push(ic('calendar') + esc(e.dated === false || e.when && !e.start ? e.when : fmt.long(e.start)));
@@ -817,7 +822,7 @@
     if (e.inscription) meta.push(ic('users') + (e.count ? e.count + ' inscrit' + (e.count > 1 ? 's' : '') : 'Aucun inscrit pour le moment'));
     var mine = e.inscription && S.eventsIn[e.id] && (e.endTs || e.start) > Date.now();
     return (mine ? '<div class="ei-ok">' + ic('check') + '<div><b>Inscription confirmée</b><span>Vous pouvez vous désinscrire à tout moment avec le bouton ci-dessous.</span></div></div>' : '') +
-      (src ? '<img class="ei-img" src="' + esc(src) + '" alt="" onerror="this.remove()">' : '') +
+      (src ? eiImg(e.image, src) : '') +
       '<ul class="ei-meta">' + meta.map(function (m) { return '<li>' + m + '</li>'; }).join('') + '</ul>' +
       (e.desc ? '<p class="ei-lead">' + esc(e.desc) + '</p>' : '') +
       (e.body && e.body.trim() !== (e.desc || '').trim() ? '<div class="ei-body">' + mdLite(e.body) + '</div>' : '') +
