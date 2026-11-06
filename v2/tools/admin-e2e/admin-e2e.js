@@ -97,6 +97,17 @@ const OVERRIDE = `;(function(c){c.mode='firebase';c.firebase=Object.assign({},c.
   const shopAfter = await (await fetch(DB('site_v2/settings/showShop'))).json();
   ok('Interrupteur Boutique : désactivé au départ, activation enregistrée dans Firebase', sw && shopBefore === false && shopAfter === true, `champ:${sw} avant:${shopBefore} après:${shopAfter}`);
 
+  // Paramètres › Responsable des partenariats → carte sur Partenaires et Contact
+  await go('#/reglages'); await page.waitForTimeout(500);
+  await page.fill('#s-partner [data-f="name"] input', 'Olivier Test'); await page.fill('#s-partner [data-f="role"] input', 'Partenariats');
+  await page.fill('#s-partner [data-f="phone"] input', '06 11 22 33 44'); await page.keyboard.press('Control+s'); await page.waitForTimeout(1500);
+  const pc = await (await fetch(DB('site_v2/settings/partnerContact'))).json();
+  ok('Paramètres : responsable des partenariats enregistré', pc && pc.name === 'Olivier Test' && pc.phone === '06 11 22 33 44', JSON.stringify(pc));
+  const pPa = await ctx.newPage(); await pPa.goto(SITE + '/partenaires.html'); await pPa.waitForTimeout(2000);
+  const card = await pPa.locator('.partner-contact').innerText().catch(() => '');
+  ok('Partenaires : carte « Votre interlocuteur » avec nom et bouton d\'appel', /Olivier Test/.test(card) && !!(await pPa.$('.partner-contact a[href="tel:0611223344"]')), card);
+  await pPa.close();
+
   // Textes du site : clés à point (« club.team.lead ») refusées telles quelles par Firebase → encodées « __ »
   await go('#/textes'); await page.waitForTimeout(600);
   const txt = 'Une école encadrée par la recette ' + Date.now();
