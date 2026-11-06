@@ -1145,3 +1145,10 @@ ul, ol { margin: 0; padding: 0; }
 .pc-card span:not(.avatar) { font-size: .9rem; color: var(--ink-2); }
 .pc-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .pc-actions .btn { min-width: 0; overflow-wrap: anywhere; }
+/* Affiche entière sur fond flouté (image plus haute que son cadre : rien n'est coupé) */
+.pf { position: relative; display: block; width: 100%; height: 100%; overflow: hidden; background: var(--blue-deep); isolation: isolate; }
+.pf::before { content: ""; position: absolute; inset: -24px; background: var(--pf) center / cover no-repeat; filter: blur(22px) saturate(1.2) brightness(.8); transform: scale(1.08); z-index: -1; }
+.pf > img, img.pf-img { position: relative; width: 100% !important; height: 100% !important; object-fit: contain !important; max-height: none; }
+.event-detail .ed-media .pf { aspect-ratio: 4 / 3; border-radius: var(--radius); }
+.event-detail .ed-media .pf img { aspect-ratio: auto; border-radius: 0; }
+.pack-img .pf { height: 100%; }
