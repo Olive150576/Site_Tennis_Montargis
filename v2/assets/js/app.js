@@ -730,6 +730,14 @@
     return `Accueil ${r.length === 2 ? `du ${r[0]} au ${r[1]}` : `le ${days}`} de ${hFr(x.open)} à ${hFr(x.close)}`;
   }
   const hoursLine = (h) => h.filter(isOpenRow).map(hoursSentence).join(' · ');
+  function renderPartnerContact(c, el) { // responsable des partenariats (Admin › Paramètres)
+    const p = (c.settings || {}).partnerContact || {};
+    if (!String(p.name || '').trim()) { el.hidden = true; return; }
+    const tel = String(p.phone || '').replace(/[^\d+]/g, '');
+    el.hidden = false;
+    el.innerHTML = `<div class="pc-card"><span class="avatar">${esc(initials(p.name))}</span><div><small>${esc(el.dataset.label || 'Votre interlocuteur')}</small><b>${esc(p.name)}</b>${p.role ? `<span>${esc(p.role)}</span>` : ''}</div></div>
+      <div class="pc-actions">${tel ? `<a class="btn btn-blue btn-sm" href="tel:${esc(tel)}">${icon('phone')}${esc(p.phone)}</a>` : ''}${p.email ? `<a class="btn btn-sm" href="mailto:${esc(p.email)}">${icon('mail')}${esc(p.email)}</a>` : ''}</div>`;
+  }
   function renderHours(c, el) {
     const h = ((c.settings || {}).hours || []).filter(isOpenRow);
     el.innerHTML = h.map((x) => `<p class="hours-line">${esc(hoursSentence(x))}</p>`).join('');
@@ -850,7 +858,7 @@
     'agenda-home': renderAgendaHome, 'events-cat': renderEventsCat, 'news-home': renderNewsHome, 'news-filtered': renderNewsFiltered,
     rates: renderRates, 'rates-cat': renderRatesCat, documents: renderDocs, faq: renderFaq, planning: renderPlanning,
     coach: renderCoach, team: renderTeam, gallery: renderGallery, 'sponsors-marquee': renderMarquee,
-    sponsors: renderSponsors, packs: renderPacks, hours: renderHours,
+    sponsors: renderSponsors, packs: renderPacks, hours: renderHours, 'partner-contact': renderPartnerContact,
     reviews: renderReviews, 'reviews-summary': renderReviewsSummary
   };
   async function boot() {

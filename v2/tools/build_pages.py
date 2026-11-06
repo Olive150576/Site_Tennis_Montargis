@@ -71,15 +71,17 @@ PAGE_NAMES = {'index.html': 'Accueil', 'le-club.html': 'Le club', 'ecole-de-tenn
 reg, seen = [], set()
 for src in sorted(glob.glob(P('src/pages', '*.html')), key=lambda f: list(PAGE_NAMES).index(os.path.basename(f)) if os.path.basename(f) in PAGE_NAMES else 99):
     name = os.path.basename(src)
-    for m in re.finditer(r'<(h1|h2|p)\b[^>]*data-text="([^"]+)"[^>]*>(.*?)</\1>', read(src), re.S):
+    for m in re.finditer(r'<(h1|h2|p|b|span)\b[^>]*data-text="([^"]+)"[^>]*>(.*?)</\1>', read(src), re.S):
         tag, key, inner = m.groups()
         if key in seen: continue
         seen.add(key)
         txt = re.sub(r'<em>(.*?)</em>', r'*\1*', inner)
         txt = re.sub(r'<[^>]+>', '', txt).replace('&amp;', '&').replace('&#39;', "'").strip()
-        sec = {'hero': 'En-tête de page', 'paths': 'Section « Pour qui ? »', 'facilities': 'Section Installations', 'cta': 'Bandeau d\'appel final', 'spirit': 'Section « Notre esprit »', 'reviews': 'Section Avis', 'ask': 'Section « Une question ? »', 'packs': 'Section Offres', 'team': 'Section « L\'équipe »'}.get(key.split('.')[1], key.split('.')[1])
-        lab = sec + ' — ' + ('titre' if tag != 'p' else 'texte')
-        reg.append({'key': key, 'page': PAGE_NAMES.get(name, name), 'label': lab, 'def': txt, 'long': tag == 'p'})
+        sec = {'hero': 'En-tête de page', 'paths': 'Section « Pour qui ? »', 'facilities': 'Section Installations', 'cta': 'Bandeau d\'appel final', 'spirit': 'Section « Notre esprit »', 'reviews': 'Section Avis', 'ask': 'Section « Une question ? »', 'packs': 'Section Offres', 'team': 'Section « L\'équipe »', 'why': 'Section « Pourquoi nous soutenir »', 'stat1': 'Chiffre 1', 'stat2': 'Chiffre 2', 'stat3': 'Chiffre 3', 'stat4': 'Chiffre 4', 'form': 'Section « Devenir partenaire »'}.get(key.split('.')[1], key.split('.')[1])
+        f = key.split('.')[-1]
+        lab = sec + ' — ' + ({'value': 'chiffre', 'point1': 'point 1', 'point1text': 'point 1, détail', 'point2': 'point 2', 'point2text': 'point 2, détail'}.get(f) or ('titre' if tag not in ('p', 'span') else 'texte'))
+        if key.split('.')[1].startswith('stat'): lab = 'Chiffres clés — ' + ('chiffre ' if f == 'value' else 'légende ') + key.split('.')[1][4:]
+        reg.append({'key': key, 'page': PAGE_NAMES.get(name, name), 'label': lab, 'def': txt, 'long': tag in ('p', 'span')})
 open(P('assets/js/texts-registry.js'), 'w', encoding='utf-8').write('/* Généré par tools/build_pages.py : textes modifiables depuis l\'admin */\nwindow.USM_TEXTS = ' + json.dumps(reg, ensure_ascii=False, indent=1) + ';\n')
 
 today = datetime.date.today().isoformat()
