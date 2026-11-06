@@ -110,6 +110,10 @@ const OVERRIDE = `;(function(c){c.mode='firebase';c.firebase=Object.assign({},c.
 
   // Textes du site : clés à point (« club.team.lead ») refusées telles quelles par Firebase → encodées « __ »
   await go('#/textes'); await page.waitForTimeout(600);
+  await page.fill('#tx-q', 'interlocuteur'); await page.waitForTimeout(300);
+  const vis = await page.$$eval('.text-group .field', (fs) => fs.filter((f) => !f.hidden && f.closest('.text-group').open && !f.closest('.text-group').hidden).map((f) => f.querySelector('label').textContent));
+  ok('Textes des pages : recherche « interlocuteur » → le point 1 de la page Partenaires, groupe ouvert', vis.length >= 1 && vis.every((l) => /Devenir partenaire/.test(l)) && /1 texte trouvé|textes trouvés/.test(await page.innerText('#tx-count')), JSON.stringify(vis));
+  await page.fill('#tx-q', ''); await page.waitForTimeout(200);
   const txt = 'Une école encadrée par la recette ' + Date.now();
   await page.evaluate(() => document.querySelector('[data-k="club.team.lead"]').closest('details').open = true);
   await page.locator('[data-k="club.team.lead"]').fill(txt); await page.click('#sv-save'); await page.waitForTimeout(1500);
