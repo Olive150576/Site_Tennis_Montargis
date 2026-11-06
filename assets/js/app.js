@@ -399,7 +399,10 @@
   }
   function renderEventsCat(c, el) {
     const cats = (el.dataset.cat || '').split(',');
-    el.innerHTML = visible(c.events).filter((e) => cats.includes(e.category)).sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0)).map((e) => eventCard(e, false)).join('');
+    const today = new Date().toISOString().slice(0, 10);
+    el.innerHTML = visible(c.events).filter((e) => cats.includes(e.category) && !(e.dateStart && (e.dateEnd || e.dateStart) < today))
+      .sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0) || (a.dateStart ? 0 : 1) - (b.dateStart ? 0 : 1) || String(a.dateStart || '').localeCompare(String(b.dateStart || '')) || (a.order || 0) - (b.order || 0))
+      .map((e) => eventCard(e, false)).join('');
   }
   function eventDetail(e) {
     const ims = e.images || [];
@@ -610,7 +613,9 @@
         return `<div class="slot ${esc(s.audience)}" style="top:${top + 2}px;height:${h - 4}px" title="${esc(s.label)}"><b>${s.start.replace(':', 'h')} – ${s.end.replace(':', 'h')}</b>${h > 50 ? esc(s.label || '') : ''}</div>`;
       }).join('')}</div>`;
     });
-    el.innerHTML = html + '</div>';
+    const hh = (t) => t.replace(/^0/, '').replace(':00', ' h').replace(':', ' h ');
+    const list = days.filter((d) => slots.some((s) => +s.day === d)).map((d) => `<li><b>${DAYS[d]}</b>${slots.filter((s) => +s.day === d).sort((a, b) => toH(a.start) - toH(b.start)).map((s) => `<span class="pl-slot ${esc(s.audience)}">${hh(s.start)} – ${hh(s.end)} · ${esc(s.label || '')}</span>`).join('')}</li>`).join('');
+    el.innerHTML = html + '</div>' + `<ul class="planning-list">${list}</ul>`; // téléphone : liste par jour au lieu de la grille à faire glisser
   }
 
   /* ---------- Équipe ---------- */
