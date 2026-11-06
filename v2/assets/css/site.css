@@ -616,6 +616,7 @@ ul, ol { margin: 0; padding: 0; }
 
 /* ---------- Planning ---------- */
 .planning { overflow-x: auto; border-radius: var(--radius); border: 1px solid var(--line); background: var(--surface); }
+.planning-list { display: none; list-style: none; margin: 0; padding: 0; }
 .planning-grid { display: grid; grid-template-columns: 90px repeat(6, minmax(110px, 1fr)); min-width: 760px; position: relative; }
 .planning-grid .ph { padding: 12px; font-weight: 700; font-size: 0.85rem; text-align: center; border-bottom: 1px solid var(--line); background: var(--surface-2); position: sticky; top: 0; }
 .planning-grid .hours { position: relative; border-right: 1px solid var(--line); }
@@ -1121,4 +1122,13 @@ ul, ol { margin: 0; padding: 0; }
 @media (max-width: 400px) {
   /* Petit téléphone : le logo suffit, la place va au bouton « Membres » */
   .site-header .brand-text { display: none; }
+}
+@media (max-width: 640px) {
+  /* Planning : liste par jour sur téléphone */
+  .planning-grid { display: none; }
+  .planning-list { display: grid; gap: 10px; }
+  .planning-list li { display: grid; gap: 6px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }
+  .planning-list b { font-size: 1rem; }
+  .pl-slot { font-size: .92rem; color: var(--ink-2); padding-left: 10px; border-left: 3px solid var(--blue); }
+  .pl-slot.jeunes { border-left-color: var(--ball); }
 }
