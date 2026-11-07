@@ -432,6 +432,7 @@
   }
   function perksBlock() {
     var P = partners();
+    if (!P.offers.length) return ''; // aucune offre publiée : on n'affiche pas de promesse vide
     var offers = P.offers.map(function (s) {
       var i = SPONSORS.indexOf(s);
       return '<button type="button" class="perk has-offer" data-perk="' + i + '">' + logoOf(s) + '<div><b>' + esc(s.name) + (s.demo ? ' <span class="tag">Exemple</span>' : '') + '</b><span class="perk-offer">' + esc(s.perk) + '</span>' +
@@ -576,7 +577,7 @@
   }
 
   function perksTeaser() {
-    var P = partners(); if (!P.offers.length && !P.soon.length) return '';
+    var P = partners(); if (!P.offers.length) return '';
     var logos = P.offers.concat(P.soon).slice(0, 5).map(function (s) { return logoOf(s); }).join('');
     return '<a class="perks-teaser" href="#carte" data-goto-perks><div class="pt-logos">' + logos + '</div><div><b>' + (P.offers.length ? P.offers.length + ' avantage' + (P.offers.length > 1 ? 's' : '') + ' chez nos partenaires' : 'Vos avantages partenaires arrivent') + '</b><span>' + (P.offers.length ? 'Montrez votre carte en caisse' : P.soon.length + ' partenaires préparent une offre réservée aux membres') + '</span></div>' + ic('arrow') + '</a>';
   }
@@ -1118,6 +1119,7 @@
     if (!p.partner) return '';
     var s = SPONSORS.filter(function (x) { return x.id === p.partner; })[0]; if (!s) return '';
     var i = SPONSORS.indexOf(s), offer = isOffer(s);
+    if (!offer) return ''; // pas d'offre : pas de lien « avantages à venir »
     return '<a class="ps-partner" href="#carte" ' + (offer ? 'data-perk="' + i + '"' : 'data-goto-perks') + '>' + logoOf(s) + '<span>Floqué avec notre partenaire <b>' + esc(s.name) + '</b><small>' + (offer ? 'Voir son avantage membre' : 'Ses avantages membres arrivent') + '</small></span>' + ic('chevron-right') + '</a>';
   }
   function board(p, pr, big) {
