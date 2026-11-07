@@ -593,8 +593,11 @@
         else if (f.t === 'number') state[f.k] = el.value === '' ? null : Number(el.value);
         else state[f.k] = el.value.trim ? el.value.trim() : el.value;
       });
-      fields.filter((f) => f.t === 'list').forEach((f) => { state[f.k] = (state[f.k] || []).map((x) => x.trim()).filter(Boolean); });
-      return state;
+      // Les listes sont nettoyées dans une COPIE : drawList() garde une référence vers le tableau de `state`,
+      // le remplacer faisait perdre toute saisie après la première frappe.
+      const out = Object.assign({}, state);
+      fields.filter((f) => f.t === 'list').forEach((f) => { out[f.k] = (state[f.k] || []).map((x) => String(x).trim()).filter(Boolean); });
+      return out;
     }
     function validate() {
       let ok = true;

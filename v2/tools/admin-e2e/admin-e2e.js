@@ -304,6 +304,12 @@ const OVERRIDE = `;(function(c){c.mode='firebase';c.firebase=Object.assign({},c.
   await go('#/tableau');
   ok('Session conservée après rechargement', await page.isVisible('nav') && !(await page.isVisible('#lg-email')));
   ok('Aucune erreur JS sur tout le parcours', errors.length === 0, errors.join(' | '));
+  // Régression : une ligne ajoutée dans une liste (« Ce qui est inclus ») doit être enregistrée dans Firebase
+  await go('#/tarifs/r-b45'); await page.click('[data-add]');
+  const lis = await page.$$('.li input'); await lis[lis.length - 1].fill('De 3 à 5 ans');
+  await page.click('#sv-save'); await page.waitForTimeout(2000);
+  const b45 = await (await fetch(DB('site_v2/rates/r-b45'))).json();
+  ok('Liste (avantages d\'une formule) : la ligne ajoutée est enregistrée en base', (b45.features || []).includes('De 3 à 5 ans'), JSON.stringify(b45.features));
   await browser.close(); server.close();
   console.log(`\n${R.filter(Boolean).length}/${R.length} contrôles admin (mode Firebase)`); process.exit(R.every(Boolean) ? 0 : 1);
 })().catch((e) => { console.error('ERREUR', e); process.exit(2); });
