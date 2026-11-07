@@ -209,7 +209,7 @@
     if (ui.notifs) Object.assign(me.notifs, ui.notifs);
     return { me: me, players: [], posts: [], msgs: [], events: [], matches: [],
       team: { id: '', nom: '', champ: '', capitaine: '', roster: [], dispos: {}, convocations: {} },
-      chat: [], champs: [], eventsIn: {}, readMsgs: ui.readMsgs || {}, seenPostsAt: ui.seenPostsAt || 0, shopSeen: ui.shopSeen || {} };
+      chat: [], champs: [], eventsIn: {}, readMsgs: ui.readMsgs || {}, seenPostsAt: ui.seenPostsAt || 0, shopSeen: ui.shopSeen || {}, waJoined: !!ui.waJoined };
   }
   function partOld(me) {
     var P = me.partenaire, d = { public_profile: !!P.actif, styles: P.style.slice(), style_jeu: STYLE_OLD[P.style[0]] || 'loisir', dispo: {},
@@ -221,7 +221,7 @@
   /* save() en mode réel : l'état d'affichage reste dans le navigateur, le reste part dans Firebase */
   function liveSave() {
     if (!UID) return;
-    try { localStorage.setItem(KEY + '_ui_' + UID, JSON.stringify({ readMsgs: S.readMsgs, seenPostsAt: S.seenPostsAt, shopSeen: S.shopSeen, notifs: S.me.notifs })); } catch (e) {}
+    try { localStorage.setItem(KEY + '_ui_' + UID, JSON.stringify({ readMsgs: S.readMsgs, seenPostsAt: S.seenPostsAt, shopSeen: S.shopSeen, waJoined: !!S.waJoined, notifs: S.me.notifs })); } catch (e) {}
     clearTimeout(syncT); syncT = setTimeout(liveSync, 400);
   }
   function liveErr(e) { var s = String((e && (e.code || e.message)) || e); return /PERMISSION_DENIED|permission/i.test(s) ? 'valeur refusée par le serveur' : (e && e.message) || s; }
@@ -570,8 +570,14 @@
     var link = CLUB.whatsapp, example = !link && PREVIEW;
     if (!link && !example) return '';
     var txt = TEAMS_ON ? 'Annonces du club, vie du club et un groupe par équipe. Rien d\'obligatoire.' : 'Les équipes s\'organisent sur WhatsApp : rejoignez le groupe de votre équipe et les annonces du club.';
-    return '<a class="wa-card" href="' + (link ? esc(link) + '" target="_blank" rel="noopener"' : '#" data-wa-example') + '>' +
-      '<span class="wa-ico">' + ic('whatsapp') + '</span>' +
+    var ico = '<span class="wa-ico">' + ic('whatsapp') + '</span>';
+    if (S.waJoined) // déjà rejoint : ligne compacte, le lien reste accessible
+      return '<div class="wa-card wa-done">' + ico + '<span class="wa-txt"><b>Communauté WhatsApp</b><small>' + ic('check') + ' Vous l\'avez rejointe</small></span>' +
+        (link ? '<a class="btn btn-sm" href="' + esc(link) + '" target="_blank" rel="noopener">Ouvrir</a>' : '') + '</div>';
+    if (S.waAsk) // vient de cliquer sur « Rejoindre » : on demande confirmation une fois
+      return '<div class="wa-card wa-ask">' + ico + '<span class="wa-txt"><b>Vous avez rejoint le groupe ?</b><small>Une fois dans le groupe, la carte se range toute seule.</small></span>' +
+        '<span class="wa-btns"><button type="button" class="btn btn-wa btn-sm" data-wa-done>Oui, c\'est fait</button><button type="button" class="btn btn-sm" data-wa-back>Pas encore</button></span></div>';
+    return '<a class="wa-card" href="' + (link ? esc(link) + '" target="_blank" rel="noopener" data-wa-open' : '#" data-wa-example') + '>' + ico +
       '<span class="wa-txt"><b>Communauté WhatsApp du club</b><small>' + txt + '</small>' + (example ? '<small class="wa-ex">Aperçu : la carte s\'affiche une fois le lien ajouté dans l\'admin.</small>' : '') + '</span>' +
       '<span class="btn btn-wa btn-sm">Rejoindre</span></a>';
   }
@@ -1398,6 +1404,9 @@
     if (d.perk) { e.preventDefault(); openPerk(+d.perk); return; }
     if (t.hasAttribute('data-qr-from-perk')) { closeDrawer(); openQR(); return; }
     if (t.hasAttribute('data-goto-perks')) { e.preventDefault(); location.hash = '#carte'; if (location.hash === '#carte') go('carte'); setTimeout(function () { var el = $('#avantages'); if (el) el.scrollIntoView({ behavior: 'smooth' }); }, 180); return; }
+    if (t.closest('[data-wa-open]')) { setTimeout(function () { S.waAsk = true; route(); }, 400); return; } // le lien s'ouvre dans un nouvel onglet, on demande ensuite
+    if (t.hasAttribute('data-wa-done')) { S.waJoined = true; S.waAsk = false; save(); route(); toast('Parfait, c\'est noté'); return; }
+    if (t.hasAttribute('data-wa-back')) { S.waAsk = false; route(); return; }
     if (t.closest('[data-wa-example]')) { e.preventDefault(); toast('Aperçu : ajoutez le lien d\'invitation dans Admin › Paramètres › Liens'); return; }
     if (t.hasAttribute('data-rank')) { openRank(); return; }
     if (t.hasAttribute('data-rank-same')) { setRank(S.me.classement); toast('Merci, classement confirmé'); route(); return; }
