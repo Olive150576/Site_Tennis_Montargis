@@ -1805,3 +1805,11 @@ body.m-app .btn { white-space: normal; text-align: center; line-height: 1.25; he
 .ei-ok span { font-size: .88rem; color: var(--ink-2); }
 .ei-body p { margin: 0 0 10px; line-height: 1.55; }
 .ei-body ul { margin: 0 0 10px 18px; line-height: 1.55; }
+.wa-card.wa-done, .wa-card.wa-ask { cursor: default; }
+.wa-card.wa-done:hover, .wa-card.wa-ask:hover { transform: none; border-color: var(--line); }
+.wa-card.wa-done .wa-txt small { display: flex; align-items: center; gap: 6px; color: var(--ok, #2e9e5b); }
+.wa-card.wa-done .wa-txt small .icon { width: 14px; height: 14px; }
+.wa-card.wa-done .wa-ico { opacity: .85; }
+.wa-card.wa-done .btn, .wa-card.wa-ask .btn { pointer-events: auto; }
+.wa-btns { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+@media (max-width: 640px) { .wa-card.wa-ask .wa-btns { margin-left: 0; width: 100%; } .wa-card.wa-ask .wa-btns .btn { flex: 1; width: auto; } .wa-card.wa-done .btn { width: auto; margin-left: auto; } .wa-card.wa-done { flex-wrap: nowrap; } }
