@@ -31,7 +31,7 @@ const OVERRIDE = `;(function(c){c.mode='firebase';c.firebase=Object.assign({},c.
     partenaire: { public_profile: false, updatedAt: 1, style_jeu: 'competitif', dispo: { samedi: { matin: true } }, partager_telephone: false, partager_email: false, message: '' } };
   const iso = (n) => { const d = new Date(Date.now() + n * 864e5); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
   const ev = (id, o) => Object.assign({ id, title: 'Évé ' + id, category: 'animation', location: 'Club house', dateStart: iso(10), dateEnd: '', time: '', summary: 'Résumé ' + id, draft: false, memberSignup: false }, o);
-  const site_v2 = { settings: { email: 'club@test.fr', links: { ideas: 'https://docs.google.com/forms/d/test-idees/viewform' } },
+  const site_v2 = { settings: { email: 'club@test.fr', links: { ideas: 'https://docs.google.com/forms/d/test-idees/viewform', whatsapp: 'https://chat.whatsapp.com/test-communaute' } },
     sponsors: { s1: { id: 's1', name: 'Sport 2000 Amilly', perk: '-10 % sur les raquettes', order: 1 }, s2: { id: 's2', name: 'Boulangerie Durand', perk: 'Offres à venir', order: 2 } },
     events: {
     ev1: ev('ev1', { title: 'Soirée double surprise', time: '18 h 30', memberSignup: true, body: '**Format** : partenaires tirés au sort\n\n- Apéro offert\n- Ouvert à tous les niveaux', link: 'https://tenup.fft.fr/club/53450084' }),
@@ -183,6 +183,18 @@ const OVERRIDE = `;(function(c){c.mode='firebase';c.firebase=Object.assign({},c.
 
   await page.reload(); await page.waitForSelector('#app:not([hidden])', { timeout: 20000 }); await page.waitForTimeout(800);
   ok('Session conservée après rechargement', /Camille/.test(await page.textContent('#top-avatar')));
+  // Carte WhatsApp : « Rejoindre » → question une seule fois → « Oui, c'est fait » range la carte, y compris après rechargement
+  await page.goto(SITE + '/espace-membre.html#accueil'); await page.waitForTimeout(1500);
+  await page.evaluate(() => { document.querySelector('[data-wa-open]').addEventListener('click', (e) => e.preventDefault(), true); });
+  await page.click('[data-wa-open]'); await page.waitForTimeout(900);
+  ok('WhatsApp : après « Rejoindre », la carte demande « Vous avez rejoint le groupe ? »', await page.isVisible('[data-wa-done]') && /rejoint le groupe/.test(await page.innerText('.wa-ask')));
+  await page.click('[data-wa-back]'); await page.waitForTimeout(400);
+  ok('WhatsApp : « Pas encore » remet le bouton Rejoindre', !!(await page.$('[data-wa-open]')) && !(await page.$('.wa-ask')));
+  await page.evaluate(() => { document.querySelector('[data-wa-open]').addEventListener('click', (e) => e.preventDefault(), true); });
+  await page.click('[data-wa-open]'); await page.waitForTimeout(900); await page.click('[data-wa-done]'); await page.waitForTimeout(500);
+  ok('WhatsApp : « Oui, c\'est fait » range la carte (lien « Ouvrir » conservé)', !!(await page.$('.wa-done a[href*="whatsapp"]')) && !(await page.$('[data-wa-open]')));
+  await page.reload(); await page.waitForTimeout(2000);
+  ok('WhatsApp : l\'état « rejoint » est gardé après rechargement', !!(await page.$('.wa-done')) && !(await page.$('[data-wa-open]')));
   await page.goto(SITE + '/espace-membre.html#profil'); await page.waitForTimeout(800); await page.click('#v-profil [data-logout]'); await page.waitForTimeout(1200);
   ok('Déconnexion → écran de connexion', await page.isVisible('#login-view') && !(await page.isVisible('#app')));
   // Agenda public → bouton « S'inscrire (membres) » → connexion → confirmation (jamais d'inscription sans clic)

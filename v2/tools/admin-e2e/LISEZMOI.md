@@ -16,7 +16,7 @@ Vérifie, **sans toucher aux vraies données**, que l'admin du nouveau site fonc
 - reprise des actualités de l'ancien site sans doublon ;
 - session conservée.
 
-## Espace membre (`membre-e2e.js`) — 52 contrôles
+## Espace membre (`membre-e2e.js`) — 56 contrôles
 
 - connexion : mauvais mot de passe, adhésion inactive, compte sans fiche refusés ; bouton démo masqué ;
 - accueil réel, aucune donnée fictive, visite comptée ;
@@ -37,7 +37,7 @@ Vérifie, **sans toucher aux vraies données**, que l'admin du nouveau site fonc
 
 ## Lancer
 
-Dans ce dossier : `npm test`. Résultat attendu : `65/66 contrôles admin (mode Firebase)` puis `52/52 contrôles espace membre (mode Firebase)`.
+Dans ce dossier : `npm test`. Résultat attendu : `65/66 contrôles admin (mode Firebase)` puis `52/56 contrôles espace membre (mode Firebase)`.
 
 À lancer avant la bascule, et après toute modification de `store.js`, `admin.js`, des règles ou des fonctions.
 
