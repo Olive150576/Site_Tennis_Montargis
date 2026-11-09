@@ -398,3 +398,7 @@ code, .code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monosp
 .mchip span { display: inline-block; padding: 5px 11px; border: 1px solid var(--line); border-radius: 999px; font-size: 13px; cursor: pointer; user-select: none; }
 .mchip input:checked + span { background: var(--blue); border-color: var(--blue); color: #fff; }
 .mchip input:focus-visible + span { outline: 2px solid var(--blue); outline-offset: 2px; }
+.mb-acc { white-space: nowrap; }
+.mb-acc .pill { margin-right: 10px; vertical-align: middle; }
+.mb-acc .mb-sw { display: inline-flex; vertical-align: middle; position: relative; padding: 6px 0 6px 4px; }
+@media (max-width: 560px) { .mb-acc .pill { display: none; } }
