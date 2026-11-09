@@ -836,6 +836,12 @@
         await (await callable(fb, 'toggleMemberStatus'))({ uid, actif: !!actif });
         return true;
       },
+      /* Invitation : e-mail pour choisir son mot de passe + date d'envoi gardée sur la fiche (repère « Invité le … » dans la liste) */
+      async invite(uid, email) {
+        await this.sendPasswordEmail(email);
+        try { const fb = await firebaseSDK(); await fb.database().ref('members/' + uid + '/invitedAt').set(Date.now()); } catch (e) { console.warn('[USM] Date d\'invitation non enregistrée', e); }
+        return true;
+      },
       /* E-mail du club (modèle Firebase « Réinitialisation du mot de passe ») ; lien de retour vers l'espace membre */
       async sendPasswordEmail(email) {
         const fb = await firebaseSDK(); const auth = fb.auth();
