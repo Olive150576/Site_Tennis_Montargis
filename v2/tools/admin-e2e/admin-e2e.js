@@ -197,6 +197,16 @@ const OVERRIDE = `;(function(c){c.mode='firebase';c.firebase=Object.assign({},c.
   await page.click('#mb-active'); await page.waitForTimeout(2500);
   ok('Membres : réactivation', (await getJ(DBF('members/' + uidP + '/actif'))) === true && /Actif/.test(await page.innerText('#mb-state')));
 
+  // Membres : interrupteur d'accès directement dans la liste (désactivation avec confirmation, réactivation directe)
+  await go('#/membres'); await page.selectOption('#mb-f', ''); await page.waitForTimeout(300);
+  await page.click(`.mb-sw:has(input[data-id="${uidP}"])`); await page.waitForTimeout(300); await page.click('.modal [data-a="1"]'); await page.waitForTimeout(2500);
+  const look2 = await (await fetch(`http://${H}:9099/identitytoolkit.googleapis.com/v1/projects/demo-usm/accounts:lookup`, { method: 'POST', headers: OWN, body: JSON.stringify({ localId: [uidP] }) })).json();
+  ok('Liste des membres : interrupteur → compte désactivé (fiche + connexion bloquée), ligne conservée', (await getJ(DBF('members/' + uidP + '/actif'))) === false && look2.users[0].disabled === true && !!(await page.$(`.mb-sw input[data-id="${uidP}"]:not(:checked)`)));
+  await page.click(`.mb-sw:has(input[data-id="${uidP}"])`); await page.waitForTimeout(2500);
+  ok('Liste des membres : interrupteur → compte réactivé sans confirmation', (await getJ(DBF('members/' + uidP + '/actif'))) === true && !!(await page.$(`.mb-sw input[data-id="${uidP}"]:checked`)));
+  await go('#/membres'); await page.click(`tbody tr[data-id="${uidP}"] td:first-child`); await page.waitForTimeout(800);
+  ok('Liste des membres : le clic sur la ligne ouvre toujours la fiche', page.url().endsWith('#/membres/' + uidP));
+
   // Un seul identifiant : l'admin connecté crée sa propre fiche membre
   await go('#/membres');
   ok('Membres : bandeau « Créer ma fiche membre » pour l\'admin sans fiche', await page.isVisible('#mb-own'));
