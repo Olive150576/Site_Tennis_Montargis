@@ -1303,8 +1303,19 @@
       shown = rows;
       const box = $('#mb-table', v);
       if (!rows.length) { box.innerHTML = `<div class="empty-state">${icon('user')}<p>${list.length ? 'Aucun membre pour ce filtre.' : 'Aucun membre pour le moment.'}</p><a class="btn btn-primary" href="#/membres/nouveau">${icon('plus')} Nouveau membre</a></div>`; return; }
-      box.innerHTML = `<table class="table"><thead><tr><th>Membre</th><th class="hide-sm">Catégorie</th><th>Classement</th><th class="hide-sm">Statut</th><th>Accès</th></tr></thead><tbody>${rows.map((m) => `<tr data-id="${esc(m.id)}" style="cursor:pointer"><td><b>${esc(mbName(m))}</b>${m.email ? `<div class="small muted">${esc(m.email)}</div>` : ''}</td><td class="hide-sm">${esc(label(MB_CATS, m.categorie || ''))}</td><td>${esc(m.classement || '—')}</td><td class="hide-sm">${esc(m.statut || 'Membre')}</td><td>${m.actif === true ? '<span class="pill ok dot">Actif</span>' : '<span class="pill dot">Inactif</span>'}</td></tr>`).join('')}</tbody></table>`;
-      $$('tbody tr', box).forEach((tr) => tr.addEventListener('click', () => { location.hash = '#/membres/' + tr.dataset.id; }));
+      box.innerHTML = `<table class="table"><thead><tr><th>Membre</th><th class="hide-sm">Catégorie</th><th>Classement</th><th class="hide-sm">Statut</th><th>Accès</th></tr></thead><tbody>${rows.map((m) => `<tr data-id="${esc(m.id)}" style="cursor:pointer"><td><b>${esc(mbName(m))}</b>${m.email ? `<div class="small muted">${esc(m.email)}</div>` : ''}</td><td class="hide-sm">${esc(label(MB_CATS, m.categorie || ''))}</td><td>${esc(m.classement || '—')}</td><td class="hide-sm">${esc(m.statut || 'Membre')}</td><td class="mb-acc">${m.actif === true ? '<span class="pill ok dot">Actif</span>' : '<span class="pill dot">Inactif</span>'}<label class="switch mb-sw" title="${m.actif === true ? 'Désactiver le compte' : 'Réactiver le compte'}"><input type="checkbox" data-id="${esc(m.id)}" aria-label="${esc((m.actif === true ? 'Désactiver le compte de ' : 'Réactiver le compte de ') + mbName(m))}"${m.actif === true ? ' checked' : ''}><span class="track"></span></label></td></tr>`).join('')}</tbody></table>`;
+      $$('tbody tr', box).forEach((tr) => tr.addEventListener('click', (e) => { if (e.target.closest('.mb-sw')) return; location.hash = '#/membres/' + tr.dataset.id; }));
+      // Interrupteur d'accès directement dans la liste (même fonction serveur que le bouton de la fiche)
+      $$('.mb-sw input', box).forEach((inp) => inp.addEventListener('click', async (e) => {
+        e.preventDefault(); e.stopPropagation();
+        const m = list.find((x) => x.id === inp.dataset.id); if (!m) return;
+        const next = m.actif !== true;
+        if (!next && store.user && store.user.uid === m.id) { toast('Vous ne pouvez pas désactiver votre propre compte.', 'err'); return; }
+        if (!next && !(await modal({ title: `Désactiver ${mbName(m)} ?`, body: 'Le membre ne pourra plus se connecter à l\'espace membre. Sa fiche est conservée et vous pourrez le réactiver à tout moment.', confirm: 'Désactiver', danger: true }))) return;
+        inp.disabled = true;
+        try { await store.members.setActive(m.id, next); m.actif = next; draw(); toast(next ? mbName(m) + ' : compte réactivé' : mbName(m) + ' : compte désactivé'); }
+        catch (err) { inp.disabled = false; toast('Modification impossible : ' + ((err && err.message) || err), 'err'); }
+      }));
     };
     let shown = [];
     $('#mb-q', v).addEventListener('input', draw); $('#mb-f', v).addEventListener('change', draw); draw();
