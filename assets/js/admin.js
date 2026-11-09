@@ -1398,8 +1398,8 @@
         <div style="display:flex;gap:10px;flex-wrap:wrap"><a class="btn" href="#/membres">Annuler</a><button type="button" class="btn btn-primary" id="mb-save">${icon('check')} ${own ? 'Créer ma fiche membre' : isNew ? 'Créer le compte' : 'Enregistrer'}</button></div></section>
       ${isNew ? '' : `<section class="card form-card" style="margin-top:16px"><h2>${icon('shield')} Accès à l'espace membre</h2>
         <p id="mb-state"></p>
-        <div style="display:flex;gap:10px;flex-wrap:wrap"><button type="button" class="btn" id="mb-mail">${icon('mail')} Envoyer l'e-mail pour choisir un mot de passe</button><button type="button" class="btn" id="mb-active"></button></div>
-        <p class="hint">Un membre qui a oublié son mot de passe peut aussi cliquer lui-même sur « Mot de passe oublié » sur la page de connexion.</p></section>`}`;
+        <div style="display:flex;gap:10px;flex-wrap:wrap"><button type="button" class="btn" id="mb-mail">${icon('mail')} Envoyer l'e-mail pour choisir un mot de passe</button><button type="button" class="btn" id="mb-active"></button><button type="button" class="btn btn-danger" id="mb-del">${icon('trash')} Supprimer le membre</button></div>
+        <p class="hint">Un membre qui a oublié son mot de passe peut aussi cliquer lui-même sur « Mot de passe oublié » sur la page de connexion. « Désactiver » bloque la connexion et garde la fiche ; « Supprimer » efface définitivement la fiche, le compte de connexion et les inscriptions du membre (utile pour un compte test ou une erreur de saisie).</p></section>`}`;
     const orig = clone(m);
     const form = Form($('#mb-form', v), mbFields(m, isNew && !own), m, () => { dirty = true; });
     const drawState = () => {
@@ -1442,6 +1442,13 @@
       if (!next && !(await modal({ title: `Désactiver ${mbName(m)} ?`, body: 'Le membre ne pourra plus se connecter à l\'espace membre. Sa fiche est conservée et vous pourrez le réactiver à tout moment.', confirm: 'Désactiver', danger: true }))) return;
       const b = $('#mb-active', v); b.disabled = true;
       try { await store.members.setActive(uid, next); m.actif = next; drawState(); toast(next ? 'Compte réactivé' : 'Compte désactivé'); } catch (e) { toast('Modification impossible : ' + ((e && e.message) || e), 'err'); } finally { b.disabled = false; }
+    });
+    $('#mb-del', v).addEventListener('click', async () => {
+      if (store.user && store.user.uid === uid) { toast('Vous ne pouvez pas supprimer votre propre compte.', 'err'); return; }
+      if (!(await modal({ title: `Supprimer ${mbName(m)} ?`, body: 'Cette action est définitive : la fiche, le compte de connexion et les inscriptions aux événements de ce membre sont effacés. Pour seulement bloquer l\'accès en gardant la fiche, utilisez « Désactiver le compte ».', confirm: 'Supprimer définitivement', danger: true }))) return;
+      const b = $('#mb-del', v); b.disabled = true;
+      try { await store.members.remove(uid); dirty = false; toast(mbName(m) + ' : membre supprimé'); location.hash = '#/membres'; }
+      catch (e) { b.disabled = false; toast('Suppression impossible : ' + ((e && e.message) || e), 'err'); }
     });
     $('#mb-mail', v).addEventListener('click', async () => {
       if (!m.email) { toast('Ce membre n\'a pas d\'adresse e-mail.', 'err'); return; }
