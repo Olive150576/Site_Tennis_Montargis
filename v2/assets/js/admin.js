@@ -1270,11 +1270,19 @@
     return true;
   }
 
+  /* Libellé « Jamais connecté / Invité le … / Dernière visite … » d'une fiche membre */
+  const mbDay = (t) => new Date(Number(t)).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
+  function mbVisit(m) {
+    if (m.derniereVisite) return 'Dernière visite le ' + mbDay(m.derniereVisite) + (m.visites > 1 ? ' · ' + m.visites + ' visites' : '');
+    return m.invitedAt ? 'Jamais connecté · invité le ' + mbDay(m.invitedAt) : 'Jamais connecté · pas encore invité';
+  }
+  const mbMailErr = (e) => /too-many-requests/.test((e && e.code) || '') ? 'trop d\'e-mails envoyés à la suite, réessayez plus tard' : /invalid-email/.test((e && e.code) || '') ? 'adresse e-mail invalide' : /user-not-found/.test((e && e.code) || '') ? 'aucun compte pour cette adresse' : ((e && e.message) || String(e));
+  let mbPause = 350; // pause entre deux envois (ms) pour ne pas déclencher la limite de Firebase
   async function viewMembers(id) {
     if (store.isLocal) { const v0 = shell('Membres', ''); v0.innerHTML = '<div class="card card-pad"><p>La gestion des membres n\'est disponible qu\'en ligne (mode Firebase).</p></div>'; return; }
     if (id === 'moi') return viewMember(null, true);
     if (id) return viewMember(id === 'nouveau' ? null : id);
-    const v = shell('Membres', '', `<button type="button" class="btn" id="mb-exp">${icon('download')} Exporter</button><label class="btn" style="cursor:pointer">${icon('upload')} Importer<input type="file" id="mb-imp" accept=".csv,text/csv" hidden></label><a class="btn btn-primary" href="#/membres/nouveau">${icon('plus')} Nouveau membre</a>`);
+    const v = shell('Membres', '', `<button type="button" class="btn" id="mb-inv-all">${icon('mail')} Inviter…</button><button type="button" class="btn" id="mb-exp">${icon('download')} Exporter</button><label class="btn" style="cursor:pointer">${icon('upload')} Importer<input type="file" id="mb-imp" accept=".csv,text/csv" hidden></label><a class="btn btn-primary" href="#/membres/nouveau">${icon('plus')} Nouveau membre</a>`);
     v.innerHTML = `<p class="intro">Les comptes de l'espace membre. Un nouveau membre reçoit un e-mail du club pour choisir lui-même son mot de passe : vous n'avez aucun mot de passe à lui transmettre.</p>
       <div class="toolbar"><label class="search"><span class="sr-only">Rechercher</span>${icon('search')}<input type="search" id="mb-q" placeholder="Nom, e-mail, licence…"></label>
         <select id="mb-f" aria-label="Filtrer"><option value="actifs">Membres actifs</option><option value="inactifs">Membres inactifs</option><option value="">Tous les membres</option></select>
@@ -1303,8 +1311,8 @@
       shown = rows;
       const box = $('#mb-table', v);
       if (!rows.length) { box.innerHTML = `<div class="empty-state">${icon('user')}<p>${list.length ? 'Aucun membre pour ce filtre.' : 'Aucun membre pour le moment.'}</p><a class="btn btn-primary" href="#/membres/nouveau">${icon('plus')} Nouveau membre</a></div>`; return; }
-      box.innerHTML = `<table class="table"><thead><tr><th>Membre</th><th class="hide-sm">Catégorie</th><th>Classement</th><th class="hide-sm">Statut</th><th>Accès</th></tr></thead><tbody>${rows.map((m) => `<tr data-id="${esc(m.id)}" style="cursor:pointer"><td><b>${esc(mbName(m))}</b>${m.email ? `<div class="small muted">${esc(m.email)}</div>` : ''}</td><td class="hide-sm">${esc(label(MB_CATS, m.categorie || ''))}</td><td>${esc(m.classement || '—')}</td><td class="hide-sm">${esc(m.statut || 'Membre')}</td><td class="mb-acc">${m.actif === true ? '<span class="pill ok dot">Actif</span>' : '<span class="pill dot">Inactif</span>'}<label class="switch mb-sw" title="${m.actif === true ? 'Désactiver le compte' : 'Réactiver le compte'}"><input type="checkbox" data-id="${esc(m.id)}" aria-label="${esc((m.actif === true ? 'Désactiver le compte de ' : 'Réactiver le compte de ') + mbName(m))}"${m.actif === true ? ' checked' : ''}><span class="track"></span></label></td></tr>`).join('')}</tbody></table>`;
-      $$('tbody tr', box).forEach((tr) => tr.addEventListener('click', (e) => { if (e.target.closest('.mb-sw')) return; location.hash = '#/membres/' + tr.dataset.id; }));
+      box.innerHTML = `<table class="table"><thead><tr><th>Membre</th><th class="hide-sm">Catégorie</th><th>Classement</th><th class="hide-sm">Statut</th><th>Accès</th></tr></thead><tbody>${rows.map((m) => `<tr data-id="${esc(m.id)}" style="cursor:pointer"><td><b>${esc(mbName(m))}</b>${m.email ? `<div class="small muted">${esc(m.email)}</div>` : ''}${m.actif === true ? `<div class="small mb-st ${m.derniereVisite ? 'muted' : 'warn'}">${esc(mbVisit(m))}</div>` : ''}</td><td class="hide-sm">${esc(label(MB_CATS, m.categorie || ''))}</td><td>${esc(m.classement || '—')}</td><td class="hide-sm">${esc(m.statut || 'Membre')}</td><td class="mb-acc">${m.actif === true ? '<span class="pill ok dot">Actif</span>' : '<span class="pill dot">Inactif</span>'}${m.actif === true && m.email ? `<button type="button" class="btn btn-sm btn-ghost mb-inv" data-id="${esc(m.id)}" title="Envoyer l'e-mail pour choisir un mot de passe" aria-label="${esc('Envoyer l\'invitation à ' + mbName(m))}">${icon('mail')}</button>` : ''}<label class="switch mb-sw" title="${m.actif === true ? 'Désactiver le compte' : 'Réactiver le compte'}"><input type="checkbox" data-id="${esc(m.id)}" aria-label="${esc((m.actif === true ? 'Désactiver le compte de ' : 'Réactiver le compte de ') + mbName(m))}"${m.actif === true ? ' checked' : ''}><span class="track"></span></label></td></tr>`).join('')}</tbody></table>`;
+      $$('tbody tr', box).forEach((tr) => tr.addEventListener('click', (e) => { if (e.target.closest('.mb-sw, .mb-inv')) return; location.hash = '#/membres/' + tr.dataset.id; }));
       // Interrupteur d'accès directement dans la liste (même fonction serveur que le bouton de la fiche)
       $$('.mb-sw input', box).forEach((inp) => inp.addEventListener('click', async (e) => {
         e.preventDefault(); e.stopPropagation();
@@ -1317,6 +1325,44 @@
         catch (err) { inp.disabled = false; toast('Modification impossible : ' + ((err && err.message) || err), 'err'); }
       }));
     };
+    // Envoi individuel depuis la liste
+    v.addEventListener('click', async (e) => {
+      const b = e.target.closest('.mb-inv'); if (!b) return;
+      e.stopPropagation();
+      const m = list.find((x) => x.id === b.dataset.id); if (!m || !m.email) return;
+      if (!(await modal({ title: 'Envoyer l\'invitation ?', body: `${mbName(m)} va recevoir à ${m.email} un e-mail du club pour choisir son mot de passe et accéder à l'espace membre.`, confirm: 'Envoyer' }))) return;
+      b.disabled = true;
+      try { await store.members.invite(m.id, m.email); m.invitedAt = Date.now(); draw(); toast('Invitation envoyée à ' + m.email); }
+      catch (err) { b.disabled = false; toast('Envoi impossible : ' + mbMailErr(err), 'err'); }
+    });
+    // Envoi groupé : membres actifs qui ne se sont jamais connectés
+    $('#mb-inv-all').addEventListener('click', async () => {
+      const own = store.user && store.user.uid;
+      const cand = list.filter((m) => m.actif === true && m.email && !m.derniereVisite && m.id !== own);
+      const fresh = cand.filter((m) => !m.invitedAt), again = cand.filter((m) => m.invitedAt);
+      if (!cand.length) { await modal({ title: 'Personne à inviter', body: 'Tous les membres actifs avec une adresse e-mail se sont déjà connectés à l\'espace membre.', confirm: 'OK', cancel: '' }); return; }
+      const res = await modal({ title: 'Inviter les membres', confirm: 'Envoyer les invitations', html: `<p class="muted"><b>${cand.length}</b> membre${cand.length > 1 ? 's' : ''} actif${cand.length > 1 ? 's' : ''} ne se sont jamais connecté${cand.length > 1 ? 's' : ''} à l'espace membre :</p>
+        <ul style="margin:6px 0 12px 18px;line-height:1.7"><li><b>${fresh.length}</b> jamais invité${fresh.length > 1 ? 's' : ''}</li><li><b>${again.length}</b> déjà invité${again.length > 1 ? 's' : ''} (à relancer si le lien a expiré)</li></ul>
+        ${again.length ? `<label class="switch"><input type="checkbox" id="inv-again"><span class="track"></span><span>Relancer aussi les ${again.length} déjà invité${again.length > 1 ? 's' : ''}</span></label>` : ''}
+        <p class="small muted" style="margin-top:12px">Chacun reçoit un e-mail du club « Réinitialisez votre mot de passe » : le lien est valable 1 heure. Au-delà, il suffit de cliquer sur « Mot de passe oublié » sur la page de connexion. Envoyez-les au moment où vous annoncez le lancement aux membres.</p>` });
+      if (!res) return;
+      const targets = (res.querySelector && res.querySelector('#inv-again') && res.querySelector('#inv-again').checked) ? cand : fresh;
+      if (!targets.length) { toast('Aucune invitation à envoyer.'); return; }
+      const prog = document.createElement('div'); prog.className = 'modal-back';
+      prog.innerHTML = `<div class="modal" role="status"><h2>Envoi des invitations…</h2><p class="muted" id="inv-p">0 / ${targets.length}</p><p class="small muted">Ne fermez pas cette page.</p></div>`;
+      document.body.appendChild(prog);
+      const ok = [], ko = []; let stop = '';
+      for (const m of targets) {
+        try { await store.members.invite(m.id, m.email); m.invitedAt = Date.now(); ok.push(m); }
+        catch (err) { ko.push({ m, msg: mbMailErr(err) }); if (/too-many-requests|quota/i.test((err && err.code) || (err && err.message) || '')) { stop = 'Firebase limite le nombre d\'e-mails envoyés à la suite : arrêt de l\'envoi.'; break; } }
+        const pe = $('#inv-p', prog); if (pe) pe.textContent = `${ok.length + ko.length} / ${targets.length}`;
+        await new Promise((r) => setTimeout(r, mbPause));
+      }
+      prog.remove(); draw();
+      const left = targets.length - ok.length - ko.length;
+      await modal({ title: ok.length ? `${ok.length} invitation${ok.length > 1 ? 's' : ''} envoyée${ok.length > 1 ? 's' : ''}` : 'Aucune invitation envoyée', confirm: 'Fermer', cancel: '',
+        html: (ko.length || stop ? `<p class="muted"><b>${ko.length}</b> en échec${left > 0 ? ` et ${left} non envoyée${left > 1 ? 's' : ''}` : ''}. ${esc(stop)} Réessayez plus tard : seuls ceux qui n'ont pas été invités seront renvoyés.</p><ul style="margin:6px 0 0 18px;line-height:1.7">${ko.map((x) => `<li>${esc(mbName(x.m))} (${esc(x.m.email)}) : ${esc(x.msg)}</li>`).join('')}</ul>` : '<p class="muted">Les membres ont reçu l\'e-mail du club pour choisir leur mot de passe (pensez à leur dire de regarder aussi dans les spams).</p>') });
+    });
     let shown = [];
     $('#mb-q', v).addEventListener('input', draw); $('#mb-f', v).addEventListener('change', draw); draw();
     $('#mb-exp').addEventListener('click', () => {
@@ -1400,7 +1446,7 @@
     $('#mb-mail', v).addEventListener('click', async () => {
       if (!m.email) { toast('Ce membre n\'a pas d\'adresse e-mail.', 'err'); return; }
       if (!(await modal({ title: 'Envoyer l\'e-mail ?', body: `${mbName(m)} va recevoir à ${m.email} un e-mail du club pour choisir un nouveau mot de passe.`, confirm: 'Envoyer' }))) return;
-      try { await store.members.sendPasswordEmail(m.email); toast('E-mail envoyé à ' + m.email); } catch (e) { toast('Envoi impossible : ' + ((e && e.message) || e), 'err'); }
+      try { await store.members.invite(uid, m.email); toast('E-mail envoyé à ' + m.email); } catch (e) { toast('Envoi impossible : ' + ((e && e.message) || e), 'err'); }
     });
   }
 
