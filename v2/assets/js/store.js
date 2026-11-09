@@ -836,6 +836,13 @@
         await (await callable(fb, 'toggleMemberStatus'))({ uid, actif: !!actif });
         return true;
       },
+      /* Suppression définitive (fonction serveur deleteMember) : fiche, compte de connexion, inscriptions, annuaire.
+         Le serveur refuse un compte administrateur ou coach. */
+      async remove(uid) {
+        const fb = await firebaseSDK();
+        await (await callable(fb, 'deleteMember'))({ uid });
+        return true;
+      },
       /* Invitation : e-mail pour choisir son mot de passe + date d'envoi gardée sur la fiche (repère « Invité le … » dans la liste) */
       async invite(uid, email) {
         await this.sendPasswordEmail(email);

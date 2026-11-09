@@ -3,7 +3,7 @@
   "private": true,
   "description": "Recettes automatiques en mode Firebase contre les émulateurs : admin v2 et espace membre v2.",
   "scripts": {
-    "test:invitations": "cd ../../.. && firebase emulators:exec --only auth,database --project demo-usm \"node v2/tools/admin-e2e/invitations-e2e.js\"",
+    "test:invitations": "cd ../../.. && firebase emulators:exec --only auth,database,functions --project demo-usm \"node v2/tools/admin-e2e/invitations-e2e.js\"",
     "test": "cd ../../.. && firebase emulators:exec --only auth,database,storage,functions --project demo-usm \"node v2/tools/admin-e2e/admin-e2e.js && node v2/tools/admin-e2e/membre-e2e.js\""
   },
   "devDependencies": {
