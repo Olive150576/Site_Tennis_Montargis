@@ -112,8 +112,50 @@ const OVERRIDE = `;(function(c){c.mode='firebase';c.firebase=Object.assign({},c.
   ok('Groupé : Léa, désormais connectée, n\'est plus à inviter (reste Paul + Fantôme)', /2 membres actifs ne se sont jamais connecté/.test(await page.innerText('.modal')), await page.innerText('.modal'));
   await page.click('.modal [data-a="0"]'); await page.waitForTimeout(300);
 
-  // Suppression définitive d'un membre (fonction serveur deleteMember) : compte test, erreur de saisie
   const DBF = (pth) => `http://${H}:9000/${pth}.json?ns=demo-usm`; // la fonction serveur écrit dans le namespace par défaut de l'émulateur
+  // Administrateurs : nommer un membre, retirer le droit, créer la fiche d'un admin qui n'en a pas (même identifiant partout)
+  await go('#/membres');
+  ok('Membres : bouton « Administrateurs » dans l\'en-tête', await page.isVisible('a[href="#/membres/administrateurs"]'));
+  await page.click('a[href="#/membres/administrateurs"]'); await page.waitForSelector('#ad-list table', { timeout: 10000 });
+  const adTxt = await page.innerText('#ad-list');
+  ok('Administrateurs : le compte connecté est listé (« Vous »), sans fiche membre', /Vous/.test(adTxt) && /admin@test\.fr/.test(adTxt) && !!(await page.$(`[data-mk="${adm}"]`)), adTxt);
+  ok('Administrateurs : on ne peut pas retirer son propre droit', await page.$eval(`[data-rm="${adm}"]`, (b) => b.disabled));
+  await page.selectOption('#ad-pick', lea); await page.click('#ad-add'); await page.waitForTimeout(300);
+  ok('Administrateurs : confirmation avant de nommer (même e-mail et mot de passe que l\'espace membre)', /même e-mail et le même mot de passe/.test(await page.innerText('.modal')));
+  await page.click('.modal [data-a="0"]'); await page.waitForTimeout(300);
+  ok('Administrateurs : annuler ne nomme personne', (await getJ(DB('admins/' + lea))) === null);
+  await page.click('#ad-add'); await page.waitForTimeout(300); await page.click('.modal [data-a="1"]'); await page.waitForTimeout(1500);
+  const admL = await getJ(DB('admins/' + lea));
+  ok('Administrateurs : Léa nommée (e-mail, auteur et date enregistrés)', admL && admL.email === 'lea.bulk@test.fr' && admL.addedBy === 'admin@test.fr' && admL.addedAt > 0, JSON.stringify(admL));
+  ok('Administrateurs : Léa apparaît avec sa fiche membre existante (aucune fiche à créer)', /Léa Bulk/.test(await page.innerText('#ad-list')) && !(await page.$(`[data-mk="${lea}"]`)));
+  await fetch(DBF('admins/' + lea), { method: 'PUT', headers: OWN, body: JSON.stringify(true) }); // namespace par défaut de l'émulateur (droit Storage de la fonction serveur)
+  const ctx3 = await browser.newContext();
+  await ctx3.route('**/assets/js/config.js', async (route) => { const res = await route.fetch(); route.fulfill({ response: res, body: (await res.text()) + OVERRIDE }); });
+  const pa = await ctx3.newPage(); await pa.goto(SITE + '/admin/'); await pa.waitForTimeout(1200);
+  await pa.fill('#lg-email', 'lea.bulk@test.fr'); await pa.fill('#lg-pass', 'Choisi-Par-Lea-1'); await pa.click('#login button[type=submit]');
+  let adminOk = true; try { await pa.waitForSelector('nav', { timeout: 20000 }); } catch (e) { adminOk = false; }
+  ok('Administrateurs : Léa se connecte à l\'admin avec le mot de passe de son espace membre', adminOk, adminOk ? '' : (await pa.innerText('body').catch(() => '')).slice(0, 200));
+  await ctx3.close();
+  await page.click(`[data-rm="${lea}"]`); await page.waitForTimeout(300);
+  ok('Administrateurs : retirer demande confirmation', /Retirer le droit administrateur/.test(await page.innerText('.modal')));
+  await page.click('.modal [data-a="1"]'); await page.waitForTimeout(1500);
+  ok('Administrateurs : droit retiré, Léa reste membre actif', (await getJ(DB('admins/' + lea))) === null && (await getJ(DB('members/' + lea + '/actif'))) === true);
+  await page.click(`[data-mk="${adm}"]`); await page.waitForSelector('#cf-p');
+  await page.click('.modal [data-a="1"]'); await page.waitForTimeout(500);
+  ok('Administrateurs : fiche refusée sans prénom ni nom', (await getJ(DB('members/' + adm))) === null);
+  await page.click(`[data-mk="${adm}"]`); await page.waitForSelector('#cf-p');
+  await page.fill('#cf-p', 'Olivier'); await page.fill('#cf-n', 'Admin'); await page.click('.modal [data-a="1"]'); await page.waitForTimeout(1500);
+  const fa = await getJ(DB('members/' + adm));
+  ok('Administrateurs : fiche créée pour un admin sans fiche (même compte, e-mail repris, actif)', fa && fa.prenom === 'Olivier' && fa.nom === 'Admin' && fa.email === 'admin@test.fr' && fa.actif === true, JSON.stringify(fa));
+  ok('Administrateurs : la liste indique « Oui » et plus de bouton « Créer sa fiche »', !(await page.$(`[data-mk="${adm}"]`)) && /Oui/.test(await page.innerText('#ad-list')));
+  await go('#/membres/' + paul);
+  ok('Fiche : section « Administration du site » (Membre)', await page.isVisible('#mb-adm-sec') && /N'a pas accès/.test(await page.innerText('#mb-adm-state')));
+  await page.click('#mb-admin'); await page.waitForTimeout(300); await page.click('.modal [data-a="1"]'); await page.waitForTimeout(1500);
+  ok('Fiche : nommer administrateur', !!(await getJ(DB('admins/' + paul))) && /Administrateur/.test(await page.innerText('#mb-adm-state')));
+  await page.click('#mb-admin'); await page.waitForTimeout(300); await page.click('.modal [data-a="1"]'); await page.waitForTimeout(1500);
+  ok('Fiche : retirer le droit administrateur', (await getJ(DB('admins/' + paul))) === null && /N'a pas accès/.test(await page.innerText('#mb-adm-state')));
+
+  // Suppression définitive d'un membre (fonction serveur deleteMember) : compte test, erreur de saisie
   const lookup = async (uid) => (await (await fetch(`http://${H}:9099/identitytoolkit.googleapis.com/v1/projects/demo-usm/accounts:lookup`, { method: 'POST', headers: OWN, body: JSON.stringify({ localId: [uid] }) })).json()).users;
   const tst = await signUp('test.usm@test.fr', 'Provisoire-Aleatoire-3'), adm2 = await signUp('autre.admin@test.fr', 'Provisoire-Aleatoire-4');
   const fiche = (nom, email) => ({ prenom: 'Test', nom, email, actif: true });

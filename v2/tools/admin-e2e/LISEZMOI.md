@@ -52,7 +52,7 @@ Trois profils (Monique 68 ans sur petit Android, Karim compétiteur pressé, Lé
 Attention : certaines actions du script sont approximatives (ex. il ne valide pas la fenêtre du classement) ; vérifier chaque remarque des agents avant de corriger.
 
 ## Recette « invitations » (rapide, ≈ 60 s)
-Envoi d'invitation individuel (fiche et liste) et groupé, puis parcours complet d'un invité (e-mail → mot de passe choisi → connexion → première visite visible dans la liste) et suppression définitive d'un membre : 31 contrôles.
+Envoi d'invitation individuel (fiche et liste) et groupé, puis parcours complet d'un invité (e-mail → mot de passe choisi → connexion → première visite visible dans la liste) suppression définitive d'un membre et gestion des administrateurs (nommer, retirer, fiche d'un admin sans fiche) : 47 contrôles.
 ```
 cd ../../.. && firebase emulators:exec --only auth,database,functions --project demo-usm "node v2/tools/admin-e2e/invitations-e2e.js"
 ```

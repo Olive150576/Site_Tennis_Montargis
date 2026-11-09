@@ -1270,6 +1270,25 @@
     return true;
   }
 
+  /* Droit administrateur : nommer / retirer, avec confirmation et garde-fous (jamais soi-même, jamais le dernier admin).
+     Retourne le nouvel état (true = administrateur) ou null si rien n'a changé. */
+  async function mbAdminToggle(m, isAdm) {
+    const next = !isAdm;
+    if (!next && store.user && store.user.uid === m.id) { toast('Vous ne pouvez pas retirer votre propre droit administrateur.', 'err'); return null; }
+    const ok = await modal(next
+      ? { title: `Nommer ${mbName(m)} administrateur ?`, body: 'Cette personne pourra se connecter à l\'administration avec le même e-mail et le même mot de passe que l\'espace membre : modifier le site, voir et modifier tous les membres. À réserver aux personnes de confiance.', confirm: 'Nommer administrateur' }
+      : { title: `Retirer le droit administrateur à ${mbName(m)} ?`, body: 'Elle reste membre du club mais n\'accède plus à l\'administration.', confirm: 'Retirer le droit', danger: true });
+    if (!ok) return null;
+    try {
+      if (next) await store.admins.grant(m.id, m.email);
+      else {
+        if ((await store.admins.list()).length <= 1) { toast('Impossible : il doit rester au moins un administrateur.', 'err'); return null; }
+        await store.admins.revoke(m.id);
+      }
+      toast(next ? mbName(m) + ' est maintenant administrateur' : 'Droit administrateur retiré à ' + mbName(m));
+      return next;
+    } catch (e) { toast('Modification impossible : ' + ((e && e.message) || e), 'err'); return null; }
+  }
   /* Libellé « Jamais connecté / Invité le … / Dernière visite … » d'une fiche membre */
   const mbDay = (t) => new Date(Number(t)).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
   function mbVisit(m) {
@@ -1280,9 +1299,10 @@
   let mbPause = 350; // pause entre deux envois (ms) pour ne pas déclencher la limite de Firebase
   async function viewMembers(id) {
     if (store.isLocal) { const v0 = shell('Membres', ''); v0.innerHTML = '<div class="card card-pad"><p>La gestion des membres n\'est disponible qu\'en ligne (mode Firebase).</p></div>'; return; }
+    if (id === 'administrateurs') return viewAdmins();
     if (id === 'moi') return viewMember(null, true);
     if (id) return viewMember(id === 'nouveau' ? null : id);
-    const v = shell('Membres', '', `<button type="button" class="btn" id="mb-inv-all">${icon('mail')} Inviter…</button><button type="button" class="btn" id="mb-exp">${icon('download')} Exporter</button><label class="btn" style="cursor:pointer">${icon('upload')} Importer<input type="file" id="mb-imp" accept=".csv,text/csv" hidden></label><a class="btn btn-primary" href="#/membres/nouveau">${icon('plus')} Nouveau membre</a>`);
+    const v = shell('Membres', '', `<a class="btn" href="#/membres/administrateurs">${icon('shield')} Administrateurs</a><button type="button" class="btn" id="mb-inv-all">${icon('mail')} Inviter…</button><button type="button" class="btn" id="mb-exp">${icon('download')} Exporter</button><label class="btn" style="cursor:pointer">${icon('upload')} Importer<input type="file" id="mb-imp" accept=".csv,text/csv" hidden></label><a class="btn btn-primary" href="#/membres/nouveau">${icon('plus')} Nouveau membre</a>`);
     v.innerHTML = `<p class="intro">Les comptes de l'espace membre. Un nouveau membre reçoit un e-mail du club pour choisir lui-même son mot de passe : vous n'avez aucun mot de passe à lui transmettre.</p>
       <div class="toolbar"><label class="search"><span class="sr-only">Rechercher</span>${icon('search')}<input type="search" id="mb-q" placeholder="Nom, e-mail, licence…"></label>
         <select id="mb-f" aria-label="Filtrer"><option value="actifs">Membres actifs</option><option value="inactifs">Membres inactifs</option><option value="">Tous les membres</option></select>
@@ -1373,6 +1393,51 @@
     $('#mb-imp').addEventListener('change', async (e) => { const file = e.target.files[0]; e.target.value = ''; if (file && await runMemberImport(file, list)) route(); });
   }
 
+  /* ---------- Administrateurs : qui peut se connecter à l'admin, et lien avec la fiche membre ---------- */
+  async function viewAdmins() {
+    const v = shell('Administrateurs', '<a href="#/membres">Membres</a> /');
+    v.innerHTML = `<p class="intro">Les personnes qui peuvent se connecter à l'administration du site. Elles utilisent le même e-mail et le même mot de passe que l'espace membre : il n'y a qu'un seul identifiant par personne.</p>
+      <section class="card form-card"><h2>${icon('shield')} Administrateurs</h2><div id="ad-list"><p class="muted">Chargement…</p></div></section>
+      <section class="card form-card" style="margin-top:16px"><h2>${icon('plus')} Nommer un administrateur</h2><p class="muted">Choisissez un membre : il garde sa fiche et reçoit en plus l'accès à l'administration. Il n'y a rien d'autre à faire.</p>
+        <div class="toolbar"><select id="ad-pick" aria-label="Membre à nommer"></select><button type="button" class="btn btn-primary" id="ad-add">${icon('shield')} Nommer administrateur</button></div></section>`;
+    let admins = [], members = [];
+    const fdate = (t) => t ? new Date(Number(t)).toLocaleDateString('fr-FR') : '—';
+    const draw = () => {
+      const me = store.user && store.user.uid, byId = new Map(members.map((m) => [m.id, m]));
+      const rows = admins.map((a) => { const m = byId.get(a.id); return { a, m, email: a.email || (m && m.email) || (a.id === me && store.user.email) || '', name: m ? mbName(m) : (a.email || (a.id === me && store.user.email) || 'Compte sans e-mail') }; })
+        .sort((x, y) => String(x.name).localeCompare(String(y.name), 'fr'));
+      $('#ad-list', v).innerHTML = `<div class="table-wrap"><table class="table"><thead><tr><th>Administrateur</th><th>Fiche membre</th><th class="hide-sm">Nommé le</th><th></th></tr></thead><tbody>${rows.map(({ a, m, email, name }) => `<tr><td><b>${esc(name)}</b>${a.id === me ? ' <span class="pill blue">Vous</span>' : ''}${email && email !== name ? `<div class="small muted">${esc(email)}</div>` : ''}</td>
+        <td>${m ? `<a href="#/membres/${esc(a.id)}">Oui</a>` : `<span class="muted">Non</span> <button type="button" class="btn btn-sm" data-mk="${esc(a.id)}">Créer sa fiche</button>`}</td>
+        <td class="hide-sm">${esc(fdate(a.addedAt))}</td><td><button type="button" class="btn btn-sm btn-ghost btn-danger" data-rm="${esc(a.id)}"${a.id === me ? ' disabled title="Vous ne pouvez pas retirer votre propre droit"' : ''}>Retirer</button></td></tr>`).join('')}</tbody></table></div>
+        <p class="hint">Sans fiche membre, un administrateur ne peut pas se connecter à l'espace membre : c'est voulu pour un compte technique (secours, compte du club). Ajoutez une fiche seulement pour un adhérent.</p>`;
+      const ids = new Set(admins.map((a) => a.id));
+      $('#ad-pick', v).innerHTML = '<option value="">Choisir un membre…</option>' + members.filter((m) => m.actif === true && !ids.has(m.id))
+        .sort((x, y) => mbName(x).localeCompare(mbName(y), 'fr')).map((m) => `<option value="${esc(m.id)}">${esc(mbName(m))}${m.email ? ' · ' + esc(m.email) : ''}</option>`).join('');
+      $$('[data-rm]', v).forEach((b) => b.addEventListener('click', async () => {
+        const a = admins.find((x) => x.id === b.dataset.rm); if (!a) return;
+        const m = members.find((x) => x.id === a.id) || { id: a.id, email: a.email, prenom: '', nom: '' };
+        if (await mbAdminToggle(m, true) === false) { await load(); }
+      }));
+      $$('[data-mk]', v).forEach((b) => b.addEventListener('click', async () => {
+        const a = admins.find((x) => x.id === b.dataset.mk); if (!a) return;
+        const email = a.email || (a.id === me && store.user.email) || '';
+        const res = await modal({ title: 'Créer la fiche membre', body: `Le compte ${email || 'sélectionné'} existe déjà : la fiche lui est simplement rattachée, il se connectera ensuite à l'espace membre avec le même mot de passe. Elle apparaîtra dans la liste des membres.`, confirm: 'Créer la fiche',
+          html: '<div class="fields"><div class="field half"><label for="cf-p">Prénom</label><input id="cf-p" autocomplete="off"></div><div class="field half"><label for="cf-n">Nom</label><input id="cf-n" autocomplete="off"></div></div>' });
+        if (!res) return;
+        const prenom = res.querySelector('#cf-p').value.trim(), nom = res.querySelector('#cf-n').value.trim();
+        if (!prenom || !nom) { toast('Prénom et nom sont obligatoires.', 'err'); return; }
+        try { await store.members.createFor(a.id, { prenom, nom, email }); toast('Fiche membre créée pour ' + prenom + ' ' + nom); await load(); }
+        catch (e) { toast('Création impossible : ' + ((e && e.message) || e), 'err'); }
+      }));
+    };
+    const load = async () => { admins = await store.admins.list(); members = await store.members.list(); draw(); };
+    try { await load(); } catch (e) { $('#ad-list', v).innerHTML = `<p class="muted">Lecture impossible : ${esc((e && e.message) || e)}. Seuls les administrateurs voient cette page.</p>`; return; }
+    $('#ad-add', v).addEventListener('click', async () => {
+      const m = members.find((x) => x.id === $('#ad-pick', v).value); if (!m) { toast('Choisissez d\'abord un membre.', 'err'); return; }
+      if (await mbAdminToggle(m, false)) await load();
+    });
+  }
+
   async function viewMember(uid, own) {
     const isNew = !uid;
     let m = { prenom: '', nom: '', email: '', telephone: '', licence: '', classement: '', categorie: 'Adulte H', statut: 'Membre', actif: true };
@@ -1399,7 +1464,8 @@
       ${isNew ? '' : `<section class="card form-card" style="margin-top:16px"><h2>${icon('shield')} Accès à l'espace membre</h2>
         <p id="mb-state"></p>
         <div style="display:flex;gap:10px;flex-wrap:wrap"><button type="button" class="btn" id="mb-mail">${icon('mail')} Envoyer l'e-mail pour choisir un mot de passe</button><button type="button" class="btn" id="mb-active"></button><button type="button" class="btn btn-danger" id="mb-del">${icon('trash')} Supprimer le membre</button></div>
-        <p class="hint">Un membre qui a oublié son mot de passe peut aussi cliquer lui-même sur « Mot de passe oublié » sur la page de connexion. « Désactiver » bloque la connexion et garde la fiche ; « Supprimer » efface définitivement la fiche, le compte de connexion et les inscriptions du membre (utile pour un compte test ou une erreur de saisie).</p></section>`}`;
+        <p class="hint">Un membre qui a oublié son mot de passe peut aussi cliquer lui-même sur « Mot de passe oublié » sur la page de connexion. « Désactiver » bloque la connexion et garde la fiche ; « Supprimer » efface définitivement la fiche, le compte de connexion et les inscriptions du membre (utile pour un compte test ou une erreur de saisie).</p></section>
+      <section class="card form-card" style="margin-top:16px" id="mb-adm-sec" hidden><h2>${icon('shield')} Administration du site</h2><p id="mb-adm-state"></p><div><button type="button" class="btn" id="mb-admin"></button></div><p class="hint">Un administrateur se connecte sur /admin/ avec le même e-mail et le même mot de passe que l'espace membre. Il peut modifier le site et voir tous les membres.</p></section>`}`;
     const orig = clone(m);
     const form = Form($('#mb-form', v), mbFields(m, isNew && !own), m, () => { dirty = true; });
     const drawState = () => {
@@ -1443,6 +1509,14 @@
       const b = $('#mb-active', v); b.disabled = true;
       try { await store.members.setActive(uid, next); m.actif = next; drawState(); toast(next ? 'Compte réactivé' : 'Compte désactivé'); } catch (e) { toast('Modification impossible : ' + ((e && e.message) || e), 'err'); } finally { b.disabled = false; }
     });
+    // Droit administrateur depuis la fiche (la section n'apparaît que si le compte connecté peut lire la liste des admins)
+    let isAdm = false;
+    const drawAdm = () => {
+      $('#mb-adm-state', v).innerHTML = isAdm ? '<span class="pill ok dot">Administrateur</span> Peut se connecter à l\'administration du site.' : '<span class="pill dot">Membre</span> N\'a pas accès à l\'administration du site.';
+      $('#mb-admin', v).innerHTML = isAdm ? `${icon('close')} Retirer le droit administrateur` : `${icon('shield')} Nommer administrateur`;
+    };
+    store.admins.list().then((list) => { isAdm = list.some((x) => x.id === uid); drawAdm(); $('#mb-adm-sec', v).hidden = false; }).catch(() => {});
+    $('#mb-admin', v).addEventListener('click', async () => { const r = await mbAdminToggle(Object.assign({}, m, { id: uid }), isAdm); if (r !== null) { isAdm = r; drawAdm(); } });
     $('#mb-del', v).addEventListener('click', async () => {
       if (store.user && store.user.uid === uid) { toast('Vous ne pouvez pas supprimer votre propre compte.', 'err'); return; }
       if (!(await modal({ title: `Supprimer ${mbName(m)} ?`, body: 'Cette action est définitive : la fiche, le compte de connexion et les inscriptions aux événements de ce membre sont effacés. Pour seulement bloquer l\'accès en gardant la fiche, utilisez « Désactiver le compte ».', confirm: 'Supprimer définitivement', danger: true }))) return;
