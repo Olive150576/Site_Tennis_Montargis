@@ -25,14 +25,14 @@ const OVERRIDE = `;(function(c){c.mode='firebase';c.firebase=Object.assign({},c.
 (async () => {
   const server = await serve();
   const adm = await signUp('admin@test.fr', 'Admin-Test-123');
-  await fetch(`http://${H}:9000/.json?ns=${NS}`, { method: 'PUT', headers: OWN, body: JSON.stringify({ admins: { [adm]: true } }) });
+  for (const ns of [NS, 'demo-usm']) await fetch(`http://${H}:9000/.json?ns=${ns}`, { method: 'PUT', headers: OWN, body: JSON.stringify({ admins: { [adm]: true } }) }); // la fonction serveur lit le namespace par défaut de l'émulateur
   const browser = await chromium.launch();
   const ctx = await browser.newContext();
   await ctx.route('**/assets/js/config.js', async (route) => { const res = await route.fetch(); route.fulfill({ response: res, body: (await res.text()) + OVERRIDE }); });
-  const errors = []; const page = await ctx.newPage(); let expectMailFail = false;
+  const errors = []; const page = await ctx.newPage(); let expectMailFail = false, expectFnFail = false;
   page.on('pageerror', (e) => errors.push('pageerror: ' + e.message));
   page.on('console', (m) => { if (m.type() === 'error' && !/favicon|clarity|Failed to load resource/i.test(m.text())) errors.push(m.text()); });
-  page.on('response', (r) => { if (r.status() >= 400 && !/favicon/.test(r.url())) { if (!(/accounts:sendOobCode/.test(r.url()) && expectMailFail)) errors.push(r.status() + ' ' + r.url().slice(0, 120)); } });
+  page.on('response', (r) => { if (r.status() >= 400 && !/favicon/.test(r.url())) { if (!((/accounts:sendOobCode/.test(r.url()) && expectMailFail) || (/deleteMember/.test(r.url()) && expectFnFail))) errors.push(r.status() + ' ' + r.url().slice(0, 120)); } });
   const go = async (h) => { await page.goto(SITE + '/admin/' + h); await page.waitForTimeout(1200); };
   const login = async (e, p) => { await page.fill('#lg-email', e); await page.fill('#lg-pass', p); await page.click('#login button[type=submit]'); await page.waitForTimeout(300); await page.waitForFunction(() => document.querySelector('nav') || (document.querySelector('#login button[type=submit]') && !document.querySelector('#login button[type=submit]').disabled), null, { timeout: 25000 }); await page.waitForTimeout(800); };
   const getJ = async (u) => (await fetch(u, { headers: OWN })).json();
@@ -111,6 +111,26 @@ const OVERRIDE = `;(function(c){c.mode='firebase';c.firebase=Object.assign({},c.
   await page.click('#mb-inv-all'); await page.waitForSelector('.modal');
   ok('Groupé : Léa, désormais connectée, n\'est plus à inviter (reste Paul + Fantôme)', /2 membres actifs ne se sont jamais connecté/.test(await page.innerText('.modal')), await page.innerText('.modal'));
   await page.click('.modal [data-a="0"]'); await page.waitForTimeout(300);
+
+  // Suppression définitive d'un membre (fonction serveur deleteMember) : compte test, erreur de saisie
+  const DBF = (pth) => `http://${H}:9000/${pth}.json?ns=demo-usm`; // la fonction serveur écrit dans le namespace par défaut de l'émulateur
+  const lookup = async (uid) => (await (await fetch(`http://${H}:9099/identitytoolkit.googleapis.com/v1/projects/demo-usm/accounts:lookup`, { method: 'POST', headers: OWN, body: JSON.stringify({ localId: [uid] }) })).json()).users;
+  const tst = await signUp('test.usm@test.fr', 'Provisoire-Aleatoire-3'), adm2 = await signUp('autre.admin@test.fr', 'Provisoire-Aleatoire-4');
+  const fiche = (nom, email) => ({ prenom: 'Test', nom, email, actif: true });
+  for (const [k, m] of [[tst, fiche('Usm', 'test.usm@test.fr')], [adm2, fiche('Admin', 'autre.admin@test.fr')]]) { await put(k, m); await fetch(DBF('members/' + k), { method: 'PUT', headers: OWN, body: JSON.stringify(m) }); }
+  await fetch(DBF('admins/' + adm2), { method: 'PUT', headers: OWN, body: JSON.stringify(true) });
+  await fetch(DBF('inscriptions_evenement/ev1/' + tst), { method: 'PUT', headers: OWN, body: JSON.stringify({ prenom: 'Test', nom: 'Usm', at: Date.now() }) });
+  await go('#/membres/' + tst);
+  ok('Fiche : bouton « Supprimer le membre » présent (à côté de « Désactiver »)', await page.isVisible('#mb-del') && await page.isVisible('#mb-active'));
+  await page.click('#mb-del'); await page.waitForTimeout(300);
+  ok('Suppression : confirmation claire (définitif, alternative « Désactiver »)', /définitive/.test(await page.innerText('.modal')) && /Désactiver le compte/.test(await page.innerText('.modal')));
+  await page.click('.modal [data-a="0"]'); await page.waitForTimeout(800);
+  ok('Suppression : annuler ne supprime rien', !!(await lookup(tst)) && (await getJ(DBF('members/' + tst))) !== null);
+  await page.click('#mb-del'); await page.waitForTimeout(300); await page.click('.modal [data-a="1"]'); await page.waitForTimeout(3000);
+  ok('Suppression : compte de connexion, fiche et inscriptions effacés', !(await lookup(tst)) && (await getJ(DBF('members/' + tst))) === null && (await getJ(DBF('inscriptions_evenement/ev1/' + tst))) === null);
+  ok('Suppression : retour à la liste des membres', page.url().endsWith('#/membres'), page.url());
+  expectFnFail = true; await go('#/membres/' + adm2); await page.click('#mb-del'); await page.waitForTimeout(300); await page.click('.modal [data-a="1"]'); await page.waitForTimeout(2500);
+  ok('Suppression : un compte administrateur est refusé par le serveur (rien n\'est effacé)', !!(await lookup(adm2)) && (await getJ(DBF('members/' + adm2))) !== null && /administrateur/i.test(await page.innerText('.toasts').catch(() => '')), await page.innerText('.toasts').catch(() => '')); expectFnFail = false;
   ok('Aucune erreur JS sur tout le parcours', errors.length === 0, errors.join(' | '));
   await browser.close(); server.close();
   console.log(`\n${R.filter(Boolean).length}/${R.length} contrôles invitations (mode Firebase)`); process.exit(R.every(Boolean) ? 0 : 1);
