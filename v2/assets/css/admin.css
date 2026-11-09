@@ -402,3 +402,7 @@ code, .code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monosp
 .mb-acc .pill { margin-right: 10px; vertical-align: middle; }
 .mb-acc .mb-sw { display: inline-flex; vertical-align: middle; position: relative; padding: 6px 0 6px 4px; }
 @media (max-width: 560px) { .mb-acc .pill { display: none; } }
+
+.mb-st { margin-top: 2px; }
+.mb-st.warn { color: var(--warn, #b45309); }
+.mb-acc .mb-inv { vertical-align: middle; margin-right: 6px; padding: 4px 8px; }
