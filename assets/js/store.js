@@ -819,6 +819,19 @@
         await ref.update(data);
         return u.uid;
       },
+      /* Fiche membre pour un compte qui existe déjà (ex. un administrateur sans fiche) : même identifiant, rien n'est recréé côté connexion */
+      async createFor(uid, d) {
+        const fb = await firebaseSDK();
+        const ref = fb.database().ref('members/' + uid);
+        const cur = (await ref.once('value')).val();
+        if (cur && (cur.nom || cur.prenom)) throw new Error('Ce compte a déjà une fiche membre.');
+        const data = { email: String(d.email || '').trim().toLowerCase(), actif: true, createdAt: Date.now() };
+        this.EDITABLE.forEach((k) => { data[k] = String(d[k] == null ? '' : d[k]).trim(); });
+        if (!data.categorie) data.categorie = 'Adulte H';
+        if (!data.statut) data.statut = 'Membre';
+        await ref.update(data);
+        return uid;
+      },
       /* Annuaire des joueurs : profils restés visibles alors que la fiche du membre n'existe plus */
       async directoryOrphans(knownIds) {
         if (Store.isLocal) return [];
@@ -855,6 +868,25 @@
         const url = new URL('../espace-membre.html', location.href).href;
         try { await auth.sendPasswordResetEmail(email, { url }); }
         catch (e) { if (/continue-uri|unauthorized|invalid-continue/i.test((e && e.code) || '')) await auth.sendPasswordResetEmail(email); else throw e; }
+        return true;
+      }
+    },
+    /* Administrateurs : nœud admins/{uid} (même identifiant que l'espace membre). Lecture et écriture réservées aux admins par les règles. */
+    admins: {
+      async list() {
+        if (Store.isLocal) return [];
+        const fb = await firebaseSDK();
+        const s = await fb.database().ref('admins').once('value');
+        return toArr(s.val());
+      },
+      async grant(uid, email) {
+        const fb = await firebaseSDK(); const u = fb.auth().currentUser;
+        await fb.database().ref('admins/' + uid).set({ email: String(email || '').trim().toLowerCase(), addedBy: (u && u.email) || 'admin', addedAt: Date.now() });
+        return true;
+      },
+      async revoke(uid) {
+        const fb = await firebaseSDK();
+        await fb.database().ref('admins/' + uid).remove();
         return true;
       }
     },
