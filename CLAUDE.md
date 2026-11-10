@@ -35,7 +35,7 @@ Contexte lu automatiquement par Claude Code. Historique détaillé : `docs/claud
 ## Mise en ligne (jour J, depuis `bascule`)
 1. Récupérer les actualités manquantes de l'ancien site.
 2. Si `refonte` a bougé : relancer `assembler_bascule.py`.
-3. `firebase hosting:channel:deploy bascule --site usm-tennis --expires 30d`, puis `verifier_bascule.sh` sur l'URL de preview.
+3. Depuis `Site_Tennis_Refonte` (vérifier `git branch --show-current` = `bascule`, jamais depuis `Site_Tennis_Montargis` qui est sur `main`) : `firebase hosting:channel:deploy bascule --expires 30d` (pas d'option `--site`, le site par défaut du projet est `usm-tennis`), puis `verifier_bascule.sh` sur l'URL de preview.
 4. `firebase deploy --only hosting`, puis `verifier_bascule.sh https://tennismontargis.fr`.
 5. `git push origin bascule:main`.
 
