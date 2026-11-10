@@ -41,6 +41,7 @@ Contexte lu automatiquement par Claude Code. Historique détaillé : `docs/claud
 
 ## Feuille de route après la bascule
 - **Priorité 1** : places limitées + liste d'attente sur les événements (statut déduit de l'ordre d'inscription `at`, e-mails via le Gmail du club, e-mails des responsables stockés hors de `site_v2` dans un nœud réservé aux admins). Spécification complète dans `docs/claude-passation/passation-nouveau-site.md`.
+- **Priorité 1 (avec la liste d'attente) : sécurité du retrait d'un administrateur.** Retirer `admins/{uid}` ne retire pas le claim `admin: true` posé par `grantAdminClaim`, et les règles Storage (`images/`, `documents/`, `site_v2/`, photos de membres) se fient à ce claim : un ex-admin connecté à l'admin garde l'écriture et la suppression dans Storage. À faire : Cloud Function déclenchée sur la suppression de `admins/{uid}` (`onDelete`) qui retire le claim (`setCustomUserClaims(uid, null)`) **et** révoque les sessions (`revokeRefreshTokens(uid)`) ; déploiement ciblé (`firebase deploy --only functions:<nom>`). Même trou dans l'ancien panneau (`admin-panel.html`, `admin-auth.js` pose le claim à la connexion, rien ne le retire) ; le correctif serveur couvre les deux, quel que soit l'outil qui supprime `admins/{uid}` (nouvel admin, console Firebase).
 - V2 espace membre : annonces « cherche un double », préférences de notification, push.
 - V3 : Équipes dans le site (remplace WhatsApp), puis la Boutique.
 - Technique : supprimer `functions.config()` avant mars 2027 ; Functions en 2e génération avant octobre 2027.
