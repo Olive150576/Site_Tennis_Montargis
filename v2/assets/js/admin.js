@@ -644,7 +644,7 @@
 
   function shell(title, crumb, actions = '') {
     const r = (location.hash.slice(2).split('/')[0]) || 'tableau';
-    const unread = (C.messages || []).filter((m) => !m.read).length;
+    const unread = (C.messages || []).filter((m) => !m.read && !m.spam).length;
     app.innerHTML = `<div class="shell">
       <aside class="side" id="side" aria-label="Menu d'administration">
         <a class="brand" href="#/tableau"><img src="../assets/img/brand/logo-usm.webp" alt=""><span><b>USM Tennis</b><span>Administration</span></span></a>
@@ -701,7 +701,7 @@
     const pub = news.filter((n) => !n.draft);
     const drafts = news.filter((n) => n.draft);
     const up = (C.events || []).filter((e) => !e.draft && e.dateStart && (e.dateEnd || e.dateStart) >= t).sort((a, b) => a.dateStart.localeCompare(b.dateStart));
-    const unread = (C.messages || []).filter((m) => !m.read);
+    const unread = (C.messages || []).filter((m) => !m.read && !m.spam);
     const last = pub.slice().sort((a, b) => (b.date || '').localeCompare(a.date || ''))[0];
     const daysSince = last ? Math.round((new Date(t) - new Date(last.date)) / 86400000) : null;
     const hour = new Date().getHours();
@@ -1566,16 +1566,16 @@
     const TYPES = { contact: 'Contact', partenariat: 'Partenariat' };
     const SUBJ = { renseignement: 'Renseignement', essai: 'Séance d\'essai', inscription: 'Inscription', cours: 'Cours / stage', partenariat: 'Partenariat', autre: 'Autre' };
     function draw() {
-      const unread = msgs.filter((m) => !m.read).length;
-      $('#m-tabs', v).innerHTML = [['all', `Tous (${msgs.length})`], ['unread', `Non lus (${unread})`], ['essai', 'Essais'], ['partenariat', 'Partenariats']].map(([k, l]) => `<button type="button" role="tab" aria-selected="${tab === k}" data-t="${k}">${l}</button>`).join('');
+      const unread = msgs.filter((m) => !m.read && !m.spam).length, nSuspect = msgs.filter((m) => m.suspect).length, nSpam = msgs.filter((m) => m.spam).length;
+      $('#m-tabs', v).innerHTML = [['all', `Tous (${msgs.length})`], ['unread', `Non lus (${unread})`], ['essai', 'Essais'], ['partenariat', 'Partenariats'], ['suspect', `À vérifier (${nSuspect})`], ['spam', `Spam (${nSpam})`]].map(([k, l]) => `<button type="button" role="tab" aria-selected="${tab === k}" data-t="${k}">${l}</button>`).join('');
       $$('#m-tabs button', v).forEach((b) => b.addEventListener('click', () => { tab = b.dataset.t; draw(); }));
-      const list = msgs.filter((m) => tab === 'all' || (tab === 'unread' && !m.read) || (tab === 'essai' && m.subject === 'essai') || (tab === 'partenariat' && (m.type === 'partenariat' || m.subject === 'partenariat')));
+      const list = msgs.filter((m) => tab === 'all' || (tab === 'unread' && !m.read && !m.spam) || (tab === 'suspect' && m.suspect) || (tab === 'spam' && m.spam) || (tab === 'essai' && m.subject === 'essai') || (tab === 'partenariat' && (m.type === 'partenariat' || m.subject === 'partenariat')));
       const box = $('#m-list', v);
-      if (!list.length) { box.innerHTML = `<div class="empty-state">${icon('mail')}<p>Aucun message ${tab === 'unread' ? 'non lu' : 'pour le moment'}.</p></div>`; return; }
-      box.innerHTML = list.map((m) => `<article class="msg ${m.read ? '' : 'unread'}" data-id="${esc(m.id)}">
+      if (!list.length) { box.innerHTML = `<div class="empty-state">${icon('mail')}<p>Aucun message ${tab === 'unread' ? 'non lu' : tab === 'suspect' ? 'à vérifier' : tab === 'spam' ? 'classé spam' : 'pour le moment'}.</p></div>`; return; }
+      box.innerHTML = list.map((m) => `<article class="msg ${m.read || m.spam ? '' : 'unread'}" data-id="${esc(m.id)}">
         <span class="avatar">${esc((m.name || '?').trim()[0] || '?').toUpperCase()}</span>
         <div><div class="head"><b>${esc(m.name || 'Anonyme')}</b>${m.extra && m.extra.company ? `<span class="muted">${esc(m.extra.company)}</span>` : ''}<span class="pill ${m.type === 'partenariat' ? 'ball' : 'blue'}">${esc(TYPES[m.type] || m.type)}</span>${m.subject ? `<span class="pill">${esc(SUBJ[m.subject] || m.subject)}</span>` : ''}<span class="small muted">${fmtDateTime(m.createdAt)}</span></div>
-          <p class="body">${esc(m.message || '')}</p>
+          ${m.spam ? `<p><span class="pill err">Spam${m.spamReason ? ' · ' + esc(m.spamReason) : ''}</span></p>` : m.suspect ? `<p><span class="pill warn">À vérifier${m.spamReason ? ' · ' + esc(m.spamReason) : ''}</span></p>` : ''}<p class="body">${esc(m.message || '')}</p>
           <div class="contact">${m.email ? `<a href="mailto:${esc(m.email)}?subject=${encodeURIComponent('USM Tennis Montargis – votre demande')}">${icon('mail')} ${esc(m.email)}</a>` : ''}${m.phone ? `<a href="tel:${esc(m.phone.replace(/\s/g, ''))}">${icon('phone')} ${esc(m.phone)}</a>` : ''}</div></div>
         <div class="acts"><button type="button" class="btn btn-sm" data-read="${esc(m.id)}">${m.read ? 'Marquer non lu' : 'Marquer lu'}</button><button type="button" class="btn btn-sm btn-icon btn-danger" data-del="${esc(m.id)}" title="Supprimer">${icon('trash')}</button></div></article>`).join('');
       $$('[data-read]', box).forEach((b) => b.addEventListener('click', async () => { const m = msgs.find((x) => x.id === b.dataset.read); m.read = !m.read; await persist('messages', msgs); draw(); refreshBadge(); }));
@@ -1584,9 +1584,9 @@
         msgs = msgs.filter((x) => x.id !== b.dataset.del); await persist('messages', msgs, 'Message supprimé'); draw(); refreshBadge();
       }));
     }
-    function refreshBadge() { const n = msgs.filter((m) => !m.read).length; const a = $('.side a[href="#/messages"]'); if (!a) return; const b = $('.badge', a); if (n) { if (b) b.textContent = n; else a.insertAdjacentHTML('beforeend', `<span class="badge">${n}</span>`); } else if (b) b.remove(); }
+    function refreshBadge() { const n = msgs.filter((m) => !m.read && !m.spam).length; const a = $('.side a[href="#/messages"]'); if (!a) return; const b = $('.badge', a); if (n) { if (b) b.textContent = n; else a.insertAdjacentHTML('beforeend', `<span class="badge">${n}</span>`); } else if (b) b.remove(); }
     $('#m-csv').addEventListener('click', () => {
-      const rows = [['Date', 'Type', 'Sujet', 'Nom', 'E-mail', 'Téléphone', 'Message']].concat(msgs.map((m) => [m.createdAt, m.type, m.subject, m.name, m.email, m.phone, (m.message || '').replace(/\n/g, ' ')]));
+      const rows = [['Date', 'Type', 'Sujet', 'Nom', 'E-mail', 'Téléphone', 'Message', 'Statut']].concat(msgs.map((m) => [m.createdAt, m.type, m.subject, m.name, m.email, m.phone, (m.message || '').replace(/\n/g, ' '), m.spam ? 'spam' : m.suspect ? 'à vérifier' : '']));
       download('messages-usm-tennis.csv', '﻿' + rows.map((r) => r.map((c) => `"${String(c || '').replace(/"/g, '""')}"`).join(';')).join('\n'), 'text/csv');
     });
     draw(); refreshBadge();
@@ -1595,7 +1595,7 @@
   window.addEventListener('storage', async (e) => {
     if (e.key !== 'usm_v2_content_ping' || !store.user) return;
     C.messages = await store.loadMessages();
-    const n = C.messages.filter((m) => !m.read).length; const a = $('.side a[href="#/messages"]'); if (!a) return;
+    const n = C.messages.filter((m) => !m.read && !m.spam).length; const a = $('.side a[href="#/messages"]'); if (!a) return;
     const b = $('.badge', a); if (n) { if (b) b.textContent = n; else a.insertAdjacentHTML('beforeend', `<span class="badge">${n}</span>`); } else if (b) b.remove();
   });
 

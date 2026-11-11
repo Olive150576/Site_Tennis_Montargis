@@ -42,6 +42,19 @@ async function t(name, p, expect) {
   await t('Visiteur : ne peut pas lire les messages', anon.ref('site_v2_messages').once('value'), 'ko');
   await t('Message sans e-mail refusé', anon.ref('site_v2_messages/m2').set({ id: 'm2', name: 'X', message: 'y', createdAt: 'z' }), 'ko');
   await t('Admin : lit et marque les messages', adm.ref('site_v2_messages/m1/read').set(true), 'ok');
+  // Anti-spam du formulaire (functions/spam-filter.js) : le visiteur envoie hp et elapsed, jamais le verdict
+  const M = (id, o) => Object.assign({ id, type: 'contact', name: 'Paul', email: 'p@x.fr', phone: '', subject: 'essai', message: 'Bonjour', extra: { name: 'Paul', email: 'p@x.fr', consent: 'on' }, hp: '', elapsed: 8000, createdAt: new Date().toISOString(), read: false }, o);
+  await t('Message du nouveau formulaire (avec hp et elapsed) accepté', anon.ref('site_v2_messages/m10').set(M('m10')), 'ok');
+  await t('Message dont l\'id ne correspond pas à la clé refusé', anon.ref('site_v2_messages/m11').set(M('autre')), 'ko');
+  await t('Visiteur : ne peut pas s\'attribuer un verdict (spam: false)', anon.ref('site_v2_messages/m12').set(M('m12', { spam: false })), 'ko');
+  await t('Visiteur : ne peut pas poser suspect ni spamReason', anon.ref('site_v2_messages/m13').set(M('m13', { suspect: false, spamReason: 'x' })), 'ko');
+  await t('Champ inconnu refusé dans un message', anon.ref('site_v2_messages/m14').set(M('m14', { pirate: 1 })), 'ko');
+  await t('Nom de plus de 200 caractères refusé', anon.ref('site_v2_messages/m15').set(M('m15', { name: 'x'.repeat(201) })), 'ko');
+  await t('Champ piège (hp) de plus de 200 caractères refusé', anon.ref('site_v2_messages/m16').set(M('m16', { hp: 'x'.repeat(201) })), 'ko');
+  await t('elapsed non numérique refusé', anon.ref('site_v2_messages/m17').set(M('m17', { elapsed: 'vite' })), 'ko');
+  await t('Admin : enregistre le verdict spam sur un message', adm.ref('site_v2_messages/m10').update({ spam: true, suspect: false, spamReason: 'champ piège rempli' }), 'ok');
+  await t('Admin : réécrit un message complet avec son verdict (liste admin)', adm.ref('site_v2_messages').update({ m10: M('m10', { spam: true, suspect: false, spamReason: 'champ piège rempli', read: true, order: 1 }) }), 'ok'); // « order » : ajouté par store.js (toObj) à chaque enregistrement de la liste
+  await t('Admin : supprime un message', adm.ref('site_v2_messages/m10').remove(), 'ok');
   // Boutique : réservations
   await t('Membre actif : réserve (produit ouvert, avant la date limite)', alice.ref('boutique_reservations/sp1/alice/r1').set(R()), 'ok');
   await t('Membre actif : lit ses réservations', alice.ref('boutique_reservations/sp1/alice').once('value'), 'ok');

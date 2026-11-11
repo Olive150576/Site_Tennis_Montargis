@@ -25,6 +25,8 @@
    ===================================================================== */
 'use strict';
 
+const { classify, SUSPECT_TO } = require('./spam-filter');
+
 const SITE = 'https://tennismontargis.fr';
 const BOUTIQUE_URL = SITE + '/espace-membre.html#boutique';
 const TZ = 'Europe/Paris';
@@ -105,22 +107,32 @@ module.exports = function siteV2({ functions, admin, getMailTransporterSafe, esc
 
   /* ---------- 1. Formulaires du nouveau site → bureau ---------- */
   const SUBJ = { renseignement: 'Renseignement', essai: 'Séance d\'essai', inscription: 'Inscription', cours: 'Cours / stage', partenariat: 'Partenariat', autre: 'Autre' };
-  async function handleSiteMessage(m) {
+  // ref : référence du message en base (pour y inscrire le verdict anti-spam, vu dans l'admin)
+  async function handleSiteMessage(m, ref) {
     if (!m || !m.email || !m.name) return { sent: false, why: 'incomplet' };
-    const to = (await clubEmail()) || ((functions.config().gmail && functions.config().gmail.user) || process.env.GMAIL_USER);
+    const verdict = classify(m);
+    if (ref) {
+      try { await ref.update({ spam: verdict.level === 'spam', suspect: verdict.level === 'suspect', spamReason: verdict.reason || null }); }
+      catch (err) { console.error('[site_v2] Verdict anti-spam non enregistré :', err.message); }
+    }
+    if (verdict.level === 'spam') return { sent: false, why: 'spam', reason: verdict.reason };
+    const suspect = verdict.level === 'suspect';
+    const to = suspect ? SUSPECT_TO : ((await clubEmail()) || ((functions.config().gmail && functions.config().gmail.user) || process.env.GMAIL_USER));
     const isPartner = m.type === 'partenariat' || m.subject === 'partenariat';
     const extra = Object.assign({}, m.extra || {});
     ['name', 'email', 'phone', 'subject', 'message', 'consent'].forEach((k) => delete extra[k]);
     const company = extra.company || extra.entreprise || '';
-    const subject = isPartner ? `Demande de partenariat — ${company || m.name}` : `Nouveau message${m.subject ? ' (' + (SUBJ[m.subject] || m.subject) + ')' : ''} — ${m.name}`;
+    const baseSubject = isPartner ? `Demande de partenariat — ${company || m.name}` : `Nouveau message${m.subject ? ' (' + (SUBJ[m.subject] || m.subject) + ')' : ''} — ${m.name}`;
+    const subject = suspect ? '[À vérifier] ' + baseSubject : baseSubject;
     const rows = [['Nom', m.name], ['E-mail', m.email], ['Téléphone', m.phone], ['Sujet', SUBJ[m.subject] || m.subject]]
       .concat(Object.keys(extra).filter((k) => extra[k] && String(extra[k]).length < 300).map((k) => [k.charAt(0).toUpperCase() + k.slice(1), extra[k]]))
       .filter((r) => r[1]);
     const body = rows.map((r) => `<b>${esc(r[0])} :</b> ${esc(r[1])}`).join('<br>') +
-      `<br><br><b>Message :</b>${box(esc(m.message || '').replace(/\n/g, '<br>'))}Répondez directement à cet e-mail pour écrire à ${esc(m.name)}.`;
+      `<br><br><b>Message :</b>${box(esc(m.message || '').replace(/\n/g, '<br>'))}` +
+      (suspect ? `<b>Message suspect (${esc(verdict.reason)}).</b> Envoyé uniquement à cette adresse, sans « répondre à » : ne cliquez pas sur les liens, ignorez-le ou transmettez-le au bureau s'il est légitime.` : `Répondez directement à cet e-mail pour écrire à ${esc(m.name)}.`);
     const text = rows.map((r) => r[0] + ' : ' + r[1]).join('\n') + '\n\n' + (m.message || '');
-    const sent = await send(to, subject, emailHtml({ heading: subject, kicker: 'Formulaire du site', bodyHtml: body, ctaLabel: 'Ouvrir les messages dans l\'admin', ctaUrl: SITE + '/admin/#/messages', footer: 'Message envoyé depuis le formulaire de tennismontargis.fr. Il est aussi enregistré dans Admin › Messages.' }), text, m.email);
-    return { sent, to, subject };
+    const sent = await send(to, subject, emailHtml({ heading: subject, kicker: 'Formulaire du site', bodyHtml: body, ctaLabel: 'Ouvrir les messages dans l\'admin', ctaUrl: SITE + '/admin/#/messages', footer: 'Message envoyé depuis le formulaire de tennismontargis.fr. Il est aussi enregistré dans Admin › Messages.' }), text, suspect ? null : m.email);
+    return { sent, to, subject, suspect };
   }
 
   /* ---------- 2. Réservation boutique → confirmation au membre ---------- */
@@ -205,7 +217,7 @@ module.exports = function siteV2({ functions, admin, getMailTransporterSafe, esc
   /* ---------- Déclencheurs ---------- */
   const log = (tag) => (r) => { console.log(`[${tag}]`, JSON.stringify(r)); return null; };
   return {
-    onSiteV2Message: functions.database.ref('/site_v2_messages/{id}').onCreate((snap) => handleSiteMessage(snap.val()).then(log('onSiteV2Message'))),
+    onSiteV2Message: functions.database.ref('/site_v2_messages/{id}').onCreate((snap) => handleSiteMessage(snap.val(), snap.ref).then(log('onSiteV2Message'))),
     onBoutiqueReservation: functions.database.ref('/boutique_reservations/{pid}/{uid}/{rid}').onCreate((snap, ctx) => handleReservation(ctx.params.pid, ctx.params.uid, snap.val()).then(log('onBoutiqueReservation'))),
     onBoutiqueAvis: functions.database.ref('/boutique_avis/{uid}/{id}').onCreate((snap, ctx) => handleAvis(ctx.params.uid, snap.val()).then(log('onBoutiqueAvis'))),
     mirrorNewsToSiteV2,

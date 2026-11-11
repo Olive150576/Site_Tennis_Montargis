@@ -754,16 +754,17 @@
   /* ---------- Formulaires ---------- */
   function initForms() {
     $$('form[data-form]').forEach((form) => {
+      const shownAt = Date.now(); // anti-spam : temps passé sur la page avant l'envoi
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
-        if (form.querySelector('.hp input') && form.querySelector('.hp input').value) return;
         if (!form.checkValidity()) { form.reportValidity(); return; }
         const fd = new FormData(form);
         const data = {}; fd.forEach((v, k) => { if (k !== 'website') data[k] = v; });
         const btn = form.querySelector('[type="submit"]'); const label = btn.innerHTML;
         btn.disabled = true; btn.textContent = 'Envoi…';
         try {
-          await store.addMessage({ type: form.dataset.form, name: data.name, email: data.email, phone: data.phone || '', subject: data.subject || '', message: data.message || '', extra: data });
+          // hp (champ piège) et elapsed (ms) : le serveur en tire le verdict spam / suspect (functions/spam-filter.js)
+          await store.addMessage({ type: form.dataset.form, name: data.name, email: data.email, phone: data.phone || '', subject: data.subject || '', message: data.message || '', extra: data, hp: String(fd.get('website') || '').slice(0, 200), elapsed: Date.now() - shownAt });
           const ok = document.createElement('div'); ok.className = 'form-ok'; ok.setAttribute('role', 'status');
           ok.innerHTML = `${icon('check')}<div><b>Merci ${esc(data.name || '')}, votre demande est bien enregistrée.</b><p class="muted" style="margin-top:4px">Le club vous répond par e-mail ou téléphone sous quelques jours.${store.isLocal ? ' (Aperçu : le message est visible dans l\'admin, rubrique Messages.)' : ''}</p></div>`;
           form.replaceWith(ok);
