@@ -2,6 +2,14 @@
 
 Contexte lu automatiquement par Claude Code. Historique détaillé : `docs/claude-passation/` (passation du 06/11/2026, brief de mise en ligne, README de la maquette).
 
+## Façon de travailler avec Olivier
+- Être direct, challenger mes idées, dire franchement si une idée est irréaliste, ne pas valider par défaut.
+- Toujours donner les commandes PowerShell une par une, chacune précédée de `cd "C:\Users\olivi\OneDrive\Documents\Site_Tennis_Refonte"`, avec ce que je dois voir pour valider.
+- Avancer étape par étape, en attendant mon résultat avant la suivante.
+- Je lance moi-même `firebase deploy` et `git push` ; Claude fait les vérifications (statut Git, `verifier_bascule.sh`, tests).
+- Ne jamais supposer qu'une commande n'a pas été lancée : me demander le résultat.
+- Avant un déploiement : tester sur la preview, puis la production.
+
 ## Qui et comment
 - Olivier Decamp, bureau de l'USM Tennis Montargis (communication et numérique). Répondre en français.
 - Être direct, challenger les idées, appliquer les bonnes pratiques (Git, tests, déploiement Firebase).
