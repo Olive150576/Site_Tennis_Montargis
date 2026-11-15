@@ -662,6 +662,43 @@ exports.grantAdminClaim = functions.https.onCall(async (data, context) => {
 });
 
 /**
+ * Retrait d'un administrateur : dès que admins/{uid} est supprimé (nouveau panneau, ancien
+ * panneau ou console Firebase), on retire le claim « admin » du compte et on invalide ses
+ * sessions. Sans cela, les règles Storage (qui se fient au claim) laisseraient l'ex-admin
+ * écrire et supprimer jusqu'à l'expiration de son jeton, et grantAdminClaim le reposerait
+ * à chaque reconnexion tant que la fiche existe.
+ */
+exports.onAdminRemoved = functions.database.ref('/admins/{uid}')
+    .onDelete(async (snap, context) => {
+        const uid = context.params.uid;
+
+        // Course possible : admin retiré puis aussitôt rétabli → ne rien révoquer
+        const encore = await admin.database().ref(`admins/${uid}`).once('value');
+        if (encore.exists()) {
+            console.log(`[onAdminRemoved] ${uid} a été rétabli entre-temps : rien à faire`);
+            return null;
+        }
+
+        try {
+            const user = await admin.auth().getUser(uid);
+            const claims = Object.assign({}, user.customClaims || {});
+            delete claims.admin;
+            await admin.auth().setCustomUserClaims(uid, Object.keys(claims).length ? claims : null);
+            await admin.auth().revokeRefreshTokens(uid);
+            console.log(`[onAdminRemoved] ${uid} : claim admin retiré, sessions révoquées`);
+        } catch (err) {
+            if (err && err.code === 'auth/user-not-found') {
+                console.log(`[onAdminRemoved] ${uid} : compte Auth introuvable, rien à faire`);
+                return null;
+            }
+            // Relancer l'erreur : on veut la voir dans les journaux plutôt que de la taire
+            console.error(`[onAdminRemoved] échec pour ${uid} :`, err);
+            throw err;
+        }
+        return null;
+    });
+
+/**
  * Cloud Function pour supprimer un compte membre
  */
 exports.deleteMember = functions.https.onCall(async (data, context) => {

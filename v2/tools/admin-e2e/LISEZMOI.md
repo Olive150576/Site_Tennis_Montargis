@@ -56,3 +56,9 @@ Envoi d'invitation individuel (fiche et liste) et groupé, puis parcours complet
 ```
 cd ../../.. && firebase emulators:exec --only auth,database,functions --project demo-usm "node v2/tools/admin-e2e/invitations-e2e.js"
 ```
+
+## Recette « retrait d'un administrateur » (sans navigateur, ≈ 30 s)
+Vérifie la Cloud Function `onAdminRemoved` : la suppression de `admins/{uid}` retire le claim `admin` (en gardant les autres claims) et révoque les sessions ; garde anti-course (admin rétabli aussitôt) ; compte Auth introuvable sans incident : 8 contrôles.
+```
+firebase emulators:exec --only auth,database,functions --project demo-usm "node v2/tools/admin-e2e/retrait-admin-e2e.js"
+```
