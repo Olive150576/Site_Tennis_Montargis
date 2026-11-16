@@ -21,6 +21,8 @@ t /sw.js 200 "usm-v2-1"
 echo "== Gardé de l'ancien site"
 t /admin-panel.html 200 ""
 t /v/TEST 200 "verify"
+# La page du QR ne doit JAMAIS être mise en cache (sinon un téléphone garde l'ancienne version des heures)
+curl -sI "$B/v/TEST" | grep -qi "^cache-control:.*no-store" && echo "✅ /v/TEST → pas de cache (no-store)" || { echo "❌ /v/TEST est mis en cache (attendu : no-store)"; KO=1; }
 t /qr-accueil 200 "qr_scans"
 t /manifest-membre.json 200 "espace-membre"
 t /admin.min.js 200 ""
