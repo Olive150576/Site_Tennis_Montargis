@@ -53,7 +53,8 @@
     if (!im) return '';
     const fo = im.focus || '', ratio = im.w && im.h ? im.w / im.h : 0;
     if (frame && (fo === 'full' || (!fo && ratio && ratio < frame * 0.8))) {
-      const bg = url(im.sm || im.src).replace(/["'()\\]/g, (ch) => '\\' + ch);
+      /* --pf est lu depuis la feuille de style (assets/css/) : un chemin relatif serait résolu depuis ce dossier, donc adresse absolue */
+      const bg = new URL(url(im.sm || im.src), document.baseURI).href.replace(/["'()\\]/g, (ch) => '\\' + ch);
       return `<span class="pf" style="--pf:url('${bg}')">${pic(Object.assign({}, im, { focus: 'none' }), { sizes, eager, alt, cls: (cls + ' pf-img').trim(), attrs })}</span>`;
     }
     if (fo === 'top' || fo === 'bottom') attrs += ` style="object-position:center ${fo}"`;

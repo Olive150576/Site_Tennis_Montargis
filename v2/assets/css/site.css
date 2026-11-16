@@ -722,7 +722,7 @@ ul, ol { margin: 0; padding: 0; }
 
 /* ---------- Formulaires ---------- */
 .form { display: grid; gap: 16px; }
-.form .row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.form .row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
 .field { display: grid; gap: 7px; }
 .field label, .field .label { font-weight: 600; font-size: 0.9rem; }
 .field input, .field select, .field textarea {
@@ -745,6 +745,10 @@ ul, ol { margin: 0; padding: 0; }
 
 /* ---------- Contact ---------- */
 .contact-grid { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: clamp(24px, 4vw, 48px); align-items: start; }
+/* Colonnes qui peuvent rétrécir : sans cela un contenu long impose sa largeur (débordement à 320 px) */
+.contact-grid > *, .contact-grid > * > * { min-width: 0; }
+.contact-grid > div:not(.panel) { grid-template-columns: minmax(0, 1fr); }
+.contact-grid .panel { overflow-wrap: anywhere; }
 .panel { padding: clamp(22px, 3vw, 36px); border-radius: var(--radius-l); background: var(--surface); border: 1px solid var(--line); }
 .info-list { display: grid; gap: 18px; }
 .info-item { display: flex; gap: 14px; align-items: flex-start; }
@@ -932,7 +936,7 @@ ul, ol { margin: 0; padding: 0; }
   .footer-grid { grid-template-columns: 1fr 1fr; }
 }
 @media (max-width: 960px) {
-  .hero-grid, .finder, .split, .contact-grid, .coach, .article-layout, .event-detail, .cta-band { grid-template-columns: 1fr; }
+  .hero-grid, .finder, .split, .contact-grid, .coach, .article-layout, .event-detail, .cta-band { grid-template-columns: minmax(0, 1fr); }
   .hero-media { min-height: 0; aspect-ratio: 5 / 4; max-width: 620px; }
   .paths { grid-template-columns: repeat(2, 1fr); }
   .scoreboard { grid-template-columns: repeat(2, 1fr); }
@@ -1124,6 +1128,7 @@ ul, ol { margin: 0; padding: 0; }
 /* Installations (page Le club) : titre avant les photos ; sur ordinateur, photos à gauche une fois sur deux */
 @media (min-width: 961px) { .fac.fac-media-first > .media { order: -1; } }
 @media (max-width: 400px) {
+  .form .row { grid-template-columns: minmax(0, 1fr); }
   /* Petit téléphone : le logo suffit, la place va au bouton « Membres » */
   .site-header .brand-text { display: none; }
 }

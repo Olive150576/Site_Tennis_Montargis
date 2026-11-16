@@ -332,7 +332,7 @@ settings = {
  'links':{'tenup':'https://tenup.fft.fr/club/53450084','competitions':'https://tenup.fft.fr/club/53450084/competitions','espaceMembre':'espace-membre.html',
           'facebook':'https://www.facebook.com/TennisClubUSMMontargis','instagram':'','whatsapp':'','whatsappContact':'','fft':'https://www.fft.fr','ligue':'https://www.lfrm-tennis.fr/ligue/centre-val-de-Loire'},
  'sticker':{'enabled':True,'top':'Saison','text':'Inscriptions ouvertes','link':'tarifs.html'},
- 'announcement':{'enabled':True,'text':"30 octobre : soirée raclette au club house, inscription avant le 28",'link':'agenda.html#e-raclette-2026'},
+ 'announcement':{'enabled':True,'text':"Saison 2026-2027 : les inscriptions sont ouvertes",'link':'tarifs.html'},
  'stats':[{'value':'150+','label':'licenciés'},{'value':'7','label':'courts dont 2 couverts'},{'value':'44','label':"éditions de l'Open USM"},{'value':'7j/7','label':"ouvert toute l'année"}],
  'seo':{'title':'USM Tennis Montargis – Club de tennis à Montargis (45)','description':"Club de tennis affilié FFT à Montargis : 7 courts dont 2 couverts et de la terre battue, école de tennis dès le baby tennis, cours adultes, compétitions et l'Open USM."},
  'weather':True,

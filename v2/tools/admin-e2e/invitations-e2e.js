@@ -36,6 +36,8 @@ const OVERRIDE = `;(function(c){c.mode='firebase';c.firebase=Object.assign({},c.
   const go = async (h) => { await page.goto(SITE + '/admin/' + h); await page.waitForTimeout(1200); };
   const login = async (e, p) => { await page.fill('#lg-email', e); await page.fill('#lg-pass', p); await page.click('#login button[type=submit]'); await page.waitForTimeout(300); await page.waitForFunction(() => document.querySelector('nav') || (document.querySelector('#login button[type=submit]') && !document.querySelector('#login button[type=submit]').disabled), null, { timeout: 25000 }); await page.waitForTimeout(800); };
   const getJ = async (u) => (await fetch(u, { headers: OWN })).json();
+  // Attend l'EFFET (sonde la base / le compte) au lieu d'une pause fixe : le démarrage à froid des Functions est plus lent sur ce PC
+  const waitFor = async (cond, ms = 20000) => { const t0 = Date.now(); while (Date.now() - t0 < ms) { try { if (await cond()) return true; } catch (e) { /* on réessaie */ } await new Promise((r) => setTimeout(r, 250)); } return false; };
   const allOob = async (email) => ((await (await fetch(`http://${H}:9099/emulator/v1/projects/demo-usm/oobCodes`)).json()).oobCodes || []).filter((c) => c.email === email && c.requestType === 'PASSWORD_RESET');
   const put = (id, m) => fetch(DB('members/' + id), { method: 'PUT', headers: OWN, body: JSON.stringify(m) });
   // Jeu de données : Paul (compte, jamais invité), Léa (compte), Fantôme (fiche sans compte), Déjà Vu (déjà venu), Inactif
@@ -168,10 +170,12 @@ const OVERRIDE = `;(function(c){c.mode='firebase';c.firebase=Object.assign({},c.
   ok('Suppression : confirmation claire (définitif, alternative « Désactiver »)', /définitive/.test(await page.innerText('.modal')) && /Désactiver le compte/.test(await page.innerText('.modal')));
   await page.click('.modal [data-a="0"]'); await page.waitForTimeout(800);
   ok('Suppression : annuler ne supprime rien', !!(await lookup(tst)) && (await getJ(DBF('members/' + tst))) !== null);
-  await page.click('#mb-del'); await page.waitForTimeout(300); await page.click('.modal [data-a="1"]'); await page.waitForTimeout(3000);
+  await page.click('#mb-del'); await page.waitForTimeout(300); await page.click('.modal [data-a="1"]');
+  await waitFor(async () => !(await lookup(tst)) && (await getJ(DBF('members/' + tst))) === null && (await getJ(DBF('inscriptions_evenement/ev1/' + tst))) === null && page.url().endsWith('#/membres'));
   ok('Suppression : compte de connexion, fiche et inscriptions effacés', !(await lookup(tst)) && (await getJ(DBF('members/' + tst))) === null && (await getJ(DBF('inscriptions_evenement/ev1/' + tst))) === null);
   ok('Suppression : retour à la liste des membres', page.url().endsWith('#/membres'), page.url());
-  expectFnFail = true; await go('#/membres/' + adm2); await page.click('#mb-del'); await page.waitForTimeout(300); await page.click('.modal [data-a="1"]'); await page.waitForTimeout(2500);
+  expectFnFail = true; await go('#/membres/' + adm2); await page.click('#mb-del'); await page.waitForTimeout(300); await page.click('.modal [data-a="1"]');
+  await waitFor(async () => /administrateur/i.test(await page.innerText('.toasts').catch(() => '')));
   ok('Suppression : un compte administrateur est refusé par le serveur (rien n\'est effacé)', !!(await lookup(adm2)) && (await getJ(DBF('members/' + adm2))) !== null && /administrateur/i.test(await page.innerText('.toasts').catch(() => '')), await page.innerText('.toasts').catch(() => '')); expectFnFail = false;
   ok('Aucune erreur JS sur tout le parcours', errors.length === 0, errors.join(' | '));
   await browser.close(); server.close();

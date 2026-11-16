@@ -160,6 +160,8 @@ const OVERRIDE = `;(function(c){c.mode='firebase';c.firebase=Object.assign({},c.
   // (dans l'émulateur, la fonction écrit dans le namespace par défaut « demo-usm » : on lit les deux)
   const DBF = (p) => `http://${H}:9000/${p}.json?ns=demo-usm`;
   const getJ = async (u) => (await fetch(u, { headers: OWN })).json();
+  // Attend l'EFFET (sonde la base / le compte) au lieu d'une pause fixe : le démarrage à froid des Functions est plus lent sur ce PC
+  const waitFor = async (cond, ms = 20000) => { const t0 = Date.now(); while (Date.now() - t0 < ms) { try { if (await cond()) return true; } catch (e) { /* on réessaie */ } await new Promise((r) => setTimeout(r, 250)); } return false; };
   await fetch(DB('partenaire_index/fantome'), { method: 'PUT', headers: OWN, body: JSON.stringify({ prenom: 'Ancien', nom: 'Compte' }) });
   await go('#/membres'); await page.waitForTimeout(800);
   ok('Membres : profil d\'annuaire d\'un compte supprimé signalé', /Ancien Compte/.test(await page.innerText('#mb-orph').catch(() => '')));
@@ -190,7 +192,8 @@ const OVERRIDE = `;(function(c){c.mode='firebase';c.firebase=Object.assign({},c.
   await page.fill('#' + await mf('telephone'), '06 12 34 56 78'); await page.click('#mb-save'); await page.waitForTimeout(800);
   await page.click('#mb-mail'); await page.click('.modal [data-a="1"]'); await page.waitForTimeout(1500);
   ok('Membres : renvoi de l\'e-mail de mot de passe', (await oobs()).length === 2);
-  await page.click('#mb-active'); await page.click('.modal [data-a="1"]'); await page.waitForTimeout(2500);
+  await page.click('#mb-active'); await page.click('.modal [data-a="1"]');
+  await waitFor(async () => (await getJ(DBF('members/' + uidP + '/actif'))) === false && (await (await fetch(`http://${H}:9099/identitytoolkit.googleapis.com/v1/projects/demo-usm/accounts:lookup`, { method: 'POST', headers: OWN, body: JSON.stringify({ localId: [uidP] }) })).json()).users?.[0]?.disabled === true && /Inactif/.test(await page.innerText('#mb-state')));
   const look = await (await fetch(`http://${H}:9099/identitytoolkit.googleapis.com/v1/projects/demo-usm/accounts:lookup`, { method: 'POST', headers: OWN, body: JSON.stringify({ localId: [uidP] }) })).json();
   const actF = await getJ(DBF('members/' + uidP + '/actif'));
   ok('Membres : désactivation (fiche inactive + compte bloqué)', actF === false && look.users && look.users[0].disabled === true && /Inactif/.test(await page.innerText('#mb-state')), JSON.stringify({ actF, look }).slice(0, 200));
@@ -320,6 +323,10 @@ const OVERRIDE = `;(function(c){c.mode='firebase';c.firebase=Object.assign({},c.
   await page.click('#sv-save'); await page.waitForTimeout(2000);
   const b45 = await (await fetch(DB('site_v2/rates/r-b45'))).json();
   ok('Liste (avantages d\'une formule) : la ligne ajoutée est enregistrée en base', (b45.features || []).includes('De 3 à 5 ans'), JSON.stringify(b45.features));
-  await browser.close(); server.close();
-  console.log(`\n${R.filter(Boolean).length}/${R.length} contrôles admin (mode Firebase)`); process.exit(R.every(Boolean) ? 0 : 1);
+  // Le total s'affiche AVANT la fermeture : sous Node 26 la fermeture du navigateur peut lever TargetClosedError
+  console.log(`\n${R.filter(Boolean).length}/${R.length} contrôles admin (mode Firebase)`);
+  const code = R.every(Boolean) ? 0 : 1;
+  try { await browser.close(); } catch (e) { /* déjà fermé */ }
+  try { server.close(); } catch (e) { /* idem */ }
+  process.exit(code);
 })().catch((e) => { console.error('ERREUR', e); process.exit(2); });

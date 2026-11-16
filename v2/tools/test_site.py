@@ -253,8 +253,16 @@ async def check_flows(browser):
     await step('Menu et thème', "Le menu mobile s'ouvre et se ferme", menu)
     async def theme():
         t0 = await pg.evaluate("document.documentElement.getAttribute('data-theme')")
-        await pg.click('.theme-toggle'); t1 = await pg.evaluate("document.documentElement.getAttribute('data-theme')")
-        await pg.click('.theme-toggle')
+        # Deux boutons existent : celui de l'en-tête (écran large) et celui du menu mobile (le premier est masqué sur téléphone,
+        # d'où l'ancien délai de 30 s). On clique celui qui est réellement visible.
+        mobile = await pg.is_visible('.menu-toggle')
+        if mobile:
+            await pg.click('.menu-toggle'); await pg.wait_for_timeout(400)
+        sel = '#mobile-panel .theme-toggle' if mobile else '.header-actions .theme-toggle'
+        await pg.click(sel, timeout=5000); t1 = await pg.evaluate("document.documentElement.getAttribute('data-theme')")
+        await pg.click(sel, timeout=5000)
+        if mobile:
+            await pg.keyboard.press('Escape'); await pg.wait_for_timeout(300)
         return t0 != t1, f'{t0 or "auto"} → {t1}'
     await step('Menu et thème', 'Le bouton clair/sombre change le thème', theme)
 

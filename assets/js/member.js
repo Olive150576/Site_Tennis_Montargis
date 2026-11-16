@@ -818,7 +818,7 @@
   }
   function eiImg(im, src) { // affiche plus haute que le cadre 16:9 : image entière sur fond flouté (même règle que le site public)
     var fo = im.focus || '', r = im.w && im.h ? im.w / im.h : 0, tag = '<img class="ei-img" src="' + esc(src) + '" alt="" onerror="this.closest(\'.ei-pf\') ? this.closest(\'.ei-pf\').remove() : this.remove()"' + (fo === 'top' || fo === 'bottom' ? ' style="object-position:center ' + fo + '"' : '') + '>';
-    if (fo === 'full' || (!fo && r && r < 16 / 9 * 0.8)) return '<div class="ei-pf" style="--pf:url(\'' + esc(src).replace(/[()']/g, '') + '\')">' + tag + '</div>';
+    if (fo === 'full' || (!fo && r && r < 16 / 9 * 0.8)) return '<div class="ei-pf" style="--pf:url(\'' + esc(new URL(src, document.baseURI).href).replace(/[()']/g, '') + '\')">' + tag + '</div>';
     return tag;
   }
   function eventInfoHtml(e) {

@@ -43,8 +43,8 @@ window.USM_SEED = {
   },
   "announcement": {
    "enabled": true,
-   "text": "30 octobre : soirée raclette au club house, inscription avant le 28",
-   "link": "agenda.html#e-raclette-2026"
+   "text": "Saison 2026-2027 : les inscriptions sont ouvertes",
+   "link": "tarifs.html"
   },
   "stats": [
    {
