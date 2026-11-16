@@ -1,0 +1,52 @@
+/* =====================================================================
+   Habillage « nouvelle charte » de l'ancien panneau (admin-panel.html).
+   Chargé APRÈS style.css et le <style> de la page : il ne touche à aucune
+   structure, seulement aux polices et aux couleurs (bleu royal, jaune balle).
+   Les styles en ligne (style="…") sont repris par sélecteurs d'attribut.
+   ===================================================================== */
+:root {
+    --bg-dark: #060b1d;
+    --bg-darker: #040819;
+    --primary-blue: #1541c9;
+    --electric-cyan: #5b85ff;
+    --tennis-yellow: #e3ff3d;
+    --text-glow: none;
+    --card-glow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    --glass: #0d1633;
+    --glass-border: #1c2750;
+    --text-main: #e8edf8;
+    --text-muted: #a4afcc;
+    --card-bg: #0d1633;
+    --ad-display: "Archivo", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+    --ad-body: "Instrument Sans", "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+    --ad-blue: #5b85ff;
+    --ad-ball: #e3ff3d;
+}
+
+/* Polices : Instrument Sans partout, Archivo pour les titres (icônes et code exclus) */
+body :not(i):not(.fas):not(.far):not(.fab):not(.fa):not([style*="monospace"]):not(code):not(pre) {
+    font-family: var(--ad-body) !important;
+}
+body h1, body h2, body h3, body h4, body .section-title, body .tab-group-label,
+body [style*="Orbitron"], body #auth-loading div {
+    font-family: var(--ad-display) !important;
+    font-stretch: 110%;
+}
+
+/* Fonds */
+body, #auth-loading { background: #060b1d !important; }
+.admin-topbar { background: rgba(6, 11, 29, 0.97) !important; border-bottom: 1px solid #1c2750 !important; }
+
+/* Or de l'ancien design -> jaune balle */
+[style*="#ffd700"], [style*="#FFD700"] { color: var(--ad-ball) !important; }
+[style*="#c9a227"], [style*="#f59e0b"], [style*="#ffa500"] { color: var(--ad-ball) !important; }
+[style*="rgba(255,215,0,0.1)"], [style*="rgba(255,215,0,0.08)"], [style*="rgba(255, 215, 0, 0.1)"] {
+    background: rgba(227, 255, 61, 0.1) !important;
+}
+[style*="rgba(255,215,0,0.35)"], [style*="rgba(255,215,0,0.25)"], [style*="rgba(255,215,0,0.2)"] {
+    border-color: rgba(227, 255, 61, 0.35) !important;
+}
+
+/* Cyan électrique -> bleu du site */
+[style*="#00d2ff"] { color: var(--ad-blue) !important; }
+.admin-topbar [style*="#00d2ff"] { color: #fff !important; }

@@ -7,8 +7,8 @@
   "scope": "/espace-membre.html",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#020617",
-  "theme_color": "#0d1b2e",
+  "background_color": "#060b1d",
+  "theme_color": "#0c2a8a",
   "icons": [
     {
       "src": "/icon-membre-192.png",

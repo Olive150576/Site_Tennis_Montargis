@@ -10,6 +10,7 @@ Copié depuis v2/ (remplace l'ancien quand le nom existe déjà) :
 Gardé de l'ancien site (non touché) :
   admin-panel.html + admin*.min.js (gestion des comptes membres), verify.html (/v/{uid}),
   qr-accueil.html, manifest-membre.json / manifest-admin.json + icônes, style.css, etc.
+  (verify.html, qr-accueil.html, icônes membre/admin et admin-panel-theme.css sont déjà à la charte du nouveau site)
 firebase.json : partie « hosting » de v2/ (adresses courtes, 404, en-têtes), SANS « site » ni noindex,
   + le build de l'ancien panneau (predeploy) et les exclusions de la racine. Le reste (database,
   storage, functions, emulators) est conservé tel quel.
@@ -70,7 +71,7 @@ print('firebase.json : hosting du nouveau site (sans « site », sans noindex), 
 
 # 4. Contrôles
 missing = [f for f in ['verify.html', 'qr-accueil.html', 'admin-panel.html', 'admin.min.js', 'admin-auth.min.js',
-                       'firebase-init.min.js', 'notifications.min.js', 'manifest-membre.json', 'style.css'] if not os.path.exists(os.path.join(ROOT, f))]
+                       'firebase-init.min.js', 'notifications.min.js', 'manifest-membre.json', 'style.css', 'admin-panel-theme.css'] if not os.path.exists(os.path.join(ROOT, f))]
 if missing:
     sys.exit('ATTENTION, fichiers de l\'ancien site manquants : ' + ', '.join(missing))
 cfg = json.loads(read(os.path.join(ROOT, 'firebase.json')))

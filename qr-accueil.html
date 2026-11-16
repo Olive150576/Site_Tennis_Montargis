@@ -15,28 +15,32 @@
             y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
         })(window, document, "clarity", "script", "vfrevzz9j6");
     </script>
+    <meta name="theme-color" content="#0c2a8a">
+    <link rel="icon" href="/favicon.ico" sizes="48x48">
     <style>
         body {
             margin: 0;
-            background: #020617;
+            background: linear-gradient(160deg, #1541c9, #0c2a8a 60%, #081d63);
             display: flex;
             align-items: center;
             justify-content: center;
             min-height: 100vh;
-            font-family: Arial, sans-serif;
         }
         .logo {
+            width: 120px;
+            height: auto;
+            filter: drop-shadow(0 8px 18px rgba(0, 0, 0, 0.35));
             animation: pulse 1.5s ease-in-out infinite;
         }
         @keyframes pulse {
             0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
+            50% { opacity: 0.55; }
         }
+        @media (prefers-reduced-motion: reduce) { .logo { animation: none; } }
     </style>
 </head>
 <body>
-    <img src="/logo_usm_new.png" alt="USM" class="logo"
-         style="width:80px;height:80px;border-radius:50%;border:2px solid rgba(255,215,0,0.4);">
+    <img src="/assets/img/brand/logo-usm.webp" alt="USM Tennis Montargis" class="logo" width="120" height="92">
 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>

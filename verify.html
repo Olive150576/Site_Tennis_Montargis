@@ -1,353 +1,150 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vérification Membre — USM Tennis Montargis</title>
-    <meta name="robots" content="noindex, nofollow">
-    <!-- Microsoft Clarity - Analyse comportementale -->
-    <script type="text/javascript">
-        (function(c,l,a,r,i,t,y){
-            // Appareil déjà utilisé en admin : on ne charge pas Clarity (voir stopTrackingForAdmin dans script.js)
-            try { if (localStorage.getItem('usm_no_clarity') === '1') return; } catch (e) {}
-            c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
-            t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
-            y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
-        })(window, document, "clarity", "script", "vfrevzz9j6");
-    </script>
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Vérification membre — USM Tennis Montargis</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#0c2a8a">
+<!-- Microsoft Clarity - Analyse comportementale -->
+<script type="text/javascript">
+    (function(c,l,a,r,i,t,y){
+        // Appareil déjà utilisé en admin : on ne charge pas Clarity (voir stopTrackingForAdmin dans script.js)
+        try { if (localStorage.getItem('usm_no_clarity') === '1') return; } catch (e) {}
+        c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+        t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+        y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+    })(window, document, "clarity", "script", "vfrevzz9j6");
+</script>
+<link rel="icon" href="/favicon.ico" sizes="48x48">
+<link rel="icon" type="image/png" sizes="192x192" href="/assets/img/brand/icon-192.png">
+<link rel="apple-touch-icon" href="/assets/img/brand/icon-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,500..900&family=Instrument+Sans:wght@400..700&display=swap">
+<script>try{var t=localStorage.getItem('usm_theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+<style>
+/* Même charte que le site (assets/css/site.css) : bleu royal, lignes de court, jaune balle, tableau de score vert. */
+:root{
+  --bg:#f3f5fa;--bg-2:#e9edf6;--surface:#fff;--ink:#0b1640;--ink-2:#47527a;--ink-3:#6f7897;
+  --line:#d9dfec;--blue:#1541c9;--court-a:#1541c9;--court-b:#0c2a8a;--court-c:#081d63;
+  --court-line:rgba(255,255,255,.22);--ball:#dcf23f;--ball-ink:#0b1640;--board:#0f3d2f;--board-ink:#f2efe0;
+  --ok-dot:#7dffb0;--err:#c43a31;--err-soft:#fbe6e4;--shadow:0 10px 40px rgba(11,22,64,.14);
+  --font-display:"Archivo","Arial Narrow","Helvetica Neue",Arial,sans-serif;
+  --font-body:"Instrument Sans","Segoe UI",system-ui,-apple-system,Roboto,sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#060b1d;--bg-2:#0a1128;--surface:#0d1633;--ink:#e8edf8;--ink-2:#a4afcc;--ink-3:#7e89aa;
+  --line:#1c2750;--blue:#5b85ff;--court-a:#1b3db5;--court-b:#0e2376;--court-c:#0a1752;
+  --court-line:rgba(255,255,255,.16);--ball:#e3ff3d;--board:#0b3025;--err:#ff7a70;--err-soft:#3a1514;
+  --shadow:0 10px 40px rgba(0,0,0,.5);color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --bg:#060b1d;--bg-2:#0a1128;--surface:#0d1633;--ink:#e8edf8;--ink-2:#a4afcc;--ink-3:#7e89aa;
+  --line:#1c2750;--blue:#5b85ff;--court-a:#1b3db5;--court-b:#0e2376;--court-c:#0a1752;
+  --court-line:rgba(255,255,255,.16);--ball:#e3ff3d;--board:#0b3025;--err:#ff7a70;--err-soft:#3a1514;
+  --shadow:0 10px 40px rgba(0,0,0,.5);color-scheme:dark;}
 
-    <style>
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:1rem;line-height:1.5;
+  min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:0 16px 24px;-webkit-font-smoothing:antialiased}
 
-        body {
-            background: #020617;
-            color: #e2e8f0;
-            font-family: 'Poppins', sans-serif;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
+.card{width:100%;max-width:440px;margin:20px auto 0;background:var(--surface);border:1px solid var(--line);
+  border-radius:18px;overflow:hidden;box-shadow:var(--shadow)}
 
-        /* ── FOND DÉCORATIF ── */
-        .bg-deco {
-            position: fixed;
-            inset: 0;
-            background:
-                radial-gradient(ellipse 80% 50% at 50% -10%, rgba(255,215,0,0.07) 0%, transparent 70%),
-                radial-gradient(ellipse 60% 40% at 80% 100%, rgba(13,27,46,0.8) 0%, transparent 70%),
-                linear-gradient(175deg, #020617 0%, #0d1b2e 40%, #112240 70%, #0a1628 100%);
-            z-index: 0;
-            pointer-events: none;
-        }
-        .bg-deco::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background-image:
-                repeating-linear-gradient(0deg, transparent, transparent 60px, rgba(255,215,0,0.015) 60px, rgba(255,215,0,0.015) 61px),
-                repeating-linear-gradient(90deg, transparent, transparent 60px, rgba(255,215,0,0.015) 60px, rgba(255,215,0,0.015) 61px);
-        }
+.court{position:relative;padding:26px 20px 22px;text-align:center;color:#fff;
+  background:linear-gradient(160deg,var(--court-a),var(--court-b) 60%,var(--court-c));isolation:isolate}
+.court::before{content:"";position:absolute;inset:12px;border:2px solid var(--court-line);border-radius:6px;z-index:-1}
+.court::after{content:"";position:absolute;left:50%;top:12px;bottom:12px;border-left:2px solid var(--court-line);z-index:-1}
+.court img{width:84px;height:auto;display:block;margin:0 auto 10px;filter:drop-shadow(0 6px 14px rgba(0,0,0,.35))}
+.court b{display:block;font-family:var(--font-display);font-stretch:115%;font-weight:800;font-size:1.05rem;
+  letter-spacing:.04em;text-transform:uppercase}
+.court span{display:block;margin-top:4px;font-size:.74rem;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.78)}
 
-        /* ── HEADER ── */
-        .verify-header {
-            position: relative;
-            z-index: 1;
-            text-align: center;
-            padding: 44px 20px 28px;
-        }
-        .verify-logo-wrap {
-            width: 96px;
-            height: 96px;
-            border-radius: 50%;
-            background: radial-gradient(circle, rgba(255,215,0,0.12) 0%, rgba(255,215,0,0.03) 60%, transparent 100%);
-            border: 1px solid rgba(255,215,0,0.2);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 16px;
-            box-shadow: 0 0 30px rgba(255,215,0,0.2), 0 0 60px rgba(255,215,0,0.08);
-            animation: halo-pulse 3s ease-in-out infinite;
-        }
-        @keyframes halo-pulse {
-            0%, 100% { box-shadow: 0 0 30px rgba(255,215,0,0.2), 0 0 60px rgba(255,215,0,0.08); }
-            50%       { box-shadow: 0 0 40px rgba(255,215,0,0.35), 0 0 80px rgba(255,215,0,0.15); }
-        }
-        .verify-logo-wrap img {
-            width: 68px;
-            height: 68px;
-            object-fit: contain;
-            filter: drop-shadow(0 0 10px rgba(255,215,0,0.7)) drop-shadow(0 0 22px rgba(255,215,0,0.35));
-        }
-        .verify-club-name {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 0.75rem;
-            letter-spacing: 4px;
-            color: rgba(255,215,0,0.7);
-        }
-        .verify-club-sub {
-            font-size: 0.65rem;
-            letter-spacing: 3px;
-            color: rgba(255,215,0,0.35);
-            margin-top: 3px;
-        }
+#verify-loading{padding:48px 20px;text-align:center;color:var(--ink-3);font-size:.9rem}
+.spinner{width:38px;height:38px;border:3px solid var(--line);border-top-color:var(--blue);border-radius:50%;
+  animation:spin .9s linear infinite;margin:0 auto 14px}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.spinner{animation-duration:3s}}
 
-        /* ── CARTE DE VÉRIFICATION ── */
-        .verify-card {
-            position: relative;
-            z-index: 1;
-            width: 100%;
-            max-width: 440px;
-            margin: 0 20px 32px;
-            border-radius: 20px;
-            overflow: hidden;
-            border: 1px solid rgba(255,215,0,0.35);
-            background: linear-gradient(145deg, rgba(13,27,46,0.95) 0%, rgba(17,34,64,0.95) 50%, rgba(10,22,40,0.95) 100%);
-            backdrop-filter: blur(20px);
-            box-shadow:
-                0 0 0 1px rgba(255,215,0,0.1),
-                0 20px 60px rgba(0,0,0,0.5),
-                0 0 80px rgba(255,215,0,0.05);
-        }
-        .verify-card::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0;
-            height: 1px;
-            background: linear-gradient(90deg, transparent, rgba(255,215,0,0.6), transparent);
-        }
+#verify-result{display:none}
+.status{display:flex;align-items:center;justify-content:center;gap:10px;padding:13px 20px;font-family:var(--font-display);
+  font-stretch:110%;font-weight:700;font-size:.88rem;letter-spacing:.08em;text-transform:uppercase}
+.status.active{background:var(--board);color:var(--board-ink)}
+.status.inactive{background:var(--err-soft);color:var(--err)}
+.dot{width:10px;height:10px;border-radius:50%;flex:none}
+.status.active .dot{background:var(--ok-dot);box-shadow:0 0 0 4px rgba(125,255,176,.2)}
+.status.inactive .dot{background:var(--err)}
 
-        /* ── LOADING ── */
-        #verify-loading {
-            padding: 52px 20px;
-            text-align: center;
-        }
-        .verify-spinner {
-            width: 42px;
-            height: 42px;
-            border: 3px solid rgba(255,215,0,0.1);
-            border-top-color: rgba(255,215,0,0.7);
-            border-radius: 50%;
-            animation: spin 0.9s linear infinite;
-            margin: 0 auto 16px;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        #verify-loading p {
-            color: rgba(255,215,0,0.4);
-            font-size: 0.8rem;
-            letter-spacing: 1px;
-        }
+.member{padding:22px 22px 18px;border-bottom:1px solid var(--line)}
+.member-name{font-family:var(--font-display);font-stretch:115%;font-weight:800;font-size:1.5rem;line-height:1.1;
+  letter-spacing:.01em;text-transform:uppercase;margin-bottom:12px;overflow-wrap:anywhere}
+.badges{display:flex;flex-wrap:wrap;gap:8px}
+.badge{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:999px;font-size:.82rem;font-weight:600;
+  background:var(--bg-2);color:var(--ink-2);border:1px solid var(--line)}
+.badge.lic{background:var(--ball);color:var(--ball-ink);border-color:var(--ball);font-weight:700}
+.badge svg{width:14px;height:14px;flex:none}
 
-        /* ── RÉSULTAT ACTIF ── */
-        #verify-result { display: none; }
+.offers{padding:20px 22px 8px}
+.offers h2{font-family:var(--font-display);font-stretch:110%;font-weight:800;font-size:.78rem;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--ink-3);margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.offers h2::after{content:"";flex:1;height:1px;background:var(--line)}
+.offer{display:flex;align-items:center;gap:14px;padding:13px 0;border-bottom:1px solid var(--line)}
+.offer:last-child{border-bottom:0}
+.logo{width:52px;height:52px;border-radius:10px;background:#fff;border:1px solid var(--line);display:flex;align-items:center;
+  justify-content:center;flex:none;overflow:hidden;font-family:var(--font-display);font-weight:800;color:var(--blue);font-size:1.2rem}
+.logo img{width:100%;height:100%;object-fit:contain;padding:5px}
+.offer-name{font-weight:700;font-size:.98rem;color:var(--ink)}
+.offer-desc{font-size:.86rem;color:var(--ink-2);margin-top:2px}
+.offer-desc svg{width:13px;height:13px;vertical-align:-2px;margin-right:5px;color:var(--blue)}
+.offer-none{font-size:.84rem;color:var(--ink-3);font-style:italic;margin-top:2px}
 
-        .status-banner {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            padding: 14px 24px;
-            font-weight: 700;
-            font-size: 0.85rem;
-            letter-spacing: 2px;
-        }
-        .status-banner.active {
-            background: linear-gradient(90deg, rgba(34,197,94,0.15), rgba(34,197,94,0.08));
-            border-bottom: 1px solid rgba(34,197,94,0.3);
-            color: #4ade80;
-        }
-        .status-banner.inactive {
-            background: linear-gradient(90deg, rgba(239,68,68,0.15), rgba(239,68,68,0.08));
-            border-bottom: 1px solid rgba(239,68,68,0.3);
-            color: #f87171;
-        }
-        .status-dot {
-            width: 9px;
-            height: 9px;
-            border-radius: 50%;
-            flex-shrink: 0;
-        }
-        .status-dot.active  { background: #4ade80; box-shadow: 0 0 8px #4ade80; animation: dot-pulse 2s ease-in-out infinite; }
-        .status-dot.inactive{ background: #f87171; }
-        @keyframes dot-pulse {
-            0%, 100% { opacity: 1; box-shadow: 0 0 8px #4ade80; }
-            50%       { opacity: 0.6; box-shadow: 0 0 16px #4ade80; }
-        }
+.scan{padding:12px 22px 16px;font-size:.76rem;color:var(--ink-3)}
 
-        .member-block {
-            padding: 24px 28px 20px;
-            border-bottom: 1px solid rgba(255,215,0,0.1);
-        }
-        .member-name {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 1.15rem;
-            font-weight: 700;
-            color: #ffffff;
-            letter-spacing: 1px;
-            margin-bottom: 12px;
-        }
-        .member-badges {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-        .mbadge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.75rem;
-            font-weight: 500;
-        }
-        .mbadge-gold   { background: rgba(255,215,0,0.1); border: 1px solid rgba(255,215,0,0.35); color: #ffd700; }
-        .mbadge-silver { background: rgba(148,163,184,0.1); border: 1px solid rgba(148,163,184,0.25); color: #94a3b8; }
-        .mbadge-season { background: rgba(255,215,0,0.06); border: 1px solid rgba(255,215,0,0.2); color: rgba(255,215,0,0.6); }
+#verify-error{display:none;padding:44px 24px;text-align:center}
+.err-ico{width:54px;height:54px;margin:0 auto 14px;border-radius:50%;background:var(--err-soft);color:var(--err);
+  display:flex;align-items:center;justify-content:center}
+.err-ico svg{width:26px;height:26px}
+.err-title{font-family:var(--font-display);font-stretch:110%;font-weight:800;font-size:1.15rem;margin-bottom:6px}
+.err-sub{font-size:.9rem;color:var(--ink-2)}
 
-        /* ── OFFRES PARTENAIRES ── */
-        .offers-block {
-            padding: 20px 28px 24px;
-        }
-        .offers-title {
-            font-size: 0.7rem;
-            letter-spacing: 3px;
-            color: rgba(255,215,0,0.45);
-            margin-bottom: 14px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .offers-title::after {
-            content: '';
-            flex: 1;
-            height: 1px;
-            background: rgba(255,215,0,0.1);
-        }
-        .offer-item {
-            display: flex;
-            align-items: flex-start;
-            gap: 12px;
-            padding: 12px 0;
-            border-bottom: 1px solid rgba(255,255,255,0.05);
-        }
-        .offer-item:last-child { border-bottom: none; }
-        .offer-logo {
-            width: 44px;
-            height: 44px;
-            border-radius: 8px;
-            background: rgba(255,255,255,0.06);
-            border: 1px solid rgba(255,215,0,0.2);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-            overflow: hidden;
-            font-size: 1.1rem;
-            font-weight: 700;
-            color: #ffd700;
-        }
-        .offer-logo img { width: 100%; height: 100%; object-fit: contain; padding: 4px; }
-        .offer-name  { font-size: 0.8rem; font-weight: 600; color: #ffd700; margin-bottom: 3px; }
-        .offer-desc  { font-size: 0.75rem; color: rgba(255,255,255,0.65); line-height: 1.45; }
-        .offer-no-avantage { font-size: 0.75rem; color: rgba(255,255,255,0.3); font-style: italic; }
-
-        /* ── ÉTAT ERREUR ── */
-        #verify-error { display: none; padding: 48px 24px; text-align: center; }
-        .error-icon { font-size: 2.5rem; color: rgba(239,68,68,0.6); margin-bottom: 16px; }
-        .error-title { font-size: 1rem; font-weight: 600; color: #f87171; margin-bottom: 8px; }
-        .error-sub   { font-size: 0.8rem; color: rgba(255,255,255,0.35); }
-
-        /* ── FOOTER ── */
-        .verify-footer {
-            position: relative;
-            z-index: 1;
-            text-align: center;
-            padding-bottom: 36px;
-            font-size: 0.7rem;
-            color: rgba(255,215,0,0.2);
-            letter-spacing: 2px;
-        }
-
-        /* ── TIMESTAMP ── */
-        .scan-time {
-            padding: 12px 28px;
-            border-top: 1px solid rgba(255,215,0,0.08);
-            font-size: 0.68rem;
-            color: rgba(255,255,255,0.2);
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        @media (max-width: 480px) {
-            .verify-header { padding: 32px 16px 20px; }
-            .member-block, .offers-block { padding-left: 20px; padding-right: 20px; }
-            .member-name { font-size: 1rem; }
-        }
-    </style>
+.foot{margin-top:18px;font-size:.78rem;color:var(--ink-3);text-align:center}
+.foot a{color:var(--blue);text-decoration:none;font-weight:600}
+@media (max-width:360px){.member-name{font-size:1.25rem}}
+</style>
 </head>
 <body>
+<main class="card">
+  <header class="court">
+    <img src="/assets/img/brand/logo-usm.webp" alt="USM Tennis Montargis" width="84" height="64">
+    <b>USM Tennis Montargis</b>
+    <span>Vérification membre</span>
+  </header>
 
-    <div class="bg-deco"></div>
+  <div id="verify-loading" role="status"><div class="spinner"></div>Vérification en cours…</div>
 
-    <!-- Header club -->
-    <div class="verify-header">
-        <div class="verify-logo-wrap">
-            <img src="/logo_usm_new.png" alt="USM Tennis Montargis">
-        </div>
-        <div class="verify-club-name">USM TENNIS MONTARGIS</div>
-        <div class="verify-club-sub">VÉRIFICATION MEMBRE</div>
+  <div id="verify-result">
+    <div class="status" id="status-banner"><span class="dot"></span><span id="status-text"></span></div>
+    <div class="member">
+      <div class="member-name" id="member-name"></div>
+      <div class="badges" id="member-badges"></div>
     </div>
+    <section class="offers" id="offers-block" style="display:none">
+      <h2>Offres partenaires</h2>
+      <div id="offers-list"></div>
+    </section>
+    <div class="scan" id="scan-time-text"></div>
+  </div>
 
-    <!-- Carte principale -->
-    <div class="verify-card">
+  <div id="verify-error" role="alert">
+    <div class="err-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M15 9l-6 6M9 9l6 6"/></svg></div>
+    <div class="err-title">Membre introuvable</div>
+    <div class="err-sub">Ce QR code n'est pas associé à un membre actif.</div>
+  </div>
+</main>
+<p class="foot"><a href="/">tennismontargis.fr</a></p>
 
-        <!-- Chargement -->
-        <div id="verify-loading">
-            <div class="verify-spinner"></div>
-            <p>Vérification en cours...</p>
-        </div>
-
-        <!-- Résultat -->
-        <div id="verify-result">
-            <div class="status-banner" id="status-banner">
-                <div class="status-dot" id="status-dot"></div>
-                <span id="status-text"></span>
-            </div>
-
-            <div class="member-block">
-                <div class="member-name" id="member-name"></div>
-                <div class="member-badges" id="member-badges"></div>
-            </div>
-
-            <div class="offers-block" id="offers-block" style="display:none;">
-                <div class="offers-title"><i class="fas fa-handshake" style="color:rgba(255,215,0,0.5);"></i> OFFRES PARTENAIRES</div>
-                <div id="offers-list"></div>
-            </div>
-
-            <div class="scan-time">
-                <i class="fas fa-clock"></i>
-                <span id="scan-time-text"></span>
-            </div>
-        </div>
-
-        <!-- Erreur -->
-        <div id="verify-error">
-            <div class="error-icon"><i class="fas fa-user-slash"></i></div>
-            <div class="error-title">Membre introuvable</div>
-            <div class="error-sub">Ce QR code n'est pas associé à un membre actif.</div>
-        </div>
-
-    </div>
-
-    <div class="verify-footer">tennismontargis.fr</div>
-
-    <!-- Firebase -->
+<!-- Firebase -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script>
@@ -379,16 +176,13 @@
 
             // Bannière statut
             const banner = document.getElementById('status-banner');
-            const dot    = document.getElementById('status-dot');
             const txt    = document.getElementById('status-text');
             if (actif) {
                 banner.classList.add('active');
-                dot.classList.add('active');
-                txt.textContent = `MEMBRE ACTIF — SAISON ${annee}`;
+                txt.textContent = `Membre actif · saison ${annee}`;
             } else {
                 banner.classList.add('inactive');
-                dot.classList.add('inactive');
-                txt.textContent = 'MEMBRE INACTIF';
+                txt.textContent = 'Membre inactif';
             }
 
             // Nom
@@ -399,10 +193,10 @@
             // Badges
             const badgesEl = document.getElementById('member-badges');
             const badges = [];
-            if (member.licence)    badges.push(`<span class="mbadge mbadge-gold"><i class="fas fa-id-card"></i> ${esc(member.licence)}</span>`);
-            if (member.classement) badges.push(`<span class="mbadge mbadge-silver"><i class="fas fa-trophy"></i> ${esc(member.classement)}</span>`);
-            if (member.categorie)  badges.push(`<span class="mbadge mbadge-silver"><i class="fas fa-layer-group"></i> ${esc(member.categorie)}</span>`);
-            badges.push(`<span class="mbadge mbadge-season"><i class="fas fa-calendar"></i> ${annee}</span>`);
+            if (member.licence)    badges.push(`<span class="badge lic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M14 10h4M14 14h4M6.5 16c.6-1.3 1.5-2 2.5-2s1.9.7 2.5 2"/></svg> ${esc(member.licence)}</span>`);
+            if (member.classement) badges.push(`<span class="badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4h8v5a4 4 0 0 1-8 0zM8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M9 20h6"/></svg> ${esc(member.classement)}</span>`);
+            if (member.categorie)  badges.push(`<span class="badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l9 5-9 5-9-5zM3 13l9 5 9-5"/></svg> ${esc(member.categorie)}</span>`);
+            badges.push(`<span class="badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg> ${annee}</span>`);
             badgesEl.innerHTML = badges.join('');
 
             // Offres partenaires (uniquement si membre actif)
@@ -417,11 +211,11 @@
                             ? `<img src="${esc(s.images[0])}" alt="${esc(s.title)}">`
                             : esc((s.title || '?').charAt(0).toUpperCase());
                         const avantageHtml = s.avantage
-                            ? `<div class="offer-desc"><i class="fas fa-gift" style="color:rgba(255,215,0,0.5);margin-right:5px;font-size:0.7rem;"></i>${esc(s.avantage)}</div>`
-                            : `<div class="offer-no-avantage">Avantage à venir</div>`;
+                            ? `<div class="offer-desc">${GIFT}${esc(s.avantage)}</div>`
+                            : `<div class="offer-none">Avantage à venir</div>`;
                         return `
-                        <div class="offer-item">
-                            <div class="offer-logo">${logoHtml}</div>
+                        <div class="offer">
+                            <div class="logo">${logoHtml}</div>
                             <div>
                                 <div class="offer-name">${esc(s.title)}</div>
                                 ${avantageHtml}
@@ -441,6 +235,8 @@
                 db.ref(`scans/${uid}`).push({ t: Date.now() });
             }
         }
+
+        const GIFT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13M5 12v8h14v-8M12 8c-2-3-5-3-5-1s3 1 5 1zM12 8c2-3 5-3 5-1s-3 1-5 1z"/></svg>';
 
         function esc(str) {
             if (!str) return '';
