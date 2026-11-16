@@ -162,12 +162,24 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-siz
         // Extraire l'UID depuis l'URL : /v/UID
         const uid = window.location.pathname.replace(/^\/v\/?/, '').split('/')[0];
 
-        function showError() {
+        let settled = false;
+
+        function showError(title, sub) {
+            settled = true;
             document.getElementById('verify-loading').style.display = 'none';
+            document.getElementById('verify-result').style.display = 'none';
             document.getElementById('verify-error').style.display = 'block';
+            if (title) document.querySelector('.err-title').textContent = title;
+            if (sub) document.querySelector('.err-sub').textContent = sub;
+        }
+
+        // Filet de sécurité : jamais de roue qui tourne à l'infini
+        function showSlow() {
+            showError('Vérification impossible', 'La connexion est trop lente ou interrompue. Rechargez la page pour réessayer.');
         }
 
         function showResult(member, sponsors) {
+            settled = true;
             document.getElementById('verify-loading').style.display = 'none';
             document.getElementById('verify-result').style.display = 'block';
 
@@ -245,9 +257,11 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-siz
             return d.innerHTML;
         }
 
-        if (!uid) {
+        // Identifiant illisible (caractères interdits dans une clé Firebase) : on le refuse proprement
+        if (!uid || /[.#$\[\]\/]/.test(uid)) {
             showError();
         } else {
+            setTimeout(() => { if (!settled) showSlow(); }, 12000);
             // Lire les champs publics individuellement (règles DB : lecture par champ sans auth)
             // + sponsors en parallèle
             Promise.all([
@@ -289,7 +303,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-siz
                 }
 
                 showResult(member, sponsors);
-            }).catch(() => showError());
+            }).catch(() => showSlow());
         }
     </script>
 </body>
