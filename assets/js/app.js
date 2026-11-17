@@ -716,6 +716,13 @@
   /* ---------- Galerie & lightbox ---------- */
   const groups = {};
   function registerGroup(name, ims) { groups[name] = ims || []; }
+  /* Accueil : la vignette « 2 courts couverts » ouvre les photos des courts couverts (Admin › Installations),
+     les visiteurs cliquaient dessus sans résultat (Clarity, 17/11). Photo de la vignette en secours. */
+  function registerHeroGroups(c) {
+    if (!$('[data-group="hero-couverts"]')) return;
+    const f = visible(c.facilities).find((x) => x.surface === 'couvert' && (x.images || []).length);
+    registerGroup('hero-couverts', f ? f.images.map((im) => Object.assign({}, im, { alt: im.alt || f.title })) : [{ src: 'assets/img/club/court-couvert.webp', alt: 'Court couvert éclairé' }]);
+  }
   function renderGallery(c, el) {
     const ims = (c.gallery || []).slice(0, +(el.dataset.limit || 40));
     registerGroup('gallery', ims);
@@ -943,7 +950,7 @@
     initTheme(); initHeader(); initLightbox(); initScrollButton(); initMobileUI(); initFramedPreview();
     const c = await store.load();
     CONTENT = c;
-    bindSettings(c); renderAnnounce(c); renderMinPrices(c);
+    bindSettings(c); renderAnnounce(c); renderMinPrices(c); registerHeroGroups(c);
     $$('[data-render]').forEach((el) => { const fn = RENDERERS[el.dataset.render]; if (fn) { try { fn(c, el); } catch (e) { console.error('[USM] rendu', el.dataset.render, e); } } });
     renderAgendaFull(c); renderNewsList(c); renderArticle(c);
     initForms(); initMap(c); initWeather(c);

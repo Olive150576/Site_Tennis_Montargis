@@ -362,6 +362,13 @@ ul, ol { margin: 0; padding: 0; }
 .hero-media img { width: 100%; height: 100%; object-fit: cover; }
 .hero-media .m1 { inset: 0 0 18% 12%; }
 .hero-media .m2 { width: 48%; aspect-ratio: 4 / 3; left: 0; bottom: 0; border: 4px solid var(--blue-deep); }
+.hero-zoom { all: unset; display: block; width: 100%; height: 100%; cursor: zoom-in; }
+.hero-zoom img { transition: transform .4s ease; }
+.hero-zoom:hover img, .hero-zoom:focus-visible img { transform: scale(1.05); }
+.hero-zoom:focus-visible { outline: 3px solid var(--focus); outline-offset: -3px; }
+.hero-zoom figcaption { display: inline-flex; align-items: center; gap: 6px; }
+.hero-zoom figcaption .icon { width: 13px; height: 13px; }
+@media (prefers-reduced-motion: reduce) { .hero-zoom img { transition: none; } .hero-zoom:hover img { transform: none; } }
 .hero-media figcaption {
   position: absolute; left: 10px; bottom: 10px; padding: 4px 10px; border-radius: 999px; font-size: 0.74rem; font-weight: 600;
   background: rgba(8, 20, 70, .72); color: #fff; backdrop-filter: blur(6px);
