@@ -1023,3 +1023,7 @@ const siteV2 = require('./site-v2')({ functions, admin, getMailTransporterSafe, 
 exports.onSiteV2Message = siteV2.onSiteV2Message;             // formulaires du nouveau site → e-mail au bureau
 exports.onBoutiqueReservation = siteV2.onBoutiqueReservation; // réservation → e-mail de confirmation au membre
 exports.onBoutiqueAvis = siteV2.onBoutiqueAvis;               // commande lancée / disponible / annulée → e-mail au membre
+
+// Import d'image par adresse (URL) dans l'admin du nouveau site — voir functions/media-import.js
+const mediaImport = require('./media-import')({ functions, admin });
+exports.fetchRemoteImage = mediaImport.fetchRemoteImage;

@@ -562,6 +562,25 @@ ul, ol { margin: 0; padding: 0; }
 .article-body p { margin-bottom: 1em; }
 .article-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; margin-top: 28px; }
 .article-gallery img { aspect-ratio: 1; object-fit: cover; border-radius: var(--radius-s); cursor: zoom-in; width: 100%; }
+/* Vidéos (YouTube, Vimeo, Facebook) : miniature + bouton, lecteur chargé au clic */
+.videos { display: grid; gap: 22px; margin-top: 28px; }
+.video { margin: 0; }
+.video-play, .video iframe { display: block; width: 100%; aspect-ratio: 16 / 9; border: 0; border-radius: var(--radius); overflow: hidden; }
+.video-play { position: relative; padding: 0; cursor: pointer; background: linear-gradient(160deg, var(--court-a), var(--court-b) 60%, var(--court-c)); color: #fff; }
+.video-play img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .4s ease, filter .3s; }
+.video-play:hover img { transform: scale(1.03); filter: brightness(.88); }
+.video-fallback { position: absolute; inset: 0; display: grid; place-items: center; }
+.video-fallback .icon { width: 56px; height: 56px; opacity: .35; }
+.video-btn { position: absolute; left: 50%; top: 50%; width: 72px; height: 72px; margin: -36px 0 0 -36px; border-radius: 50%; background: var(--ball); color: var(--ball-ink); display: grid; place-items: center; box-shadow: 0 8px 26px rgba(0, 0, 0, .35); transition: transform .2s; }
+.video-btn svg { width: 30px; height: 30px; fill: currentColor; margin-left: 4px; }
+.video-play:hover .video-btn, .video-play:focus-visible .video-btn { transform: scale(1.08); }
+.video-play:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+.video figcaption { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 14px; margin-top: 10px; font-size: .9rem; color: var(--ink-2); }
+.video figcaption span { font-weight: 600; color: var(--ink); }
+.video figcaption a { color: var(--blue); text-decoration: none; display: inline-flex; align-items: center; gap: 4px; }
+.video figcaption a .icon { width: 14px; height: 14px; }
+.event-detail .videos { margin-top: 20px; }
+@media (prefers-reduced-motion: reduce) { .video-play img, .video-btn { transition: none; } .video-play:hover img { transform: none; } }
 .aside-card { padding: 22px; border-radius: var(--radius); background: var(--surface); border: 1px solid var(--line); display: grid; gap: 12px; align-content: start; }
 .aside-card h3 { font-size: 1.05rem; }
 .share-row { display: flex; gap: 8px; flex-wrap: wrap; }

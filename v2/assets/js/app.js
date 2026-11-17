@@ -66,6 +66,72 @@
     return `<img src="${src}"${srcset}${wh} alt="${esc(alt != null ? alt : im.alt || '')}" ${eager ? 'fetchpriority="high"' : 'loading="lazy"'} decoding="async" class="${cls}" ${attrs}>`;
   }
   const visible = (arr) => (arr || []).filter((x) => x && !x.draft);
+
+  /* ---------- Vidéos (liens YouTube, Vimeo, Facebook) ----------
+     Rien n'est chargé chez YouTube/Vimeo/Facebook tant que le visiteur ne clique pas : on affiche la miniature
+     copiée dans notre Storage (au moment de l'ajout dans l'admin) avec un bouton lecture ; le lecteur
+     (youtube-nocookie, Vimeo « dnt ») n'est inséré qu'au clic. Page rapide et aucun cookie tiers avant. */
+  function parseVideo(raw) {
+    let u;
+    try { u = new URL(String(raw || '').trim()); } catch (e) { return null; }
+    const host = u.hostname.replace(/^(www|m|music)\./, '');
+    const ytId = (s) => (/^[A-Za-z0-9_-]{11}$/.test(s || '') ? s : '');
+    const secs = (t) => { if (!t) return 0; if (/^\d+$/.test(t)) return +t; const m = /^(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?$/.exec(t); return m ? (+m[1] || 0) * 3600 + (+m[2] || 0) * 60 + (+m[3] || 0) : 0; };
+    if (host === 'youtu.be' || host === 'youtube.com' || host === 'youtube-nocookie.com') {
+      const p = u.pathname.split('/').filter(Boolean);
+      const id = host === 'youtu.be' ? ytId(p[0]) : ytId(u.searchParams.get('v')) || (['shorts', 'embed', 'live', 'v'].includes(p[0]) ? ytId(p[1]) : '');
+      if (!id) return null;
+      const start = secs(u.searchParams.get('t') || u.searchParams.get('start'));
+      return { provider: 'youtube', id, url: 'https://www.youtube.com/watch?v=' + id, ...(start ? { start } : {}) };
+    }
+    if (host === 'vimeo.com' || host === 'player.vimeo.com') {
+      const m = /(?:^|\/)(\d{6,12})(?:\/([0-9a-f]{6,20}))?(?:\/|$)/.exec(u.pathname);
+      if (!m) return null;
+      const h = m[2] || u.searchParams.get('h') || '';
+      return { provider: 'vimeo', id: m[1], url: 'https://vimeo.com/' + m[1] + (h ? '/' + h : ''), ...(h ? { h } : {}) };
+    }
+    if (host === 'facebook.com' || host === 'fb.watch' || host === 'web.facebook.com') {
+      const ok = host === 'fb.watch' || /\/(videos|reel|watch|share\/v|share\/r)\b/.test(u.pathname) || u.searchParams.get('v');
+      if (!ok) return null;
+      u.hash = ''; ['mibextid', 'rdid', 'fbclid'].forEach((k) => u.searchParams.delete(k));
+      return { provider: 'facebook', id: '', url: u.href };
+    }
+    return null;
+  }
+  const VIDEO_NAMES = { youtube: 'YouTube', vimeo: 'Vimeo', facebook: 'Facebook' };
+  function videoEmbed(v) {
+    if (v.provider === 'youtube') return `https://www.youtube-nocookie.com/embed/${encodeURIComponent(v.id)}?autoplay=1&rel=0&modestbranding=1${v.start ? '&start=' + (+v.start) : ''}`;
+    if (v.provider === 'vimeo') return `https://player.vimeo.com/video/${encodeURIComponent(v.id)}?autoplay=1&dnt=1${v.h ? '&h=' + encodeURIComponent(v.h) : ''}`;
+    if (v.provider === 'facebook') return `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(v.url)}&show_text=false&autoplay=true`;
+    return '';
+  }
+  function videoBlock(v, fallbackTitle = '') {
+    if (!v || !VIDEO_NAMES[v.provider] || !videoEmbed(v)) return '';
+    const title = v.title || fallbackTitle || 'Vidéo';
+    const th = v.thumb ? url(v.thumb.sm && v.thumb.src ? v.thumb.src : v.thumb.src || v.thumb.sm) : '';
+    return `<figure class="video">
+      <button type="button" class="video-play" data-embed="${esc(videoEmbed(v))}" data-title="${esc(title)}" aria-label="Lire la vidéo : ${esc(title)} (lecteur ${VIDEO_NAMES[v.provider]})">
+        ${th ? `<img src="${esc(th)}" alt="" loading="lazy" decoding="async">` : `<span class="video-fallback" aria-hidden="true">${icon('video')}</span>`}
+        <span class="video-btn" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l10.5-6.5z"/></svg></span>
+      </button>
+      <figcaption><span>${esc(title)}</span><a href="${esc(v.url)}" target="_blank" rel="noopener">Voir sur ${VIDEO_NAMES[v.provider]}${icon('external')}</a></figcaption>
+    </figure>`;
+  }
+  const videosHtml = (list, fallbackTitle) => {
+    const vs = (Array.isArray(list) ? list : Object.values(list || {})).filter((v) => v && v.provider);
+    return vs.length ? `<div class="videos">${vs.map((v) => videoBlock(v, fallbackTitle)).join('')}</div>` : '';
+  };
+  /* Image de carte : la première photo, sinon la miniature de la première vidéo */
+  const coverOf = (x) => (x.images || [])[0] || ((Array.isArray(x.videos) ? x.videos : Object.values(x.videos || {})).find((v) => v && v.thumb) || {}).thumb || null;
+  document.addEventListener('click', (e) => {
+    const b = e.target.closest && e.target.closest('.video-play');
+    if (!b || !b.dataset.embed) return;
+    const f = document.createElement('iframe');
+    f.src = b.dataset.embed; f.title = b.dataset.title || 'Vidéo';
+    f.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen'; f.allowFullscreen = true;
+    f.referrerPolicy = 'strict-origin-when-cross-origin';
+    b.replaceWith(f); f.focus();
+  });
   let CONTENT = null;
   /* Lien WhatsApp : numéro (discussion privée, message prérempli) ou lien d'invitation https://… */
   function waLink(text) {
@@ -422,6 +488,7 @@
         <h3 style="margin-top:10px">${esc(e.title)}</h3>
         <div class="meta" style="display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:8px;color:var(--ink-3);font-size:.9rem"><span>${icon('calendar')} ${esc(whenText(e))}${e.time ? ' · ' + esc(e.time) : ''}</span>${e.location ? `<span>${icon('pin')} ${esc(e.location)}</span>` : ''}</div></div></div>
         <div class="body prose">${md(e.body || e.summary)}</div>
+        ${videosHtml(e.videos, e.title)}
         ${signupOpen(e) || e.link ? `<p style="margin-top:18px;display:flex;flex-wrap:wrap;gap:10px;align-items:center">${signupOpen(e) ? `<a class="btn btn-ball btn-sm" href="${esc(signupHref(e))}" data-signup="${esc(e.id)}">${icon('check')} S'inscrire (membres)</a>` : ''}${e.link ? `<a class="btn btn-blue btn-sm" href="${esc(e.link)}" target="_blank" rel="noopener">En savoir plus ${icon('external')}</a>` : ''}</p>${signupOpen(e) ? '<p class="small" style="margin-top:6px;color:var(--ink-3)">Réservé aux membres du club : connexion à l\'espace membre, puis confirmation.</p>' : ''}` : ''}
       </div>
       <div class="ed-media">${ims.slice(0, 2).map((im, i) => `<button type="button" class="lb-trigger" data-group="ev-${esc(e.id)}" data-i="${i}" style="all:unset;cursor:zoom-in">${pic(im, { sizes: '(max-width:960px) 100vw, 45vw', alt: im.alt || e.title , frame: 4 / 3 })}</button>`).join('')}</div>
@@ -445,7 +512,7 @@
   /* ---------- Actualités ---------- */
   const newsHref = (n) => url('actualite.html#' + n.slug);
   function newsCard(n, variant = '') {
-    const im = (n.images || [])[0];
+    const im = coverOf(n);
     return `<a class="card-news ${variant}" href="${newsHref(n)}">
       <div class="media">${im ? pic(im, { sizes: variant === 'big' ? '(max-width:960px) 100vw, 58vw' : '(max-width:640px) 100vw, 33vw', alt: n.title, frame: variant === 'big' ? 1.2 : 1.6 }) : ''}${n.featured && variant === 'big' ? '<span class="badge-une">À la une</span>' : ''}</div>
       <div class="body"><div class="top"><span class="chip cat-${esc(n.category)}">${esc(CATS[n.category] || 'Actualité')}</span><time datetime="${esc(n.date)}">${fmtDate(n.date)}</time></div>
@@ -515,6 +582,7 @@
         ${ims[0] ? `<figure class="article-cover"><button type="button" class="lb-trigger" data-group="article" data-i="0" style="all:unset;display:block;cursor:zoom-in;width:100%">${pic(ims[0], { eager: true, sizes: '(max-width:1280px) 100vw, 1240px', alt: n.title })}</button></figure>` : ''}
         <div class="article-layout">
           <div><div class="article-body prose">${md(n.body)}</div>
+            ${videosHtml(n.videos, n.title)}
             ${ims.length > 1 ? `<div class="article-gallery">${ims.map((im, i) => `<button type="button" class="lb-trigger" data-group="article" data-i="${i}" style="all:unset;cursor:zoom-in">${pic(im, { sizes: '200px', alt: n.title + ' – photo ' + (i + 1) })}</button>`).join('')}</div>` : ''}
           </div>
           <aside style="display:grid;gap:14px;align-content:start">
@@ -887,7 +955,7 @@
     window.addEventListener('storage', (e) => { if (e.key === 'usm_v2_content_ping') location.reload(); });
     document.documentElement.classList.add('is-ready');
   }
-  USM.util = { esc, md, pic, url, icon, fmtDate, euro, CATS, SURF };
+  USM.util = { esc, md, pic, url, icon, fmtDate, euro, CATS, SURF, parseVideo, videoBlock, videosHtml, coverOf };
   if (!document.documentElement.hasAttribute('data-admin')) {
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
   }

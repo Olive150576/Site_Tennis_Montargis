@@ -675,6 +675,30 @@
       const fb = await firebaseSDK(); await fb.auth().sendPasswordResetEmail(email);
     },
 
+    /* Image par adresse (URL) : téléchargée par la Cloud Function fetchRemoteImage (le navigateur ne peut pas lire
+       une image d'un autre site), puis même circuit qu'un fichier (redimension webp + Storage). */
+    async importImageFromUrl(address) {
+      const a = String(address || '').trim();
+      if (!/^https?:\/\//i.test(a)) throw new Error('Collez une adresse commençant par https://');
+      let blob, name = 'image';
+      if (this.isLocal) { // aperçu local : pas de fonction serveur, on tente un téléchargement direct (souvent bloqué)
+        const r = await fetch(a).catch(() => null);
+        if (!r || !r.ok) throw new Error('En aperçu local, ce site refuse le téléchargement direct. Testez depuis le site en ligne.');
+        blob = await r.blob();
+      } else {
+        const fb = await firebaseSDK();
+        let res;
+        try { res = await (await callable(fb, 'fetchRemoteImage'))({ url: a }); } catch (e) { throw new Error(e.message || 'Impossible de récupérer cette image.'); }
+        const d = res.data || {};
+        const bin = atob(d.data || ''); const bytes = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+        blob = new Blob([bytes], { type: d.contentType || 'image/jpeg' });
+        name = d.name || name;
+      }
+      if (!/^image\//.test(blob.type)) throw new Error('Cette adresse ne renvoie pas une image.');
+      return this.uploadImage(new File([blob], name, { type: blob.type }));
+    },
+
     /* Téléversement d'image : renvoie { src, sm, w, h } */
     async uploadImage(file) {
       const { img, url } = await readAsImage(file);

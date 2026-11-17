@@ -33,6 +33,17 @@
     t.innerHTML = (type === 'ok' ? icon('check') : icon('info')) + `<span>${esc(msg)}</span>`;
     box.appendChild(t); setTimeout(() => t.remove(), type === 'err' ? 6000 : 2800);
   }
+  /* Collage d'image (Ctrl+V) dans un formulaire : envoyé au champ d'images actif (voir drawImages) */
+  let pasteTarget = null;
+  document.addEventListener('paste', (e) => {
+    if (!pasteTarget || !document.body.contains(pasteTarget.el) || document.querySelector('.modal-back')) return;
+    const a = document.activeElement;
+    const files = Array.from((e.clipboardData && e.clipboardData.files) || []).filter((x) => /^image\//.test(x.type));
+    if (!files.length) return; // texte collé : comportement normal
+    if (a && /^(INPUT|TEXTAREA)$/.test(a.tagName) && a.type !== 'file' && !files.length) return;
+    e.preventDefault();
+    pasteTarget.handle(files.map((x, i) => new File([x], x.name && x.name !== 'image.png' ? x.name : 'collage-' + Date.now() + '-' + i + '.png', { type: x.type })));
+  });
   function modal({ title, body = '', confirm = 'Confirmer', cancel = 'Annuler', danger = false, html = '' }) {
     return new Promise((resolve) => {
       const back = document.createElement('div'); back.className = 'modal-back';
@@ -107,15 +118,16 @@
         { k: 'category', t: 'select', l: 'Catégorie', opts: NEWS_CATS, half: true },
         { k: 'body', t: 'markdown', l: 'Texte de l\'article', hint: 'Une ligne vide = nouveau paragraphe. Commencez une ligne par « - » pour une liste.' },
         { k: 'excerpt', t: 'textarea', l: 'Résumé', max: 180, hint: 'Affiché sous le titre dans les cartes. Laissez vide pour le générer depuis le texte.' },
-        { k: 'images', t: 'images', l: 'Photos', hint: 'La première photo sert de couverture. Formats JPG, PNG ou WebP, redimensionnés automatiquement.' },
+        { k: 'images', t: 'images', l: 'Photos', hint: 'La première photo sert de couverture. Formats JPG, PNG ou WebP, redimensionnés automatiquement. Vous pouvez aussi coller une image (Ctrl+V) ou l\'importer depuis une adresse.' },
+        { k: 'videos', t: 'videos', l: 'Vidéos', hint: 'Collez le lien d\'une vidéo YouTube (chaîne du club), Vimeo ou Facebook. Elle s\'affiche avec une image et ne se charge qu\'au clic du visiteur.' },
         { k: 'featured', t: 'switch', l: 'Mettre à la une sur l\'accueil', half: true },
         { k: 'draft', t: 'switch', l: 'Brouillon (non visible sur le site)', half: true },
         { k: 'slug', t: 'slug', l: 'Adresse de la page', from: 'title', hint: 'Générée à partir du titre. Modifiez-la seulement si nécessaire.' }
       ],
-      blank: () => ({ id: uid('n'), title: '', date: todayISO(), category: 'vie-du-club', body: '', excerpt: '', images: [], featured: false, draft: false, slug: '' }),
+      blank: () => ({ id: uid('n'), title: '', date: todayISO(), category: 'vie-du-club', body: '', excerpt: '', images: [], videos: [], featured: false, draft: false, slug: '' }),
       sort: (a, b) => (b.date || '').localeCompare(a.date || ''),
       columns: [
-        { h: '', w: 70, r: (x) => thumb((x.images || [])[0]) },
+        { h: '', w: 70, r: (x) => thumb(U.coverOf(x)) },
         { h: 'Titre', r: (x) => `<div class="title">${esc(x.title || 'Sans titre')}</div><div class="sub">${esc((x.excerpt || '').slice(0, 90))}</div>` },
         { h: 'Catégorie', cls: 'hide-sm', r: (x) => `<span class="pill blue">${esc(label(NEWS_CATS, x.category))}</span>` },
         { h: 'Date', cls: 'hide-sm', r: (x) => fmtDate(x.date) },
@@ -149,13 +161,14 @@
         { k: 'summary', t: 'textarea', l: 'Résumé', max: 200, hint: 'Deux lignes affichées dans les cartes de l\'agenda.' },
         { k: 'body', t: 'markdown', l: 'Description complète' },
         { k: 'images', t: 'images', l: 'Visuels' },
+        { k: 'videos', t: 'videos', l: 'Vidéos', hint: 'Collez le lien d\'une vidéo YouTube (chaîne du club), Vimeo ou Facebook. Elle s\'affiche avec une image et ne se charge qu\'au clic du visiteur.' },
         { k: 'link', t: 'url', l: 'Lien d\'inscription ou d\'information', placeholder: 'https://tenup.fft.fr/…' },
         { k: 'memberSignup', t: 'switch', l: 'Inscriptions dans l\'espace membre', hint: 'Les membres s\'inscrivent en un geste depuis leur agenda (date de début obligatoire). La liste des inscrits s\'affiche sous ce formulaire.' },
         { k: 'recurring', t: 'switch', l: 'Rendez-vous annuel', half: true },
         { k: 'featured', t: 'switch', l: 'Mettre en avant', half: true },
         { k: 'draft', t: 'switch', l: 'Brouillon (non visible)', half: true }
       ],
-      blank: () => ({ id: uid('e'), title: '', category: 'animation', location: 'Au club', dateStart: '', dateEnd: '', time: '', when: '', months: [], summary: '', body: '', images: [], link: '', memberSignup: false, recurring: false, featured: false, draft: false }),
+      blank: () => ({ id: uid('e'), title: '', category: 'animation', location: 'Au club', dateStart: '', dateEnd: '', time: '', when: '', months: [], summary: '', body: '', images: [], videos: [], link: '', memberSignup: false, recurring: false, featured: false, draft: false }),
       /* À venir (le plus proche en haut), puis rendez-vous annuels (ordre de la saison, sept → août), puis passés (le plus récent en haut) */
       sort: (a, b) => {
         const t = todayISO(), grp = (x) => (!x.dateStart ? 1 : (x.dateEnd || x.dateStart) < t ? 2 : 0), ga = grp(a), gb = grp(b);
@@ -166,7 +179,7 @@
         return sm(a) - sm(b) || (a.order || 0) - (b.order || 0);
       },
       columns: [
-        { h: '', w: 70, r: (x) => thumb((x.images || [])[0]) },
+        { h: '', w: 70, r: (x) => thumb(U.coverOf(x)) },
         { h: 'Événement', r: (x) => `<div class="title">${esc(x.title)}</div><div class="sub">${esc(x.location || '')}</div>` },
         { h: 'Quand', r: (x) => (x.dateStart ? `${fmtDate(x.dateStart)}${x.dateEnd ? ' → ' + fmtDate(x.dateEnd) : ''}` : `<span class="muted">${esc(x.when || 'Sans date')}</span>`) },
         { h: 'Inscrits', w: 90, r: (x) => (x.memberSignup || signupCount(x.id) ? `<span class="pill ${signupCount(x.id) ? 'blue' : ''}" title="Inscriptions depuis l'espace membre">${icon('users')} ${signupCount(x.id)}</span>` : '<span class="muted">—</span>') },
@@ -469,6 +482,8 @@
         return `<div class="${cls}" data-f="${f.k}"><label class="switch"><input type="checkbox" id="${id}"${val ? ' checked' : ''}><span class="track"></span><span>${esc(f.l)}</span></label>${hint}</div>`;
       case 'list':
         return `<div class="${cls}" data-f="${f.k}"><span class="label">${esc(f.l)}</span><div class="list-edit" id="${id}"></div>${hint}</div>`;
+      case 'videos':
+        return `<div class="${cls}" data-f="${f.k}"><span class="label">${esc(f.l)}</span><div class="videos-edit" id="${id}"></div>${hint}</div>`;
       case 'images': case 'image':
         return `<div class="${cls}" data-f="${f.k}"><span class="label">${esc(f.l)}</span><div class="images" id="${id}"></div>${hint}</div>`;
       case 'file':
@@ -489,6 +504,7 @@
       if (!el) return;
       if (f.t === 'list') drawList(f, el);
       else if (f.t === 'images' || f.t === 'image') drawImages(f, el);
+      else if (f.t === 'videos') drawVideos(f, el);
       else if (f.t === 'file') bindFile(f, el);
       else el.addEventListener('input', change);
       if (f.t === 'markdown') bindMarkdown(el, change);
@@ -519,13 +535,14 @@
           <div class="img-tools">${!single && i > 0 ? `<button type="button" class="mv" data-first="${i}" title="Utiliser en couverture">${icon('star')}</button>` : ''}<button type="button" data-rm="${i}" title="Retirer l'image">${icon('trash')}</button></div>
           <input type="text" value="${esc(im.alt || '')}" data-alt="${i}" placeholder="Description (accessibilité, SEO)" aria-label="Description de l'image ${i + 1}">
           <select data-focus="${i}" aria-label="Cadrage de l'image ${i + 1}" title="Comment l'image remplit son cadre sur le site">${[['', 'Cadrage automatique'], ['full', 'Image entière (affiche)'], ['top', 'Remplir, garder le haut'], ['center', 'Remplir, centrer'], ['bottom', 'Remplir, garder le bas']].map(([v, l]) => `<option value="${v}"${(im.focus || '') === v ? ' selected' : ''}>${l}</option>`).join('')}</select></div>`).join('') +
-        (single && arr.length ? '' : `<label class="dropzone">${icon('upload')}<span>${single ? 'Choisir une image' : 'Ajouter des photos'}<br><span class="muted">ou glisser-déposer</span></span><input type="file" accept="image/*" class="sr-only" ${single ? '' : 'multiple'}></label>`);
+        (single && arr.length ? '' : `<label class="dropzone">${icon('upload')}<span>${single ? 'Choisir une image' : 'Ajouter des photos'}<br><span class="muted">ou glisser-déposer · Ctrl+V pour coller</span></span><input type="file" accept="image/*" class="sr-only" ${single ? '' : 'multiple'}></label>`);
       $$('[data-rm]', el).forEach((b) => b.addEventListener('click', () => { arr.splice(+b.dataset.rm, 1); commit(); drawImages(f, el); }));
       $$('[data-first]', el).forEach((b) => b.addEventListener('click', () => { const [x] = arr.splice(+b.dataset.first, 1); arr.unshift(x); commit(); drawImages(f, el); }));
       $$('[data-alt]', el).forEach((inp) => inp.addEventListener('input', () => { arr[+inp.dataset.alt].alt = inp.value; commit(); }));
       $$('[data-focus]', el).forEach((sel) => sel.addEventListener('change', () => { const im = arr[+sel.dataset.focus]; if (sel.value) im.focus = sel.value; else delete im.focus; commit(); }));
       const dz = $('.dropzone', el);
       if (!dz) return;
+      dz.insertAdjacentHTML('afterend', `<button type="button" class="btn btn-sm img-url" style="margin-top:8px">${icon('link')} Depuis une adresse (URL)</button>`);
       const input = $('input[type=file]', dz);
       const handle = async (files) => {
         files = Array.from(files).filter((x) => /^image\//.test(x.type));
@@ -546,6 +563,66 @@
       dz.addEventListener('dragover', (e) => { e.preventDefault(); dz.classList.add('over'); });
       dz.addEventListener('dragleave', () => dz.classList.remove('over'));
       dz.addEventListener('drop', (e) => { e.preventDefault(); dz.classList.remove('over'); handle(e.dataTransfer.files); });
+      // Collage (Ctrl+V) : vers le dernier champ d'images utilisé (ou le premier du formulaire)
+      if (!pasteTarget || !document.body.contains(pasteTarget.el)) pasteTarget = { el, handle };
+      el.addEventListener('pointerdown', () => { pasteTarget = { el, handle }; });
+      $('.img-url', el).addEventListener('click', async () => {
+        const m = await modal({ title: 'Image depuis une adresse', confirm: 'Importer', html: `<div class="field"><label for="iu-url">Adresse de l'image</label><input type="url" id="iu-url" placeholder="https://…/photo.jpg"></div><p class="muted small" style="margin-top:8px">Sur la page qui contient l'image : clic droit sur l'image › « Copier l'adresse de l'image ». L'image est copiée sur le site (elle ne disparaîtra pas si l'autre site la retire). Vérifiez que vous avez le droit de l'utiliser.</p>` });
+        if (!m) return;
+        const u = $('#iu-url', m).value.trim();
+        if (!u) return;
+        dz.classList.add('busy'); dz.querySelector('span').innerHTML = '<span class="spinner"></span> Récupération de l\'image…';
+        try {
+          const im = await store.importImageFromUrl(u);
+          im.alt = f.k === 'logo' ? (state.name || '') : (state.title || state.name || '');
+          if (single) arr = [im]; else arr.push(im);
+          commit(); toast('Image importée.');
+        } catch (e) { toast('Import impossible : ' + e.message, 'err'); }
+        drawImages(f, el);
+      });
+    }
+
+    /* Vidéos par lien : { provider, id, url, title, thumb } — miniature copiée dans Storage pour ne rien charger
+       chez YouTube/Vimeo avant le clic du visiteur (voir videoBlock dans app.js) */
+    function drawVideos(f, el) {
+      const arr = state[f.k] = Array.isArray(state[f.k]) ? state[f.k] : Object.values(state[f.k] || {});
+      const NAMES = { youtube: 'YouTube', vimeo: 'Vimeo', facebook: 'Facebook' };
+      el.innerHTML = `<div class="vid-list">${arr.map((v, i) => `<div class="vid-item">
+          <div class="vid-thumb">${v.thumb ? `<img src="${imgUrl(v.thumb)}" alt="">` : icon('video')}<span class="pill">${esc(NAMES[v.provider] || v.provider)}</span></div>
+          <div class="vid-body"><input type="text" value="${esc(v.title || '')}" data-vt="${i}" placeholder="Titre de la vidéo (facultatif)" aria-label="Titre de la vidéo ${i + 1}">
+            <a class="small" href="${esc(v.url)}" target="_blank" rel="noopener">${esc(v.url)}</a></div>
+          <div class="vid-tools">${i ? `<button type="button" class="btn btn-icon btn-ghost" data-vup="${i}" title="Monter">${icon('chevron-up')}</button>` : ''}<button type="button" class="btn btn-icon btn-ghost" data-vrm="${i}" title="Retirer la vidéo">${icon('trash')}</button></div>
+        </div>`).join('')}</div>
+        <div class="vid-add"><input type="url" placeholder="https://www.youtube.com/watch?v=…" aria-label="Lien de la vidéo"><button type="button" class="btn btn-sm">${icon('plus')} Ajouter la vidéo</button></div>`;
+      $$('[data-vt]', el).forEach((inp) => inp.addEventListener('input', () => { arr[+inp.dataset.vt].title = inp.value; change(); }));
+      $$('[data-vrm]', el).forEach((b) => b.addEventListener('click', () => { arr.splice(+b.dataset.vrm, 1); change(); drawVideos(f, el); }));
+      $$('[data-vup]', el).forEach((b) => b.addEventListener('click', () => { const i = +b.dataset.vup; [arr[i - 1], arr[i]] = [arr[i], arr[i - 1]]; change(); drawVideos(f, el); }));
+      const inp = $('.vid-add input', el), btn = $('.vid-add button', el);
+      const add = async () => {
+        const v = U.parseVideo(inp.value);
+        if (!v) { toast('Lien non reconnu : collez l\'adresse d\'une vidéo YouTube, Vimeo ou Facebook.', 'err'); inp.focus(); return; }
+        if (arr.some((x) => x.provider === v.provider && (v.id ? x.id === v.id : x.url === v.url))) { toast('Cette vidéo est déjà dans la liste.', 'err'); return; }
+        btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Ajout…';
+        // Titre et miniature : au mieux (si le service ne répond pas, la vidéo est ajoutée sans)
+        try {
+          if (v.provider === 'vimeo') {
+            const o = await fetch('https://vimeo.com/api/oembed.json?url=' + encodeURIComponent(v.url)).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+            if (o) { v.title = o.title || ''; if (o.thumbnail_url) v.thumb = await store.importImageFromUrl(o.thumbnail_url.replace(/_\d+x\d+/, '_1280')).catch(() => null); }
+          }
+          if (v.provider === 'youtube') {
+            const o = await fetch('https://www.youtube.com/oembed?format=json&url=' + encodeURIComponent(v.url)).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+            if (o && o.title) v.title = o.title;
+            v.thumb = await store.importImageFromUrl(`https://img.youtube.com/vi/${v.id}/maxresdefault.jpg`)
+              .catch(() => store.importImageFromUrl(`https://img.youtube.com/vi/${v.id}/hqdefault.jpg`)).catch(() => null);
+          }
+        } catch (e) { /* sans titre ni miniature */ }
+        if (!v.thumb) delete v.thumb;
+        if (!v.title) v.title = '';
+        arr.push(v); change(); drawVideos(f, el);
+        toast(v.thumb ? 'Vidéo ajoutée.' : 'Vidéo ajoutée (sans miniature : une image du club sera affichée).');
+      };
+      btn.addEventListener('click', add);
+      inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); add(); } });
     }
 
     function bindFile(f, input) {
@@ -587,7 +664,7 @@
     function collect() {
       fields.forEach((f) => {
         const el = document.getElementById(`${idp}-${f.k}`);
-        if (!el || ['list', 'images', 'image', 'file'].includes(f.t)) return;
+        if (!el || ['list', 'images', 'image', 'file', 'videos'].includes(f.t)) return;
         if (f.t === 'switch') state[f.k] = el.checked;
         else if (f.t === 'months') state[f.k] = Array.from(el.querySelectorAll('input:checked')).map((i) => +i.value);
         else if (f.t === 'number') state[f.k] = el.value === '' ? null : Number(el.value);
