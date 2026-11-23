@@ -886,9 +886,14 @@
         try { const fb = await firebaseSDK(); await fb.database().ref('members/' + uid + '/invitedAt').set(Date.now()); } catch (e) { console.warn('[USM] Date d\'invitation non enregistrée', e); }
         return true;
       },
-      /* E-mail du club (modèle Firebase « Réinitialisation du mot de passe ») ; lien de retour vers l'espace membre */
+      /* E-mail d'invitation : par la fonction sendMemberInvite (e-mail du club), sinon modèle Firebase « Réinitialisation du mot de passe » */
       async sendPasswordEmail(email) {
-        const fb = await firebaseSDK(); const auth = fb.auth();
+        const fb = await firebaseSDK();
+        /* Invitation par le serveur : e-mail du club avec un lien vers activer-compte.html (choix du mot de passe,
+           puis retour à la connexion). Si la fonction est indisponible, repli sur l'e-mail Firebase par défaut. */
+        try { await (await callable(fb, 'sendMemberInvite'))({ email }); return true; }
+        catch (e) { console.warn('[USM] Invitation par le club indisponible, e-mail Firebase par défaut', (e && e.code) || e); }
+        const auth = fb.auth();
         const url = new URL('../espace-membre.html', location.href).href;
         try { await auth.sendPasswordResetEmail(email, { url }); }
         catch (e) { if (/continue-uri|unauthorized|invalid-continue/i.test((e && e.code) || '')) await auth.sendPasswordResetEmail(email); else throw e; }

@@ -336,7 +336,8 @@ function getMailTransporterSafe() {
 }
 
 // Enveloppe HTML brandée du club autour du contenu du message.
-function _clubEmailHtml(heading, bodyHtml, ctaLabel, ctaUrl) {
+function _clubEmailHtml(heading, bodyHtml, ctaLabel, ctaUrl, opts) {
+    const o = opts || {};
     const url = ctaUrl || 'https://tennismontargis.fr/espace-membre.html';
     const cta = ctaLabel
         ? `<tr><td style="padding:8px 0 4px;"><a href="${url}" style="display:inline-block;background:#e11d48;color:#ffffff;text-decoration:none;font-weight:bold;padding:12px 24px;border-radius:8px;font-size:14px;">${escapeHtml(ctaLabel)}</a></td></tr>`
@@ -347,7 +348,7 @@ function _clubEmailHtml(heading, bodyHtml, ctaLabel, ctaUrl) {
           <table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#0f172a;border:1px solid #1e293b;border-radius:14px;overflow:hidden;">
             <tr><td style="background:linear-gradient(135deg,#0d1b2e,#1a2f4a);padding:20px 24px;border-bottom:1px solid #1e293b;">
               <div style="color:#ffd700;font-family:Arial,sans-serif;font-weight:bold;font-size:16px;letter-spacing:1px;">USM TENNIS MONTARGIS</div>
-              <div style="color:#94a3b8;font-family:Arial,sans-serif;font-size:12px;margin-top:2px;">Championnats par équipes</div>
+              <div style="color:#94a3b8;font-family:Arial,sans-serif;font-size:12px;margin-top:2px;">${escapeHtml(o.subtitle || 'Championnats par équipes')}</div>
             </td></tr>
             <tr><td style="padding:24px;">
               <table width="100%" cellpadding="0" cellspacing="0" style="font-family:Arial,sans-serif;">
@@ -357,8 +358,7 @@ function _clubEmailHtml(heading, bodyHtml, ctaLabel, ctaUrl) {
               </table>
             </td></tr>
             <tr><td style="padding:16px 24px;border-top:1px solid #1e293b;color:#64748b;font-family:Arial,sans-serif;font-size:11px;line-height:1.5;">
-              Vous recevez cet email en tant que membre inscrit à un championnat de l'USM Tennis Montargis.<br>
-              Retrouvez le détail dans votre espace membre.
+              ${o.footer || "Vous recevez cet email en tant que membre inscrit à un championnat de l'USM Tennis Montargis.<br>\n              Retrouvez le détail dans votre espace membre."}
             </td></tr>
           </table>
         </td></tr>
@@ -366,7 +366,7 @@ function _clubEmailHtml(heading, bodyHtml, ctaLabel, ctaUrl) {
 }
 
 // Envoi d'un email du club (renvoie true/false, ne throw jamais).
-async function sendClubEmail(to, subject, heading, bodyHtml, ctaLabel, ctaUrl, textFallback) {
+async function sendClubEmail(to, subject, heading, bodyHtml, ctaLabel, ctaUrl, textFallback, opts) {
     if (!to) return false;
     const transporter = getMailTransporterSafe();
     if (!transporter) return false;
@@ -377,7 +377,7 @@ async function sendClubEmail(to, subject, heading, bodyHtml, ctaLabel, ctaUrl, t
             to,
             subject,
             text: textFallback || heading,
-            html: _clubEmailHtml(heading, bodyHtml, ctaLabel, ctaUrl)
+            html: _clubEmailHtml(heading, bodyHtml, ctaLabel, ctaUrl, opts)
         });
         return true;
     } catch (err) {
@@ -981,6 +981,70 @@ exports.createMember = functions.https.onCall(async (data, context) => {
     });
 
     return { uid: userRecord.uid, success: true };
+});
+
+/**
+ * Invitation d'un membre : e-mail du club (Gmail) avec un lien vers la page d'activation du site
+ * (activer-compte.html : choix du mot de passe, puis retour à la connexion de l'espace membre).
+ * Remplace l'e-mail Firebase par défaut, dont le lien ne ramène pas vers l'espace membre.
+ * Réservé au bureau / aux coachs ; n'écrit qu'à une adresse qui correspond à une fiche membre existante.
+ * Si elle échoue, le site retombe sur l'e-mail Firebase par défaut (voir store.js, sendPasswordEmail).
+ */
+exports.sendMemberInvite = functions.https.onCall(async (data, context) => {
+    await requireStaff(context);
+
+    const email = String((data && data.email) || '').trim().toLowerCase();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+        throw new functions.https.HttpsError('invalid-argument', 'Adresse e-mail invalide.');
+    }
+    // Gmail du club non configuré : on s'arrête avant de fabriquer un lien inutile
+    if (!getMailTransporterSafe()) {
+        throw new functions.https.HttpsError('failed-precondition', 'Envoi d\'e-mail non configuré.');
+    }
+
+    let user;
+    try {
+        user = await admin.auth().getUserByEmail(email);
+    } catch (e) {
+        throw new functions.https.HttpsError('not-found', 'Aucun compte pour cette adresse.');
+    }
+    const fiche = await admin.database().ref(`members/${user.uid}`).once('value');
+    if (!fiche.exists()) {
+        throw new functions.https.HttpsError('not-found', 'Aucune fiche membre pour cette adresse.');
+    }
+    const prenom = String(fiche.val().prenom || '').trim();
+
+    const lienFirebase = await admin.auth().generatePasswordResetLink(email);
+    const oobCode = new URL(lienFirebase).searchParams.get('oobCode');
+    if (!oobCode) {
+        throw new functions.https.HttpsError('internal', 'Lien d\'activation indisponible.');
+    }
+    const lien = `https://tennismontargis.fr/activer-compte.html?mode=resetPassword&oobCode=${encodeURIComponent(oobCode)}&lang=fr`;
+
+    const bonjour = prenom ? `Bonjour ${escapeHtml(prenom)},` : 'Bonjour,';
+    const body = `<p style="margin:0 0 12px;">${bonjour}</p>
+        <p style="margin:0 0 12px;">Le club a créé votre compte pour l'espace membre de l'USM Tennis Montargis (<b>${escapeHtml(email)}</b>) : carte de membre, agenda, partenaires de jeu.</p>
+        <p style="margin:0 0 12px;">Cliquez sur le bouton ci-dessous pour choisir votre mot de passe. Vous serez ensuite dirigé vers la page de connexion.</p>
+        <p style="margin:0;color:#94a3b8;font-size:12px;">Ce lien est valable peu de temps. S'il a expiré, rendez-vous sur l'espace membre et cliquez sur « Mot de passe oublié » pour en recevoir un nouveau.</p>`;
+    const texte = `${prenom ? 'Bonjour ' + prenom + ',' : 'Bonjour,'}\n\nLe club a créé votre compte pour l'espace membre de l'USM Tennis Montargis (${email}).\nChoisissez votre mot de passe en ouvrant ce lien : ${lien}\n\nCe lien est valable peu de temps. S'il a expiré, utilisez « Mot de passe oublié » sur https://tennismontargis.fr/espace-membre.html.`;
+
+    const ok = await sendClubEmail(
+        email,
+        'Bienvenue à l\'USM Tennis Montargis : choisissez votre mot de passe',
+        'Bienvenue au club',
+        body,
+        'Choisir mon mot de passe',
+        lien,
+        texte,
+        {
+            subtitle: 'Espace membre',
+            footer: 'Vous recevez cet e-mail car le club a créé votre compte pour l\'espace membre de l\'USM Tennis Montargis.<br>Si vous n\'êtes pas concerné, vous pouvez ignorer ce message.'
+        }
+    );
+    if (!ok) {
+        throw new functions.https.HttpsError('internal', 'Échec envoi email.');
+    }
+    return { success: true };
 });
 
 /**
