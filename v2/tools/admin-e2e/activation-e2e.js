@@ -24,7 +24,7 @@ const link = (code) => `${SITE}/activer-compte.html?mode=resetPassword&oobCode=$
   await post(`${AUTH}:signUp?key=fake`, { email: EMAIL, password: OLD, returnSecureToken: true });
   await post(`${AUTH}:sendOobCode?key=fake`, { requestType: 'PASSWORD_RESET', email: EMAIL });
   const code = (await oobs(EMAIL))[0].oobCode;
-  const browser = await chromium.launch();
+  const browser = await chromium.launch(process.env.PW_CHANNEL ? { channel: process.env.PW_CHANNEL } : {}); // PW_CHANNEL=msedge : utilise Edge, sans télécharger Chromium
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
   await ctx.route('**/assets/js/config.js', async (route) => { const res = await route.fetch(); route.fulfill({ response: res, body: (await res.text()) + OVERRIDE }); });
   const errors = []; const page = await ctx.newPage();
