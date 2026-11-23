@@ -62,3 +62,8 @@ Vérifie la Cloud Function `onAdminRemoved` : la suppression de `admins/{uid}` r
 ```
 firebase emulators:exec --only auth,database,functions --project demo-usm "node v2/tools/admin-e2e/retrait-admin-e2e.js"
 ```
+
+## Activation de compte (`activation-e2e.js`)
+
+Page `activer-compte.html` : le lien de l'e-mail Firebase (« choisir son mot de passe ») ouvre cette page, le membre choisit son mot de passe, voit la confirmation puis est renvoyé vers la connexion de l'espace membre. Contrôle : lien incomplet, lien invalide, lien déjà utilisé, autre type de lien, mot de passe trop court ou différent, œil, nouveau mot de passe actif et ancien refusé, redirection, pas de débordement à 320 et 390 px. Lancement (émulateur Auth seul) : `npm run test:activation` depuis ce dossier.
+**Réglage Firebase obligatoire en production** : Console Firebase › Authentication › Modèles › Réinitialisation du mot de passe › crayon › « Personnaliser l'URL d'action » → `https://tennismontargis.fr/activer-compte.html`.

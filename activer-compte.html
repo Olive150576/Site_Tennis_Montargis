@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Activer mon compte · USM Tennis Montargis</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#1541c9">
+<link rel="icon" href="favicon.ico" sizes="48x48">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,500..900&family=Instrument+Sans:wght@400..700&display=swap">
+<link rel="stylesheet" href="assets/css/member.css">
+<script>try{var t=localStorage.getItem('usm_theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+<style>
+  .act-ok { display: grid; gap: 14px; justify-items: start; }
+  .act-badge { width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; background: var(--blue-soft); color: var(--blue); }
+  .act-badge svg { width: 28px; height: 28px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+  .act-mail { font-weight: 700; word-break: break-all; }
+  .act-rules { font-size: .85rem; color: var(--ink-3); }
+</style>
+</head>
+<body class="m-app">
+<div class="login" id="act-view">
+  <div class="login-art court">
+    <a class="brand" href="index.html"><img src="assets/img/brand/logo-usm.webp" width="240" height="177" alt=""><span class="brand-text"><b>USM Tennis</b><span>Montargis · Loiret</span></span></a>
+    <div>
+      <h1>Bienvenue au club</h1>
+      <p class="lead">Une dernière étape : choisissez votre mot de passe pour accéder à votre espace membre.</p>
+    </div>
+  </div>
+  <div class="login-form-wrap">
+
+    <!-- Chargement -->
+    <div class="login-form" id="act-load"><p class="muted">Vérification de votre lien…</p></div>
+
+    <!-- Choix du mot de passe -->
+    <form class="login-form" id="act-form" novalidate hidden>
+      <div><h2>Choisissez votre mot de passe</h2><p class="muted" style="margin-top:6px">Compte : <span class="act-mail" id="act-email"></span></p></div>
+      <div class="field"><label for="act-pw">Nouveau mot de passe</label><div class="pw-field"><input id="act-pw" type="password" autocomplete="new-password" minlength="8" required><button type="button" id="act-eye" aria-label="Afficher le mot de passe"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/></svg></button></div><span class="act-rules">8 caractères minimum.</span></div>
+      <div class="field"><label for="act-pw2">Confirmez le mot de passe</label><input id="act-pw2" type="password" autocomplete="new-password" required></div>
+      <p class="form-err" id="act-err" role="alert" hidden></p>
+      <button class="btn btn-blue btn-block" type="submit" id="act-submit">Valider mon mot de passe</button>
+      <div class="login-links"><a href="espace-membre.html">Retour à la connexion</a><a href="index.html">Retour au site</a></div>
+    </form>
+
+    <!-- Compte activé -->
+    <div class="login-form act-ok" id="act-done" hidden>
+      <span class="act-badge"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 12.5l5 5 10-11"/></svg></span>
+      <div><h2>Mot de passe enregistré</h2><p class="muted" style="margin-top:6px">Votre compte est prêt. Connectez-vous avec <span class="act-mail" id="act-email2"></span> et le mot de passe que vous venez de choisir.</p></div>
+      <a class="btn btn-blue btn-block" id="act-go" href="espace-membre.html">Me connecter à l'espace membre</a>
+      <p class="act-rules" id="act-redir">Redirection automatique dans quelques secondes…</p>
+    </div>
+
+    <!-- Lien invalide / expiré -->
+    <div class="login-form act-ok" id="act-bad" hidden>
+      <div><h2 id="act-bad-title">Ce lien ne fonctionne plus</h2><p class="muted" style="margin-top:6px" id="act-bad-msg">Il a expiré ou a déjà été utilisé.</p></div>
+      <p class="login-note">Pour recevoir un nouveau lien : ouvrez l'espace membre, saisissez votre adresse e-mail puis cliquez sur « Mot de passe oublié ». Si vous avez déjà choisi votre mot de passe, connectez-vous simplement.</p>
+      <a class="btn btn-blue btn-block" href="espace-membre.html">Aller à l'espace membre</a>
+      <div class="login-links"><a href="index.html">Retour au site</a></div>
+    </div>
+
+  </div>
+</div>
+
+<script src="assets/js/config.js"></script>
+<script>
+(function () {
+  'use strict';
+  var CFG = window.USM_CONFIG || {};
+  var $ = function (id) { return document.getElementById(id); };
+  var q = new URLSearchParams(location.search);
+  var mode = q.get('mode'), code = q.get('oobCode');
+  var LOGIN = 'espace-membre.html';
+
+  function show(id) { ['act-load', 'act-form', 'act-done', 'act-bad'].forEach(function (k) { $(k).hidden = (k !== id); }); }
+  function bad(title, msg) { if (title) $('act-bad-title').textContent = title; if (msg) $('act-bad-msg').textContent = msg; show('act-bad'); }
+  function err(msg) { var e = $('act-err'); e.textContent = msg; e.hidden = !msg; }
+  function loadScript(src) {
+    return new Promise(function (ok, ko) { var s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = function () { ko(new Error('Chargement impossible : ' + src)); }; document.head.appendChild(s); });
+  }
+  function sdk() {
+    var b = 'https://www.gstatic.com/firebasejs/10.12.2/';
+    return loadScript(b + 'firebase-app-compat.js').then(function () { return loadScript(b + 'firebase-auth-compat.js'); }).then(function () {
+      if (!firebase.apps.length) {
+        firebase.initializeApp(CFG.firebase);
+        if (CFG.emulators) firebase.auth().useEmulator('http://' + CFG.emulators.host + ':' + CFG.emulators.auth); // tests uniquement
+      }
+      return firebase.auth();
+    });
+  }
+  function why(e) {
+    var c = (e && e.code) || '';
+    if (/expired-action-code/.test(c)) return ['Ce lien a expiré', 'Pour votre sécurité, le lien n\'est valable que peu de temps.'];
+    if (/invalid-action-code/.test(c)) return ['Ce lien ne fonctionne plus', 'Il a déjà été utilisé ou il est incomplet (copié en partie).'];
+    if (/user-disabled/.test(c)) return ['Compte désactivé', 'Ce compte est désactivé. Contactez le club.'];
+    if (/user-not-found/.test(c)) return ['Compte introuvable', 'Ce compte n\'existe plus. Contactez le club.'];
+    return ['Une erreur est survenue', 'Réessayez dans un instant, ou demandez un nouveau lien depuis l\'espace membre.'];
+  }
+
+  if (!mode || !code) { bad('Lien incomplet', 'Ouvrez le lien directement depuis l\'e-mail que vous avez reçu.'); return; }
+  if (mode !== 'resetPassword') { bad('Lien non pris en charge', 'Ce lien n\'est pas un lien de création de mot de passe.'); return; }
+
+  var auth, email = '';
+  sdk().then(function (a) { auth = a; return auth.verifyPasswordResetCode(code); }).then(function (mail) {
+    email = mail; $('act-email').textContent = mail; $('act-email2').textContent = mail; show('act-form'); $('act-pw').focus();
+  }).catch(function (e) { var w = why(e); bad(w[0], w[1]); });
+
+  $('act-eye').addEventListener('click', function () {
+    var i = $('act-pw'), on = i.type === 'password'; i.type = on ? 'text' : 'password'; $('act-pw2').type = i.type;
+    this.setAttribute('aria-label', on ? 'Masquer le mot de passe' : 'Afficher le mot de passe');
+  });
+
+  $('act-form').addEventListener('submit', function (ev) {
+    ev.preventDefault(); err('');
+    var pw = $('act-pw').value, pw2 = $('act-pw2').value;
+    if (pw.length < 8) { err('Le mot de passe doit contenir au moins 8 caractères.'); $('act-pw').focus(); return; }
+    if (pw !== pw2) { err('Les deux mots de passe ne sont pas identiques.'); $('act-pw2').focus(); return; }
+    var b = $('act-submit'); b.disabled = true; b.textContent = 'Enregistrement…';
+    auth.confirmPasswordReset(code, pw).then(function () {
+      show('act-done');
+      var s = 6, r = $('act-redir');
+      var t = setInterval(function () { s--; if (s <= 0) { clearInterval(t); location.href = LOGIN; } else r.textContent = 'Redirection automatique dans ' + s + ' s…'; }, 1000);
+    }).catch(function (e) {
+      b.disabled = false; b.textContent = 'Valider mon mot de passe';
+      var c = (e && e.code) || '';
+      if (/weak-password/.test(c)) err('Mot de passe trop simple : ajoutez des caractères ou des chiffres.');
+      else if (/expired-action-code|invalid-action-code/.test(c)) { var w = why(e); bad(w[0], w[1]); }
+      else err('Enregistrement impossible. Vérifiez votre connexion et réessayez.');
+    });
+  });
+})();
+</script>
+</body>
+</html>
