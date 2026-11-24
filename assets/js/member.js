@@ -498,6 +498,7 @@
   function go(view) {
     if (VIEWS.indexOf(view) < 0 || viewOff(view)) view = 'accueil';
     applyTeamsNav();
+    if (view === 'jouer') F.open = !critActive();
     VIEWS.forEach(function (v) { var el = $('#v-' + v); if (el) el.hidden = v !== view; });
     $$('[data-nav]').forEach(function (a) { if (a.getAttribute('data-nav') === view) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
     $$('[data-more]').forEach(function (b) { b.classList.toggle('is-current', ['carte', 'boutique'].indexOf(view) >= 0 || (view === 'agenda' && TEAMS_ON)); });
@@ -626,12 +627,13 @@
 
   /* ---------- Jouer ---------- */
   var playTab = 'annonces';
-  var F = { near: false, lmin: '', lmax: '', slots: {}, styles: {}, q: '' };
+  var F = { near: false, lmin: '', lmax: '', slots: {}, styles: {}, q: '', open: true }; // open : carte « Je cherche… » dépliée
   /* Niveau (comme l'ancien espace) : « Mon niveau » = ±3 échelons, plage De/À réglable ;
      NC ou classement inconnu = niveau inconnu (toujours affiché), jamais « le plus faible » */
   var NIV_ECART = 3; // écart (en échelons) à partir duquel une fiche n'a plus le repère « Niveau proche »
   var FILTRE_ECART = 1; // filtre « Mon niveau » : un échelon en dessous, un au-dessus (30 → 30/1 à 15/5)
   function rankKnown(r) { var i = LADDER.indexOf(String(r || '').trim()); return i <= 0 ? -1 : i; }
+  function critActive() { return !!(F.lmin || F.lmax || Object.keys(F.slots).some(function (k) { return F.slots[k]; }) || Object.keys(F.styles).some(function (k) { return F.styles[k]; })); }
   function nearRange() { var mi = rankKnown(S.me.classement); return mi < 0 ? null : [LADDER[Math.max(1, mi - FILTRE_ECART)], LADDER[Math.min(LADDER.length - 1, mi + FILTRE_ECART)]]; }
   function commonList(p) { var me = (S.me.partenaire || {}).dispos || {}, out = []; DAYS.forEach(function (dd, i) { SLOTS.forEach(function (s) { if (me[dd] && me[dd][s] && p.dispos && p.dispos[dd] && p.dispos[dd][s]) out.push(DAYS_AB[i] + ' ' + s); }); }); return out; }
   function commonSlots(p) { var me = (S.me.partenaire || {}).dispos || {}, n = 0; DAYS.forEach(function (dd) { SLOTS.forEach(function (s) { if (me[dd] && me[dd][s] && p.dispos && p.dispos[dd] && p.dispos[dd][s]) n++; }); }); return n; }
@@ -702,6 +704,13 @@
       var pressed = function (b) { return ' aria-pressed="' + (!!b) + '"'; };
       var nr = nearRange(); F.near = !!(nr && F.lmin === nr[0] && F.lmax === nr[1]);
       var lvlOpts = function (v) { return '<option value="">—</option>' + LADDER.slice(1).map(function (c) { return '<option' + (c === v ? ' selected' : '') + '>' + c + '</option>'; }).join(''); };
+      var a0 = lo > 0 ? lo : 0, b0 = hi > 0 ? hi : 0, critOn = critActive();
+      var canWiden = (a0 > 1 || (b0 > 0 && b0 < LADDER.length - 1)) && list2.length < 3;
+      var critTags = [];
+      if (F.lmin || F.lmax) critTags.push(F.lmin && F.lmax ? esc(F.lmin) + ' à ' + esc(F.lmax) : F.lmin ? 'Dès ' + esc(F.lmin) : 'Jusqu\'à ' + esc(F.lmax));
+      SLOTS.forEach(function (sl) { if (F.slots[sl]) critTags.push(sl[0].toUpperCase() + sl.slice(1)); });
+      ['Loisir', 'Compétitif', 'Double', 'Mixte'].forEach(function (st) { if (F.styles[st]) critTags.push(st); });
+      if (!critTags.length) critTags.push('Tous les joueurs');
       var pm = me.partenaire, nSl = 0;
       DAYS.forEach(function (dd) { SLOTS.forEach(function (sl) { if (pm.dispos && pm.dispos[dd] && pm.dispos[dd][sl]) nSl++; }); });
       var hasC = !!(pm.partager_telephone || pm.partager_email);
@@ -712,13 +721,21 @@
         '<div class="vis-sum" aria-label="Ma fiche joueur">' + tags.map(function (x) { return '<span class="vis-tag">' + x + '</span>'; }).join('') + '</div>' +
         (todo ? '<div class="vis-todo" role="status">' + todo + '</div>' : '') +
         '<a class="btn ' + (todo ? 'btn-blue ' : '') + 'btn-sm vis-edit" href="#profil" data-goto="profil-joueur">' + ic('edit') + (todo ? 'Compléter ma fiche' : 'Modifier ma fiche') + '</a></div>' +
-        '<div class="lvl-row"><span class="lvl-range"><label for="lv-min">Niveau</label><select id="lv-min" data-lvl="lmin" aria-label="Niveau minimum">' + lvlOpts(F.lmin) + '</select><label for="lv-max">à</label><select id="lv-max" data-lvl="lmax" aria-label="Niveau maximum">' + lvlOpts(F.lmax) + '</select></span>' +
-          '<button class="fchip" data-f="near"' + pressed(F.near) + '>' + ic('target') + 'Mon niveau' + (mk >= 0 ? ' (' + esc(me.classement) + ')' : '') + '</button></div>' +
-        '<div class="filters-bar wrap"><label class="search-m">' + ic('search') + '<input type="search" placeholder="Rechercher un nom" value="' + esc(F.q) + '" data-q aria-label="Rechercher un joueur"></label>' +
-          SLOTS.map(function (s) { return '<button class="fchip" data-f="slot" data-v="' + s + '"' + pressed(F.slots[s]) + '>' + s[0].toUpperCase() + s.slice(1) + '</button>'; }).join('') +
-          ['Loisir', 'Compétitif', 'Double', 'Mixte'].map(function (s) { return '<button class="fchip" data-f="style" data-v="' + s + '"' + pressed(F.styles[s]) + '>' + s + '</button>'; }).join('') +
-        '</div><p class="muted" style="margin-bottom:12px;font-size:.9rem" aria-live="polite">' + list2.length + ' joueur' + (list2.length > 1 ? 's' : '') + (list2.length > 1 ? (mk >= 0 ? ' · les plus proches de votre niveau, puis de vos créneaux, en premier' : ' · ceux qui ont le plus de créneaux en commun avec vous en premier') : '') + ((lo > 0 || hi > 0) ? ' · joueurs NC toujours affichés' : '') + '</p>' +
-        (list2.length ? '<div class="players">' + list2.map(playerCard).join('') + '</div>' : '<div class="empty">Aucun joueur ne correspond. Retirez un filtre ou publiez une annonce.</div>');
+        '<section class="panel-m crit" aria-labelledby="crit-t"><div class="crit-head"><h2 class="crit-title" id="crit-t">Je cherche…</h2><button type="button" class="crit-toggle" data-f="toggle" aria-expanded="' + F.open + '" aria-controls="crit-body">' + (F.open ? 'Réduire' : 'Modifier') + '</button></div>' +
+        (F.open ? '' : '<div class="crit-sum">' + critTags.map(function (x) { return '<span class="crit-tag">' + x + '</span>'; }).join('') + '</div>') +
+        '<div id="crit-body"' + (F.open ? '' : ' hidden') + '>' +
+          '<div class="crit-row"><span class="crit-lab">Niveau</span><div class="crit-ctl"><span class="lvl-range"><select id="lv-min" data-lvl="lmin" aria-label="Niveau minimum">' + lvlOpts(F.lmin) + '</select><span aria-hidden="true">à</span><select id="lv-max" data-lvl="lmax" aria-label="Niveau maximum">' + lvlOpts(F.lmax) + '</select></span>' +
+            '<button class="fchip" data-f="near"' + pressed(F.near) + '>' + ic('target') + 'Mon niveau' + (mk >= 0 ? ' (' + esc(me.classement) + ')' : '') + '</button></div></div>' +
+          '<div class="crit-row"><span class="crit-lab">Quand</span><div class="crit-ctl">' + SLOTS.map(function (sl) { return '<button class="fchip" data-f="slot" data-v="' + sl + '"' + pressed(F.slots[sl]) + '>' + sl[0].toUpperCase() + sl.slice(1) + '</button>'; }).join('') + '</div></div>' +
+          '<div class="crit-row"><span class="crit-lab">Style</span><div class="crit-ctl">' + ['Loisir', 'Compétitif', 'Double', 'Mixte'].map(function (st) { return '<button class="fchip" data-f="style" data-v="' + st + '"' + pressed(F.styles[st]) + '>' + st + '</button>'; }).join('') + '</div></div>' +
+        '</div>' +
+        '<div class="crit-foot"><span class="crit-count" aria-live="polite">' + list2.length + ' joueur' + (list2.length > 1 ? 's' : '') + '</span>' +
+          (canWiden ? '<button type="button" class="btn btn-sm" data-f="widen">' + ic('plus') + 'Élargir d\'un échelon</button>' : '') +
+          (critOn ? '<button type="button" class="crit-link" data-f="reset">Réinitialiser</button>' : '') +
+          (F.open && list2.length > 1 ? '<p class="crit-note">' + (mk >= 0 ? 'Les plus proches de votre niveau, puis de vos créneaux, en premier.' : 'Ceux qui ont le plus de créneaux en commun avec vous en premier.') + '</p>' : '') +
+          ((F.open && (lo > 0 || hi > 0)) ? '<p class="crit-note">Joueurs NC toujours affichés.</p>' : '') + '</div></section>' +
+        '<label class="search-m crit-search">' + ic('search') + '<input type="search" placeholder="Rechercher un nom" value="' + esc(F.q) + '" data-q aria-label="Rechercher un joueur"></label>' +
+        (list2.length ? '<div class="players">' + list2.map(playerCard).join('') + '</div>' : '<div class="empty">Aucun joueur ne correspond à ces critères. Élargissez ou réinitialisez-les.</div>');
     }
     $('#v-jouer').innerHTML = '<div class="v-head"><div><h1>Jouer</h1><p>Trouvez un partenaire pour un simple, s\'entraîner ou un double.</p></div>' +
       (LIVE ? '' : '<div class="seg-tabs" role="tablist"><button role="tab" data-ptab="annonces" aria-selected="' + (playTab === 'annonces') + '">Annonces</button><button role="tab" data-ptab="annuaire" aria-selected="' + (playTab === 'annuaire') + '">Annuaire</button></div>') + '</div>' + body;
@@ -1436,8 +1453,19 @@
         var nr = nearRange();
         if (!nr) { toast('Renseignez d\'abord votre classement dans Mon profil pour utiliser ce filtre.', 5000); return; }
         if (F.near) { F.lmin = ''; F.lmax = ''; } else { F.lmin = nr[0]; F.lmax = nr[1]; }
-      } else if (d.f === 'slot') F.slots[d.v] = !F.slots[d.v]; else F.styles[d.v] = !F.styles[d.v];
-      RENDER.jouer(); return;
+      } else if (d.f === 'slot') F.slots[d.v] = !F.slots[d.v];
+      else if (d.f === 'style') F.styles[d.v] = !F.styles[d.v];
+      else if (d.f === 'toggle') F.open = !F.open;
+      else if (d.f === 'reset') { F.lmin = ''; F.lmax = ''; F.slots = {}; F.styles = {}; F.open = true; }
+      else if (d.f === 'widen') { // un échelon de plus de chaque côté de la plage
+        var wa = F.lmin ? LADDER.indexOf(F.lmin) : 0, wb = F.lmax ? LADDER.indexOf(F.lmax) : 0;
+        if (wa > 0 && wb > 0 && wa > wb) { var wt = wa; wa = wb; wb = wt; }
+        if (wa > 0) F.lmin = LADDER[Math.max(1, wa - 1)];
+        if (wb > 0) F.lmax = LADDER[Math.min(LADDER.length - 1, wb + 1)];
+      }
+      RENDER.jouer();
+      if (d.f === 'toggle') { var tg2 = $('[data-f="toggle"]'); if (tg2) tg2.focus(); }
+      return;
     }
     if (d.contact) {
       if (LIVE) { location.href = ({ sms: 'sms:', tel: 'tel:', mail: 'mailto:' })[d.contact] + String(d.to || '').replace(/\s+/g, d.contact === 'mail' ? '' : ''); return; }

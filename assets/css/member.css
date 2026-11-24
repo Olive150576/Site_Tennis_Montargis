@@ -1232,6 +1232,20 @@ body.m-app { background: var(--bg); min-height: 100vh; }
 .visibility .vis-edit { flex-basis: 100%; justify-content: center; }
 @media (min-width: 640px) { .visibility .vis-edit { flex-basis: auto; } }
 #profil-joueur { scroll-margin-top: 88px; }
+/* Carte « Je cherche… » (filtres de l'annuaire) */
+.crit { margin-top: 14px; }
+.crit-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.crit-title { margin: 0; font-size: 1.05rem; }
+.crit-toggle, .crit-link { border: 0; background: none; color: var(--blue); font: inherit; font-weight: 700; font-size: .88rem; cursor: pointer; min-height: 44px; padding: 0 6px; }
+.crit-sum { display: flex; flex-wrap: wrap; gap: 6px; margin: 2px 0 6px; }
+.crit-tag { display: inline-flex; padding: 4px 10px; border-radius: 999px; background: var(--bg-2); font-size: .82rem; font-weight: 600; color: var(--ink-2); }
+.crit-row { display: grid; grid-template-columns: 58px minmax(0, 1fr); gap: 10px; align-items: start; padding: 10px 0; border-top: 1px solid var(--line); }
+.crit-lab { padding-top: 13px; font-size: .78rem; font-weight: 700; letter-spacing: .02em; text-transform: uppercase; color: var(--ink-3); }
+.crit-ctl { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.crit-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; padding-top: 10px; border-top: 1px solid var(--line); }
+.crit-count { margin-right: auto; font-weight: 700; font-size: .92rem; }
+.crit-note { flex-basis: 100%; margin: 0; font-size: .8rem; color: var(--ink-3); }
+.crit-search { display: block; max-width: none; margin: 14px 0 12px; }
 .player-nocontact { display: flex; gap: 8px; align-items: flex-start; margin: 0; font-size: .84rem; color: var(--ink-2); }
 .player-nocontact .icon { width: 16px; height: 16px; flex: none; margin-top: 2px; }
 .chip.match.both { background: color-mix(in srgb, var(--ball) 30%, transparent); color: var(--ink); }
