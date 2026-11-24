@@ -143,8 +143,8 @@ const OVERRIDE = `;(function(c){c.mode='firebase';c.firebase=Object.assign({},c.
   const both = await page.$$eval('#v-jouer .player', (cs) => cs.map((c) => [...c.querySelectorAll('.dispo i.both')].map((i) => i.title)));
   ok('Jouer : créneau commun en couleur dans la grille (samedi matin chez Hugo seulement) + légende', both[1].length === 1 && /Samedi matin · en commun/.test(both[1][0]) && both[0].length === 0 && /En commun avec vous/.test(cards[1]), JSON.stringify(both));
   await page.click('#v-jouer [data-f="near"]'); await page.waitForTimeout(400);
-  ok('Jouer : « Mon niveau » règle la plage à ±3 échelons (40 à 30)', (await page.$eval('#lv-min', (x) => x.value)) === '40' && (await page.$eval('#lv-max', (x) => x.value)) === '30' && (await page.getAttribute('#v-jouer [data-f="near"]', 'aria-pressed')) === 'true');
-  await page.selectOption('#lv-min', '30/2'); await page.waitForTimeout(400); jo = await page.innerText('#v-jouer');
+  ok('Jouer : « Mon niveau » règle la plage à ±1 échelon (30/3 → 30/4 à 30/2)', (await page.$eval('#lv-min', (x) => x.value)) === '30/4' && (await page.$eval('#lv-max', (x) => x.value)) === '30/2' && (await page.getAttribute('#v-jouer [data-f="near"]', 'aria-pressed')) === 'true');
+  await page.selectOption('#lv-max', '30'); await page.selectOption('#lv-min', '30/2'); await page.waitForTimeout(400); jo = await page.innerText('#v-jouer');
   ok('Jouer : plage réglée à la main (30/2 → 30) : Hugo (40) masqué, Léa et Nina (NC) affichées, « Mon niveau » éteint', /Léa M\./.test(jo) && !/Hugo B\./.test(jo) && /Nina P\./.test(jo) && /NC toujours affichés/.test(jo) && (await page.getAttribute('#v-jouer [data-f="near"]', 'aria-pressed')) === 'false');
   await page.selectOption('#lv-min', ''); await page.selectOption('#lv-max', ''); await page.waitForTimeout(300);
 

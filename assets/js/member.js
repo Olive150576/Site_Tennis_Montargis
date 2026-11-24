@@ -486,6 +486,7 @@
   /* ---------- Navigation ---------- */
   var VIEWS = ['accueil', 'carte', 'jouer', 'equipes', 'agenda', 'boutique', 'profil'];
   var RENDER = {};
+  var pendingAnchor = null; // lien « Modifier ma fiche » : ouvrir le profil directement sur la section voulue
   function applyTeamsNav() {
     $$('[data-nav="equipes"]').forEach(function (a) { var li = a.closest('li') || a; li.style.display = TEAMS_ON ? '' : 'none'; });
     $$('[data-tab-alt]').forEach(function (a) { a.hidden = TEAMS_ON; }); // barre du bas : Agenda prend la place d'Équipes quand l'onglet est désactivé
@@ -505,6 +506,7 @@
     updateBadges();
     document.title = ({ accueil: 'Mon espace', carte: 'Ma carte', jouer: 'Jouer', equipes: 'Mes équipes', agenda: 'Agenda', boutique: 'Boutique', profil: 'Mon profil' })[view] + ' · USM Tennis Montargis';
     window.scrollTo(0, 0);
+    if (pendingAnchor) { var anc = $('#' + pendingAnchor); pendingAnchor = null; if (anc && !$('#v-' + view).hidden) anc.scrollIntoView({ block: 'start' }); }
   }
   function route() { go((location.hash || '#accueil').slice(1)); }
 
@@ -627,9 +629,10 @@
   var F = { near: false, lmin: '', lmax: '', slots: {}, styles: {}, q: '' };
   /* Niveau (comme l'ancien espace) : « Mon niveau » = ±3 échelons, plage De/À réglable ;
      NC ou classement inconnu = niveau inconnu (toujours affiché), jamais « le plus faible » */
-  var NIV_ECART = 3;
+  var NIV_ECART = 3; // écart (en échelons) à partir duquel une fiche n'a plus le repère « Niveau proche »
+  var FILTRE_ECART = 1; // filtre « Mon niveau » : un échelon en dessous, un au-dessus (30 → 30/1 à 15/5)
   function rankKnown(r) { var i = LADDER.indexOf(String(r || '').trim()); return i <= 0 ? -1 : i; }
-  function nearRange() { var mi = rankKnown(S.me.classement); return mi < 0 ? null : [LADDER[Math.max(1, mi - NIV_ECART)], LADDER[Math.min(LADDER.length - 1, mi + NIV_ECART)]]; }
+  function nearRange() { var mi = rankKnown(S.me.classement); return mi < 0 ? null : [LADDER[Math.max(1, mi - FILTRE_ECART)], LADDER[Math.min(LADDER.length - 1, mi + FILTRE_ECART)]]; }
   function commonList(p) { var me = (S.me.partenaire || {}).dispos || {}, out = []; DAYS.forEach(function (dd, i) { SLOTS.forEach(function (s) { if (me[dd] && me[dd][s] && p.dispos && p.dispos[dd] && p.dispos[dd][s]) out.push(DAYS_AB[i] + ' ' + s); }); }); return out; }
   function commonSlots(p) { var me = (S.me.partenaire || {}).dispos || {}, n = 0; DAYS.forEach(function (dd) { SLOTS.forEach(function (s) { if (me[dd] && me[dd][s] && p.dispos && p.dispos[dd] && p.dispos[dd][s]) n++; }); }); return n; }
   function dispoGrid(d, mine) {
@@ -699,8 +702,16 @@
       var pressed = function (b) { return ' aria-pressed="' + (!!b) + '"'; };
       var nr = nearRange(); F.near = !!(nr && F.lmin === nr[0] && F.lmax === nr[1]);
       var lvlOpts = function (v) { return '<option value="">—</option>' + LADDER.slice(1).map(function (c) { return '<option' + (c === v ? ' selected' : '') + '>' + c + '</option>'; }).join(''); };
-      body = '<div class="panel-m visibility" style="margin-top:18px"><div><b>' + (me.partenaire.actif ? 'Vous apparaissez dans l\'annuaire' : 'Vous êtes invisible dans l\'annuaire') + '</b><span>' + (me.partenaire.actif ? 'Les membres connectés voient votre niveau, vos créneaux et ' + (me.partenaire.partager_telephone ? 'votre téléphone.' : 'votre email.') : 'Activez pour que d\'autres membres vous proposent des matchs.') + '</span></div>' +
-        '<div class="vis-ctrl"><label class="vis-lab">Visible dans l\'annuaire<span class="switch"><input type="checkbox" data-visible' + (me.partenaire.actif ? ' checked' : '') + '><span></span></span></label><a class="link-arrow" href="#profil">Modifier mes créneaux</a></div></div>' +
+      var pm = me.partenaire, nSl = 0;
+      DAYS.forEach(function (dd) { SLOTS.forEach(function (sl) { if (pm.dispos && pm.dispos[dd] && pm.dispos[dd][sl]) nSl++; }); });
+      var hasC = !!(pm.partager_telephone || pm.partager_email);
+      var todo = !nSl && !hasC ? 'Votre fiche est vide : ajoutez vos créneaux et un moyen de vous joindre.' : !nSl ? 'Ajoutez vos créneaux : c\'est ce qui permet aux autres de vous proposer un match.' : !hasC ? 'Personne ne peut vous contacter : choisissez téléphone ou email.' : '';
+      var tags = [me.classement ? 'Niveau ' + esc(me.classement) : 'Niveau à confirmer', (pm.style || []).length ? esc(pm.style.join(', ')) : '', nSl ? nSl + ' créneau' + (nSl > 1 ? 'x' : '') : '', pm.partager_telephone && pm.partager_email ? 'Tél. + email' : pm.partager_telephone ? 'Tél.' : pm.partager_email ? 'Email' : ''].filter(Boolean);
+      body = '<div class="panel-m visibility" style="margin-top:18px"><div class="vis-main"><b>' + (pm.actif ? 'Vous apparaissez dans l\'annuaire' : 'Vous êtes invisible dans l\'annuaire') + '</b><span>' + (pm.actif ? 'Voici ce que les autres membres voient de vous.' : 'Activez pour que d\'autres membres vous proposent des matchs.') + '</span></div>' +
+        '<label class="vis-lab">Visible dans l\'annuaire<span class="switch"><input type="checkbox" data-visible' + (pm.actif ? ' checked' : '') + '><span></span></span></label>' +
+        '<div class="vis-sum" aria-label="Ma fiche joueur">' + tags.map(function (x) { return '<span class="vis-tag">' + x + '</span>'; }).join('') + '</div>' +
+        (todo ? '<div class="vis-todo" role="status">' + todo + '</div>' : '') +
+        '<a class="btn ' + (todo ? 'btn-blue ' : '') + 'btn-sm vis-edit" href="#profil" data-goto="profil-joueur">' + ic('edit') + (todo ? 'Compléter ma fiche' : 'Modifier ma fiche') + '</a></div>' +
         '<div class="lvl-row"><span class="lvl-range"><label for="lv-min">Niveau</label><select id="lv-min" data-lvl="lmin" aria-label="Niveau minimum">' + lvlOpts(F.lmin) + '</select><label for="lv-max">à</label><select id="lv-max" data-lvl="lmax" aria-label="Niveau maximum">' + lvlOpts(F.lmax) + '</select></span>' +
           '<button class="fchip" data-f="near"' + pressed(F.near) + '>' + ic('target') + 'Mon niveau' + (mk >= 0 ? ' (' + esc(me.classement) + ')' : '') + '</button></div>' +
         '<div class="filters-bar wrap"><label class="search-m">' + ic('search') + '<input type="search" placeholder="Rechercher un nom" value="' + esc(F.q) + '" data-q aria-label="Rechercher un joueur"></label>' +
@@ -941,11 +952,11 @@
           '<div class="rank-now"><div><small>Classement actuel</small><b>' + esc(me.classement) + '</b><span>' + (me.classementAt ? 'confirmé le ' + esc(fmt.short(me.classementAt)) : 'à confirmer') + '</span></div><button type="button" class="btn btn-sm" data-rank>' + ic('edit') + 'Mettre à jour</button></div>' + ladderChart(hist) +
           '<p class="muted" style="font-size:.85rem;margin-top:8px">Chaque mois, reportez ici votre classement Ten\'Up. Il alimente votre carte, l\'annuaire et les annonces à votre niveau.</p></section>' +
       shopReminder() +
-      '<section class="panel-m" style="margin-top:16px"><h2 class="v-sub" style="margin-top:0">Mon profil de joueur</h2><p class="muted" style="margin:-6px 0 14px;font-size:.9rem">Ces infos alimentent l\'annuaire « Jouer » et les annonces à votre niveau.</p>' +
+      '<section class="panel-m" id="profil-joueur" style="margin-top:16px"><h2 class="v-sub" style="margin-top:0">Mon profil de joueur</h2><p class="muted" style="margin:-6px 0 14px;font-size:.9rem">Ces infos alimentent l\'annuaire « Jouer » et les annonces à votre niveau.</p>' +
         '<div class="grid-2"><div class="stack"><div class="field"><span class="label">Style de jeu</span><div class="filters-bar" style="margin:0">' + ['Loisir', 'Compétitif', 'Double', 'Mixte'].map(function (s) { return '<button type="button" class="fchip" data-pstyle="' + s + '" aria-pressed="' + (P.style.indexOf(s) >= 0) + '">' + s + '</button>'; }).join('') + '</div></div>' +
           '<div class="field"><span class="label">Les membres peuvent me joindre par</span><div class="filters-bar" style="margin:0"><button type="button" class="fchip" data-share="partager_telephone" aria-pressed="' + !!P.partager_telephone + '">' + ic('phone') + 'Téléphone</button><button type="button" class="fchip" data-share="partager_email" aria-pressed="' + !!P.partager_email + '">' + ic('mail') + 'Email</button></div></div>' +
           '<div class="field"><label for="pp-msg">Petit mot (100 caractères)</label><input id="pp-msg" maxlength="100" value="' + esc(P.message) + '" data-pmsg></div></div>' +
-          '<div class="field"><span class="label">Mes créneaux habituels</span>' + dispoEdit + '<span class="hint">Touchez une case pour l\'activer.</span></div></div></section>' +
+          '<div class="field"><span class="label">Mes créneaux habituels</span>' + dispoEdit + '<span class="hint">Touchez une case pour l\'activer.</span></div></div><div style="margin-top:16px"><a class="btn btn-blue btn-sm" href="#jouer">' + ic('users') + 'Retour à l\'annuaire</a></div></section>' +
       '<div class="grid-2" style="margin-top:16px">' +
         '<section class="panel-m"><h2 class="v-sub" style="margin-top:0">Notifications</h2><div class="toggles">' +
           (TEAMS_ON ? tg('convocations', 'Convocations et équipe', 'Par email, dès que le capitaine vous convoque') : '') + tg('annonces', 'Annonces à mon niveau', 'Quand un membre cherche un partenaire proche de votre classement') + tg('bureau', 'Messages du bureau', 'Fermetures, événements, infos importantes') + tg('push', 'Notifications sur ce téléphone', 'En plus des emails, avec l\'application installée') +
@@ -1358,13 +1369,14 @@
       h('calendar', 'Agenda', 'Événements du club, inscription en un geste, ajout à votre agenda.') +
       (SHOP_ON ? h('bag', 'Boutique', 'Commandes groupées aux couleurs du club : choisissez votre taille, suivez le compteur, et ne payez qu\'une fois le minimum atteint.') : '') +
       h('user', 'Profil', 'Coordonnées, classement et progression, créneaux et notifications.') +
-      '</div><p class="muted" style="font-size:.9rem">Sur téléphone, Agenda' + (SHOP_ON ? ', Boutique' : '') + ' et Profil sont dans l\'onglet « Plus », en bas à droite.</p><p class="login-note" style="margin-top:8px">Une question ? Le club : <a href="tel:' + CLUB.phone.replace(/\s/g, '') + '">' + esc(CLUB.phone) + '</a></p>');
+      '</div><p class="muted" style="font-size:.9rem">Sur téléphone, Ma carte' + (TEAMS_ON ? ', Agenda' : '') + (SHOP_ON ? ', Boutique' : '') + ' sont dans l\'onglet « Plus », en bas à droite.</p><p class="login-note" style="margin-top:8px">Une question ? Le club : <a href="tel:' + CLUB.phone.replace(/\s/g, '') + '">' + esc(CLUB.phone) + '</a></p>');
   }
 
   /* ---------- Actions déléguées ---------- */
   document.addEventListener('click', function (e) {
     var t = e.target.closest('button, a'); if (!t) return;
     var d = t.dataset;
+    if (d.goto) pendingAnchor = d.goto;
     /* Onglet « Plus » */
     if (t.hasAttribute('data-more')) { if ($('#more').hidden) openMore(); else closeMore(); return; }
     if (t.closest('#more') && !t.hasAttribute('data-help') && !t.hasAttribute('data-theme-toggle')) closeMore(true);
