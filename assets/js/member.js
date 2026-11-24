@@ -489,6 +489,7 @@
   function applyTeamsNav() {
     $$('[data-nav="equipes"]').forEach(function (a) { var li = a.closest('li') || a; li.style.display = TEAMS_ON ? '' : 'none'; });
     $$('[data-tab-alt]').forEach(function (a) { a.hidden = TEAMS_ON; }); // barre du bas : Agenda prend la place d'Équipes quand l'onglet est désactivé
+    $$('[data-more-agenda]').forEach(function (a) { a.hidden = !TEAMS_ON; }); // …et disparaît alors du menu Plus (pas de doublon)
     $$('[data-nav="boutique"]').forEach(function (a) { var li = a.closest('li') || a; li.style.display = SHOP_ON ? '' : 'none'; });
   }
   /* Vue désactivée dans Admin › Paramètres › Espace membre → retour à l'accueil */
@@ -498,7 +499,7 @@
     applyTeamsNav();
     VIEWS.forEach(function (v) { var el = $('#v-' + v); if (el) el.hidden = v !== view; });
     $$('[data-nav]').forEach(function (a) { if (a.getAttribute('data-nav') === view) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
-    $$('[data-more]').forEach(function (b) { b.classList.toggle('is-current', ['agenda', 'boutique', 'profil'].indexOf(view) >= 0); });
+    $$('[data-more]').forEach(function (b) { b.classList.toggle('is-current', ['carte', 'boutique'].indexOf(view) >= 0 || (view === 'agenda' && TEAMS_ON)); });
     closeMore(true);
     RENDER[view]();
     updateBadges();
@@ -708,7 +709,7 @@
         '</div><p class="muted" style="margin-bottom:12px;font-size:.9rem" aria-live="polite">' + list2.length + ' joueur' + (list2.length > 1 ? 's' : '') + (list2.length > 1 ? (mk >= 0 ? ' · les plus proches de votre niveau, puis de vos créneaux, en premier' : ' · ceux qui ont le plus de créneaux en commun avec vous en premier') : '') + ((lo > 0 || hi > 0) ? ' · joueurs NC toujours affichés' : '') + '</p>' +
         (list2.length ? '<div class="players">' + list2.map(playerCard).join('') + '</div>' : '<div class="empty">Aucun joueur ne correspond. Retirez un filtre ou publiez une annonce.</div>');
     }
-    $('#v-jouer').innerHTML = '<div class="v-head"><div><h1>Jouer</h1><p>Trouvez un partenaire pour un simple, un double ou une partie à quatre.</p></div>' +
+    $('#v-jouer').innerHTML = '<div class="v-head"><div><h1>Jouer</h1><p>Trouvez un partenaire pour un simple, s\'entraîner ou un double.</p></div>' +
       (LIVE ? '' : '<div class="seg-tabs" role="tablist"><button role="tab" data-ptab="annonces" aria-selected="' + (playTab === 'annonces') + '">Annonces</button><button role="tab" data-ptab="annuaire" aria-selected="' + (playTab === 'annuaire') + '">Annuaire</button></div>') + '</div>' + body;
     $$('[data-lvl]').forEach(function (sel) { sel.addEventListener('change', function () { F[sel.dataset.lvl] = sel.value; RENDER.jouer(); var ns = $('[data-lvl="' + sel.dataset.lvl + '"]'); if (ns) ns.focus(); }); });
     var q = $('[data-q]'); if (q) q.addEventListener('input', function () { F.q = q.value; var pos = q.selectionStart; RENDER.jouer(); var nq = $('[data-q]'); nq.focus(); nq.setSelectionRange(pos, pos); });
