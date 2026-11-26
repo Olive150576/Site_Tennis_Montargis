@@ -494,18 +494,30 @@
       <div class="ed-media">${ims.slice(0, 2).map((im, i) => `<button type="button" class="lb-trigger" data-group="ev-${esc(e.id)}" data-i="${i}" style="all:unset;cursor:zoom-in">${pic(im, { sizes: '(max-width:960px) 100vw, 45vw', alt: im.alt || e.title , frame: 4 / 3 })}</button>`).join('')}</div>
     </article>`;
   }
+  /* Données structurées Google d'un événement daté. « offers » seulement si un prix est saisi dans l'admin (0 = gratuit) : on n'en invente pas. */
+  function eventLD(c, e) {
+    const siteUrl = (window.USM_CONFIG || {}).siteUrl || location.origin;
+    const abs = (p) => new URL(p, siteUrl + '/').href;
+    const images = (e.images || []).map((i) => i && i.src).filter((s) => s && !/^(data|blob):/.test(s)).map(abs);
+    const club = { '@type': 'SportsClub', name: 'USM Tennis Montargis', url: siteUrl };
+    const ld = {
+      '@context': 'https://schema.org', '@type': 'SportsEvent', name: e.title, startDate: e.dateStart, endDate: e.dateEnd || e.dateStart,
+      eventStatus: 'https://schema.org/EventScheduled', eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode', description: e.summary,
+      image: images.length ? images : [abs('assets/img/club/og-image.jpg')],
+      location: { '@type': 'Place', name: 'USM Tennis Montargis', address: { '@type': 'PostalAddress', streetAddress: c.settings.address, postalCode: c.settings.zip, addressLocality: c.settings.city, addressCountry: 'FR' } },
+      organizer: club,
+      performer: club
+    };
+    if (typeof e.price === 'number' && e.price >= 0) ld.offers = { '@type': 'Offer', price: e.price, priceCurrency: 'EUR', url: abs('agenda#' + e.id) };
+    return ld;
+  }
   function renderAgendaFull(c) {
     const up = upcoming(c);
     const rec = visible(c.events).filter((e) => !e.dateStart || e.recurring);
     const u = $('[data-render="agenda-upcoming"]'), r = $('[data-render="agenda-recurring"]');
     if (u) u.innerHTML = up.length ? up.map(eventDetail).join('') : '<p class="empty">Pas de date programmée pour le moment : suivez nos actualités ou notre page Facebook.</p>';
     if (r) r.innerHTML = rec.map(eventDetail).join('');
-    up.forEach((e) => jsonLD({
-      '@context': 'https://schema.org', '@type': 'SportsEvent', name: e.title, startDate: e.dateStart, endDate: e.dateEnd || e.dateStart,
-      eventStatus: 'https://schema.org/EventScheduled', eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode', description: e.summary,
-      location: { '@type': 'Place', name: 'USM Tennis Montargis', address: { '@type': 'PostalAddress', streetAddress: c.settings.address, postalCode: c.settings.zip, addressLocality: c.settings.city, addressCountry: 'FR' } },
-      organizer: { '@type': 'SportsClub', name: 'USM Tennis Montargis', url: (window.USM_CONFIG || {}).siteUrl }
-    }));
+    up.forEach((e) => jsonLD(eventLD(c, e)));
     if (location.hash) setTimeout(() => { const t = document.getElementById(location.hash.slice(1)); t && t.scrollIntoView(); }, 60);
   }
 

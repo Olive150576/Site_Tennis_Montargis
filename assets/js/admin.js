@@ -156,6 +156,7 @@
         { k: 'dateStart', t: 'date', l: 'Date de début', half: true },
         { k: 'dateEnd', t: 'date', l: 'Date de fin (facultatif)', half: true },
         { k: 'time', t: 'text', l: 'Horaires', half: true, placeholder: '14 h – 17 h' },
+        { k: 'price', t: 'number', l: 'Participation (€)', half: true, hint: 'Facultatif, transmis à Google (non affiché sur le site). 0 = gratuit ; vide = non précisé.' },
         { k: 'when', t: 'text', l: 'Période (si pas de date)', half: true, placeholder: 'Chaque année en juin' },
         { k: 'months', t: 'months', l: 'Mois concernés (si pas de date)', hint: 'Agenda mois par mois de l\'espace membre : l\'événement apparaît dans les mois cochés, en « date à venir ».' },
         { k: 'summary', t: 'textarea', l: 'Résumé', max: 200, hint: 'Deux lignes affichées dans les cartes de l\'agenda.' },
