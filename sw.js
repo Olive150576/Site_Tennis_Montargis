@@ -7,9 +7,12 @@
      • efface les anciens caches (pas de vieilles pages affichées) ;
      • ne met plus rien en cache : le site est toujours servi à jour ;
      • garde la réception des notifications push, pour que les abonnements
-       existants des membres continuent de fonctionner.
+       existants des membres continuent de fonctionner ;
+     • déclare un gestionnaire « fetch » vide (aucune mise en cache) : certains
+       Chrome / Android l'exigent pour proposer l'installation de l'appli.
+   Enregistré par app.js (site) et member.js (espace membre), portée « / ».
    ===================================================================== */
-const VERSION = 'usm-v2-1';
+const VERSION = 'usm-v2-2';
 
 self.addEventListener('install', () => { self.skipWaiting(); });
 
@@ -20,6 +23,9 @@ self.addEventListener('activate', (event) => {
       .then(() => self.clients.claim())
   );
 });
+
+/* Gestionnaire « fetch » volontairement vide : le navigateur traite la requête normalement. */
+self.addEventListener('fetch', () => {});
 
 /* Notifications push (même format que l'ancien site : title, body, icon, badge, url) */
 self.addEventListener('push', (event) => {

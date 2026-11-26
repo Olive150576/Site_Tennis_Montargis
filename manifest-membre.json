@@ -1,14 +1,16 @@
 {
   "name": "Espace Membre — USM Tennis Montargis",
   "short_name": "Espace Membre",
-  "description": "Carte de membre, équipes, championnats et vie du club USM Tennis Montargis",
+  "description": "Carte de membre, agenda, partenaires de jeu et avantages du club USM Tennis Montargis",
+  "lang": "fr",
+  "categories": ["sports", "lifestyle"],
   "id": "/espace-membre.html",
   "start_url": "/espace-membre.html",
   "scope": "/espace-membre.html",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#060b1d",
-  "theme_color": "#0c2a8a",
+  "theme_color": "#1541c9",
   "icons": [
     {
       "src": "/icon-membre-192.png",
@@ -33,6 +35,20 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Montrer ma carte",
+      "short_name": "Ma carte",
+      "url": "/espace-membre.html#carte",
+      "icons": [{ "src": "/icon-membre-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Agenda du club",
+      "short_name": "Agenda",
+      "url": "/espace-membre.html#agenda",
+      "icons": [{ "src": "/icon-membre-192.png", "sizes": "192x192", "type": "image/png" }]
     }
   ]
 }

@@ -978,4 +978,9 @@
   if (!document.documentElement.hasAttribute('data-admin')) {
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
   }
+
+  /* Service worker : requis pour une appli installable fiable et pour le push (portée « / »). */
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () { navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(function () {}); });
+  }
 })();

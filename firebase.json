@@ -147,7 +147,7 @@
         ]
       },
       {
-        "source": "/manifest*.json",
+        "source": "/manifest*.@(json|webmanifest)",
         "headers": [
           {
             "key": "Content-Type",

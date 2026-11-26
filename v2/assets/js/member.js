@@ -1634,5 +1634,10 @@
     }).catch(function (x) { showErr('Service indisponible : ' + ((x && x.message) || x)); });
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+
+  /* Service worker : requis pour une appli installable fiable et pour le push (portée « / »). */
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () { navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(function () {}); });
+  }
 })();
 
